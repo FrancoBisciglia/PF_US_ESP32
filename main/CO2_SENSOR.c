@@ -27,6 +27,8 @@
 #include <esp_timer.h>
 #include "esp_log.h"
 
+#include "CO2_SENSOR.h"
+
 //==================================| MACROS AND TYPDEF |==================================//
 
 /* Macro para controlar si expiró el tiempo de espera de respuesta del sensor. */
@@ -43,11 +45,18 @@ CO2_sensor_pwm_pin_t CO2_SENSOR_PWM_PIN;
 /* Handle de la tarea de obtención de datos del sensor de CO2 */
 TaskHandle_t xCO2TaskHandle = NULL;
 
+/* Bandera para verificar si se obtuvo un pulso de PWM desde el sensor de CO2 */
+bool CO2_interr_flag = 0;
+
+/* Variable en donde se guarda el valor de CO2 obtenido por PWM. */
+unsigned long CO2_ppm_pwm = 0;
+
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
 void vTaskGetCO2ByPWM(void *pvParameters);
+void isr_handler(void *args);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -58,6 +67,28 @@ void vTaskGetCO2ByPWM(void *pvParameters);
  */
 void isr_handler(void *args)
 {
+    /**
+     *  Esta variable sirve para que, en el caso de que un llamado a "xTaskNotifyFromISR()" desbloquee
+     *  una tarea de mayor prioridad que la que estaba corriendo justo antes de entrar en la rutina
+     *  de interrupción, al retornar se haga un context switch a dicha tarea de mayor prioridad en vez
+     *  de a la de menor prioridad (xHigherPriorityTaskWoken = pdTRUE)
+     */
+    BaseType_t xHigherPriorityTaskWoken;
+    xHigherPriorityTaskWoken = pdFALSE;
+
+    /**
+     *  Enviamos un Task Notify a la tarea de obtención de nivel de CO2, para que continúe con su
+     *  rutina de conversión. Además, seteamos la bandera para que dicha tarea pueda saber que 
+     *  efectivamente ocurrió la interrupción y no hubo timeout.
+     */
+    vTaskNotifyGiveFromISR(xCO2TaskHandle, &xHigherPriorityTaskWoken);
+    CO2_interr_flag = 1;
+
+    /**
+     *  Devolvemos el procesador a la tarea que corresponda. En el caso de que xHigherPriorityTaskWoken = pdTRUE,
+     *  implica que se debe realizar un context switch a la tarea de mayor prioridad que fue desbloqueada.
+     */
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 
 }
 
@@ -71,54 +102,138 @@ void vTaskGetCO2ByPWM(void *pvParameters)
 {
     while(1)
     {
-        inicio: ;
+        /**
+         *  Etiqueta que se utiliza como forma de retorno de ejecución parcial de la rutina,
+         *  es decir, para casos en los que, por ejemplo, se cumplió el timeout de espera
+         *  de la respuesta del sensor, y por lo tanto no se debe continuar con la ejecución
+         *  de la rutina, sino que se debe volver a comenzar.
+         */
+        inicio: CO2_interr_flag = 0;
 
-        int64_t time;
-        time = esp_timer_get_time();
-        while (!gpio_get_level(CO2_PWM))
+
+        //========================| MEDICIÓN PULSO EN ALTO |===========================//
+
+        /**
+         *  Se configura la interrupción por flanco ascendente en el pin correspondiente
+         *  al PWM del sensor de CO2, de modo de detectar el inicio del pulso en alto
+         *  de la señal PWM.
+         */
+        gpio_set_intr_type(CO2_SENSOR_PWM_PIN, GPIO_INTR_POSEDGE);
+        gpio_intr_enable(CO2_SENSOR_PWM_PIN);
+
+
+        /**
+         *  Se espera a recibir un Task Notify desde la rutina de interrupción. En caso
+         *  de que se cumpla el tiempo de timeout, se procede a lanzar un mensaje de
+         *  error de timeout y se comienza el ciclo desde el principio (inicio).
+         */
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1060));
+        
+        if(!CO2_interr_flag)
         {
-            if (timeout_expired(time, 1060000))
-            {
-                goto inicio;
-            }
+            ESP_LOGE(TAG, "TIMEOUT ERROR: Didn't get any high pulse PWM signal.");
+            goto inicio;
         }
 
+        CO2_interr_flag = 0;
 
+
+        /**
+         *  Se crea una variable donde se guardará el tiempo actual que lleva corriendo
+         *  el programa, para luego medir el ancho del pulso en alto como diferencia de 
+         *  tiempos.
+         */
         int64_t high_time_start;
         high_time_start = esp_timer_get_time();
-        int64_t high_time;
-        high_time = high_time_start;
-        while (gpio_get_level(CO2_PWM))
+
+
+        /**
+         *  Se configura la interrupción por flanco descendente en el pin correspondiente
+         *  al PWM del sensor de CO2, de modo de detectar el fin del pulso en alto
+         *  de la señal PWM.
+         */
+        gpio_set_intr_type(CO2_SENSOR_PWM_PIN, GPIO_INTR_NEGEDGE);
+
+
+        /**
+         *  Se espera a recibir un Task Notify desde la rutina de interrupción. En caso
+         *  de que se cumpla el tiempo de timeout, se procede a lanzar un mensaje de
+         *  error de timeout y se comienza el ciclo desde el principio (inicio).
+         */
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1060));
+
+        if(!CO2_interr_flag)
         {
-            high_time = esp_timer_get_time();
-            if (timeout_expired(high_time_start, 1060000))
-            {
-                goto inicio;
-            }
+            ESP_LOGE(TAG, "TIMEOUT ERROR: Didn't get any high pulse PWM signal.");
+            goto inicio;
         }
 
-        th = high_time - high_time_start;
+        CO2_interr_flag = 0;
 
-        //tl = pulseIn(8, LOW, 1060000) / 1000;
 
+        /**
+         *  Variable correspondiente al tiempo en alto del pulso PWM del sensor
+         *  de CO2.
+         */
+        int64_t th = 0;
+        th = esp_timer_get_time() - high_time_start;
+
+        
+
+        //========================| MEDICIÓN PULSO EN BAJO |===========================//
+
+        /**
+         *  Se crea una variable donde se guardará el tiempo actual que lleva corriendo
+         *  el programa, para luego medir el ancho del pulso en bajo como diferencia de 
+         *  tiempos.
+         */
         int64_t low_time_start;
         low_time_start = esp_timer_get_time();
-        int64_t low_time;
-        low_time = low_time_start;
-        while (!gpio_get_level(CO2_PWM))
+        
+        /**
+         *  Se configura la interrupción por flanco descendente en el pin correspondiente
+         *  al PWM del sensor de CO2, de modo de detectar el fin del pulso en alto
+         *  de la señal PWM.
+         */
+        gpio_set_intr_type(CO2_SENSOR_PWM_PIN, GPIO_INTR_POSEDGE);
+
+
+        /**
+         *  Se espera a recibir un Task Notify desde la rutina de interrupción. En caso
+         *  de que se cumpla el tiempo de timeout, se procede a lanzar un mensaje de
+         *  error de timeout y se comienza el ciclo desde el principio (inicio).
+         */
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1060));
+
+        if(!CO2_interr_flag)
         {
-            low_time = esp_timer_get_time();
-            if (timeout_expired(low_time_start, 1060000))
-            {
-                goto inicio;
-            }
+            ESP_LOGE(TAG, "TIMEOUT ERROR: Didn't get any low pulse PWM signal.");
+            goto inicio;
         }
 
-        tl = low_time - low_time_start;
+        CO2_interr_flag = 0;
 
-        ppm_pwm = 5000 * (th - 2) / (th + tl - 4);
+
+        /**
+         *  Variable correspondiente al tiempo en bajo del pulso PWM del sensor
+         *  de CO2.
+         */
+        int64_t tl = 0;
+        tl = esp_timer_get_time() - low_time_start;
+
+
+
+        //========================| OBTENCIÓN DE VALOR DE CO2 |===========================//
+
+        /**
+         *  A partir de los tiempos en alto y en bajo del pulso PWM, se obtiene el valor
+         *  de CO2 en ppm.
+         */
+        CO2_ppm_pwm = 5000 * (th - 2) / (th + tl - 4);
     }
 }
+
+
 
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -194,4 +309,21 @@ esp_err_t CO2_sensor_init(CO2_sensor_pwm_pin_t CO2_sens_pwm_pin)
             4,
             &xCO2TaskHandle);
     }
+
+    return ESP_OK;
+}
+
+
+
+/**
+ * @brief   Función que devuelve a un buffer pasado como argumento el valor de CO2 en ppm.
+ * 
+ * @param CO2_value_buffer  Buffer donde se guardará el valor de CO2 en ppm.
+ * @return esp_err_t 
+ */
+esp_err_t CO2_sensor_get_CO2(CO2_sensor_ppm_t *CO2_value_buffer)
+{
+    *CO2_value_buffer = CO2_ppm_pwm;
+
+    return ESP_OK;
 }

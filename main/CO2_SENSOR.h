@@ -18,6 +18,7 @@ extern "C" {
 /*==================[DEFINES AND MACROS]=====================================*/
 
 typedef gpio_num_t CO2_sensor_pwm_pin_t;
+typedef unsigned long CO2_sensor_ppm_t;
 
 /*==================[EXTERNAL DATA DECLARATION]==============================*/
 
