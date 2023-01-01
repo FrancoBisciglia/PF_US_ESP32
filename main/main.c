@@ -5,8 +5,12 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "esp_log.h"
+
 
 #define CO2_PWM_PIN 33
+
+const char *TAG = "MAIN";
 
 void app_main(void)
 {
@@ -17,6 +21,8 @@ void app_main(void)
     while(1)
     {
         CO2_sensor_get_CO2(&CO2_ppm);
+
+        ESP_LOGI(TAG, "CO2: %lu", CO2_ppm);
 
         vTaskDelay(pdMS_TO_TICKS(3000));
 

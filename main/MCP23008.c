@@ -245,7 +245,7 @@ esp_err_t set_relay_state(int8_t relay_num, bool relay_state)
 }
 
 
-
+/*
 void app_main(void)
 {
 
@@ -295,3 +295,4 @@ void app_main(void)
 
     }
 }
+*/
