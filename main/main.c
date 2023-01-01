@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "CO2_SENSOR.h"
+#include "FLOW_SENSOR.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -8,7 +8,7 @@
 #include "esp_log.h"
 
 
-#define CO2_PWM_PIN 33
+#define FLOW_SENSOR_PIN 33
 
 const char *TAG = "MAIN";
 
