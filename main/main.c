@@ -2,6 +2,9 @@
 
 #include "CO2_SENSOR.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 
 #define CO2_PWM_PIN 33
 
