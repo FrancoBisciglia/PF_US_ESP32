@@ -71,7 +71,7 @@ void isr_handler(void *args);
  * 
  * @param args  Parámetros pasados a la rutina de servicios de interrupción de GPIO.
  */
-void isr_handler(void *args)
+static void isr_handler(void *args)
 {
     /**
      *  Esta variable sirve para que, en el caso de que un llamado a "xTaskNotifyFromISR()" desbloquee
@@ -104,7 +104,7 @@ void isr_handler(void *args)
  * 
  * @param pvParameters  Parámetros pasados a la tarea en su creación.
  */
-void vTaskGetCO2ByPWM(void *pvParameters)
+static void vTaskGetCO2ByPWM(void *pvParameters)
 {
     while(1)
     {
