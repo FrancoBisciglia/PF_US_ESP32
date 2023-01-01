@@ -20,9 +20,16 @@ void app_main(void)
 
     while(1)
     {
-        CO2_sensor_get_CO2(&CO2_ppm);
+        if(CO2_sensor_is_warming_up())
+        {
+            ESP_LOGI(TAG, "Warming up");
+        }
 
-        ESP_LOGI(TAG, "CO2: %lu", CO2_ppm);
+        else{
+            CO2_sensor_get_CO2(&CO2_ppm);
+
+            ESP_LOGI(TAG, "CO2: %lu", CO2_ppm);
+        }
 
         vTaskDelay(pdMS_TO_TICKS(3000));
 

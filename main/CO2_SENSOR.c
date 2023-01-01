@@ -11,13 +11,6 @@
  */
 
 
-/**
- * NOTA:    FALTA IMPLEMENTAR ALGO PARA TENER EN CUENTA EL TIEMPO DE CALENTAMIENTO QUE TIENE
- *          EL PROPIO SENSOR, ADEMÁS DE QUIZAS ALGUNA FORMA DE VERIFICAR SI HAY VALORES ERRONEOS.
- * 
- */
-
-
 
 //==================================| INCLUDES |==================================//
 
@@ -36,8 +29,12 @@
 
 //==================================| MACROS AND TYPDEF |==================================//
 
-/* Macro para controlar si expiró el tiempo de espera de respuesta del sensor. */
-#define timeout_expired(start, len) ((esp_timer_get_time() - (start)) >= (len))
+/**
+ *  Macro para controlar si expiró el tiempo de calentamiento del sensor CO2.
+ * 
+ *  len -> Tiempo en segundos.
+ */
+#define warm_up_expired(start, len) ((esp_timer_get_time() - (start)) >= (len * 1000000))
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
 
@@ -56,6 +53,9 @@ static bool CO2_interr_flag = 0;
 /* Variable en donde se guarda el valor de CO2 obtenido por PWM. */
 static unsigned long CO2_ppm_pwm = 0;
 
+/* Variable utilizada para controlar el tiempo de calentamiento del sensor de CO2. */
+int64_t CO2_warm_up_time_start = 0;
+
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
@@ -66,9 +66,10 @@ void isr_handler(void *args);
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief 
+ * @brief   Rutina de servicio de interrupción de GPIO, mediante la cual se controla la lectura de flancos
+ *          del pulso de PWM del sensor de CO2.
  * 
- * @param args 
+ * @param args  Parámetros pasados a la rutina de servicios de interrupción de GPIO.
  */
 void isr_handler(void *args)
 {
@@ -99,9 +100,9 @@ void isr_handler(void *args)
 
 
 /**
- * @brief 
+ * @brief   Tarea encargada de obtener una medición de CO2 en ppm del sensor de CO2.
  * 
- * @param pvParameters 
+ * @param pvParameters  Parámetros pasados a la tarea en su creación.
  */
 void vTaskGetCO2ByPWM(void *pvParameters)
 {
@@ -243,13 +244,19 @@ void vTaskGetCO2ByPWM(void *pvParameters)
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief 
+ * @brief   Función para inicializar el sensor de CO2.
  * 
- * @param CO2_sens_pwm_pin 
+ * @param CO2_sens_pwm_pin  GPIO del pin de PWM del sensor de CO2.
  * @return esp_err_t 
  */
 esp_err_t CO2_sensor_init(CO2_sensor_pwm_pin_t CO2_sens_pwm_pin)
 {
+    /**
+     *  Se guarda el inicio del conteo de tiempo de calentamiento del sensor.
+     * 
+     */
+    CO2_warm_up_time_start = esp_timer_get_time();
+
     /**
      *  Se guarda el número de pin correspondiente al del PWM del sensor de CO2.
      */
@@ -331,4 +338,17 @@ esp_err_t CO2_sensor_get_CO2(CO2_sensor_ppm_t *CO2_value_buffer)
     *CO2_value_buffer = CO2_ppm_pwm;
 
     return ESP_OK;
+}
+
+
+/**
+ * @brief   Función para saber si el sensor se está calentando para su funcionamiento.
+ */
+bool CO2_sensor_is_warming_up(void)
+{
+    /**
+     *  Se controla si ya se cumplió el tiempo de espera de calentamiento del sensor
+     *  (3 min).
+     */
+    return !warm_up_expired(CO2_warm_up_time_start, 60);
 }

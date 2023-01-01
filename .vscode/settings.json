@@ -10,5 +10,8 @@
     "idf.pythonBinPathWin": "c:\\Users\\Laptop\\ESP32\\.espressif\\python_env\\idf4.4_py3.8_env\\Scripts\\python.exe",
     "idf.toolsPathWin": "c:\\Users\\Laptop\\ESP32\\.espressif",
     "idf.portWin": "COM7",
-    "idf.flashType": "UART"
+    "idf.flashType": "UART",
+    "files.associations": {
+        "*.inc": "c"
+    }
 }
