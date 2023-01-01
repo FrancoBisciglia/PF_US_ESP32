@@ -1,21 +1,33 @@
-
+/**
+ * @file ultrasonic_sensor.c
+ * @author Franco Bisciglia, David Kündinger
+ * @brief   Librería utilizada para obtener datos del sensor ultrasónico HC-SR04, tanto de la distancia respecto a un objeto, 
+ *          como el nivel de altura de líquido de un tanque determinado.
+ * @version 0.1
+ * @date 2023-01-01
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 
 
 
 //==================================| INCLUDES |==================================//
 
 #include <stdio.h>
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
 #include "esp_system.h"
 #include "esp_log.h"
-#include "driver/gpio.h"
-#include "ultrasonic_sensor.h"
 #include <esp_idf_lib_helpers.h>
 #include <esp_timer.h>
 #include <ets_sys.h>
 
+#include "driver/gpio.h"
 
+#include "ultrasonic_sensor.h"
 
 //==================================| MACROS AND TYPDEF |==================================//
 
@@ -43,7 +55,7 @@ static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
 
-static const char* TAG = "ULTRASONIC";
+static const char* TAG = "ULTRASONIC_SENSOR_LIBRARY";
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
@@ -53,6 +65,12 @@ static const char* TAG = "ULTRASONIC";
 
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
+/**
+ * @brief   Función utilizada para inicializar el sensor ultrasónico, para el uso en modo 3-wire (VCC-TRIGG/ECHO-GND).
+ * 
+ * @param ultrasonic_sens_descr     Estructura que contiene el pin de datos (TRIGG-ECHO) del sensor ultrasónico.
+ * @return esp_err_t 
+ */
 esp_err_t ultrasonic_sensor_init(ultrasonic_sens_t *ultrasonic_sens_descr)
 {
     /* Se establece el pin común a TRIGGER y ECHO como OUTPUT inicialmente */
@@ -63,10 +81,19 @@ esp_err_t ultrasonic_sensor_init(ultrasonic_sens_t *ultrasonic_sens_descr)
 }
 
 
+
+/**
+ * @brief   Función utilizada para obtener la distancia en "cm" respecto de el objeto más cercano al que esté apuntando
+ *          el sensor ultrasónico (también un cuerpo de agua).
+ * 
+ * @param ultrasonic_sens_descr     Estructura que contiene el pin de datos (TRIGG-ECHO) del sensor ultrasónico.
+ * @param distance_cm       Variable donde se guarda la distancia en cm respecto al objeto más cercano.
+ * @return esp_err_t 
+ */
 esp_err_t ultrasonic_measure_distance_cm(ultrasonic_sens_t *ultrasonic_sens_descr, float *distance_cm)
 {
 
-    /*====================PULSO DE INICIO DE CONVERSIÓN====================*/
+    /*====================| PULSO DE INICIO DE CONVERSIÓN |====================*/
 
     /* 
         Se ingresa a sección critica, donde no se debe interrumpir el proceso de comunicación con el sensor,
@@ -84,7 +111,7 @@ esp_err_t ultrasonic_measure_distance_cm(ultrasonic_sens_t *ultrasonic_sens_desc
     gpio_set_level(ultrasonic_sens_descr->trigg_echo_pin, 0);
 
 
-    /*====================ESPERA DE RESPUESTA====================*/
+    /*====================| ESPERA DE RESPUESTA |====================*/
 
     /* 
         Se espera el pulso de respuesta del sensor. Si transcurre cierto tiempo (timeout) y no
@@ -102,7 +129,7 @@ esp_err_t ultrasonic_measure_distance_cm(ultrasonic_sens_t *ultrasonic_sens_desc
     }
 
 
-    /*====================RECEPCIÓN DE PULSO DE RESPUESTA====================*/
+    /*====================| RECEPCIÓN DE PULSO DE RESPUESTA |====================*/
 
     /* 
         Una vez recibido el pulso, se sabe que la duración del mismo es directamente proporcional a 
@@ -127,7 +154,7 @@ esp_err_t ultrasonic_measure_distance_cm(ultrasonic_sens_t *ultrasonic_sens_desc
     PORT_EXIT_CRITICAL;
 
 
-    /*====================CÁLCULO DE DISTANCIA EN CM====================*/
+    /*====================| CÁLCULO DE DISTANCIA EN CM |====================*/
 
     /* 
         En base a la duración del pulso de respuesta, se calcula la distancia en cm a partir
@@ -143,6 +170,17 @@ esp_err_t ultrasonic_measure_distance_cm(ultrasonic_sens_t *ultrasonic_sens_desc
 }
 
 
+
+/**
+ * @brief   Función para conocer el nivel de líquido de un tanque de almacenamiento determinado.
+ * 
+ * @param ultrasonic_sens_descr     Estructura que contiene el pin de datos (TRIGG-ECHO) del sensor ultrasónico.
+ * @param tank  Estructura que contiene las dimensiones del tanque (altura).
+ * @param level     Variable donde se guarda el nivel de líquido en el tanque, con valores entre:
+ *                  -0: Tanque vacío.
+ *                  -1: Tanque lleno.
+ * @return esp_err_t 
+ */
 esp_err_t ultrasonic_measure_level(ultrasonic_sens_t *ultrasonic_sens_descr, storage_tank_t *tank, float *level)
 {
 
