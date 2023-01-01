@@ -14,6 +14,7 @@ extern "C" {
 /*==================[INCLUDES]=============================================*/
 
 #include <stdio.h>
+#include "esp_err.h"
 
 /*==================[DEFINES AND MACROS]=====================================*/
 
@@ -23,6 +24,9 @@ typedef unsigned long CO2_sensor_ppm_t;
 /*==================[EXTERNAL DATA DECLARATION]==============================*/
 
 /*==================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
+
+esp_err_t CO2_sensor_init(CO2_sensor_pwm_pin_t CO2_sens_pwm_pin);
+esp_err_t CO2_sensor_get_CO2(CO2_sensor_ppm_t *CO2_value_buffer);
 
 /*==================[END OF FILE]============================================*/
 

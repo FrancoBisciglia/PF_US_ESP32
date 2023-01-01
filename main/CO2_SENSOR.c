@@ -25,6 +25,7 @@
 #include "freertos/task.h"
 
 #include <esp_timer.h>
+#include "esp_err.h"
 #include "esp_log.h"
 
 #include "CO2_SENSOR.h"
@@ -40,16 +41,16 @@
 static const char *TAG = "CO2_SENSOR_LIBRARY";
 
 /* Variable que representa el pin de PWM del sensor de CO2 */
-CO2_sensor_pwm_pin_t CO2_SENSOR_PWM_PIN;
+static CO2_sensor_pwm_pin_t CO2_SENSOR_PWM_PIN;
 
 /* Handle de la tarea de obtención de datos del sensor de CO2 */
-TaskHandle_t xCO2TaskHandle = NULL;
+static TaskHandle_t xCO2TaskHandle = NULL;
 
 /* Bandera para verificar si se obtuvo un pulso de PWM desde el sensor de CO2 */
-bool CO2_interr_flag = 0;
+static bool CO2_interr_flag = 0;
 
 /* Variable en donde se guarda el valor de CO2 obtenido por PWM. */
-unsigned long CO2_ppm_pwm = 0;
+static unsigned long CO2_ppm_pwm = 0;
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
