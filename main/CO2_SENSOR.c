@@ -60,8 +60,8 @@ int64_t CO2_warm_up_time_start = 0;
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-void vTaskGetCO2ByPWM(void *pvParameters);
-void isr_handler(void *args);
+static void vTaskGetCO2ByPWM(void *pvParameters);
+static void isr_handler(void *args);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 

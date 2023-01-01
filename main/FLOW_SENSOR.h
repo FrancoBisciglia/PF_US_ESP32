@@ -20,7 +20,7 @@ extern "C" {
 /*==================[DEFINES AND MACROS]=====================================*/
 
 typedef gpio_num_t flux_sensor_data_pin_t;
-typedef float flow_sensor_flow_t
+typedef float flow_sensor_flow_t;
 
 /*==================[EXTERNAL DATA DECLARATION]==============================*/
 

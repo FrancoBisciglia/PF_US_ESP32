@@ -23,6 +23,8 @@
 #include "esp_err.h"
 #include "esp_log.h"
 
+#include "FLOW_SENSOR.h"
+
 //==================================| MACROS AND TYPDEF |==================================//
 
 
@@ -72,7 +74,6 @@ static void flow_sensor_isr_handler(void *args)
  * 
  * @param pvParameters      Parámetros pasados a la tarea en su creación.
  */
-*/
 static void vTaskGetFlow(void *pvParameters)
 {
     /**
