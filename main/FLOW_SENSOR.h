@@ -19,9 +19,16 @@ extern "C" {
 
 /*==================[DEFINES AND MACROS]=====================================*/
 
+typedef gpio_num_t flux_sensor_data_pin_t;
+typedef float flow_sensor_flow_t
+
 /*==================[EXTERNAL DATA DECLARATION]==============================*/
 
 /*==================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
+
+esp_err_t flow_sensor_init(flux_sensor_data_pin_t flow_sens_data_pin);
+esp_err_t flow_sensor_get_flow_L_per_min(flow_sensor_flow_t *flow_value_buffer);
+bool flow_sensor_flow_detected();
 
 /*==================[END OF FILE]============================================*/
 
