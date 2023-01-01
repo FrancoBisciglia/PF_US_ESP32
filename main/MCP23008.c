@@ -1,78 +1,50 @@
-/* i2c - Simple example
-
-   Simple I2C example that shows how to initialize I2C
-   as well as reading and writing from and to registers for a sensor connected over I2C.
-
-   The sensor used in this example is a MPU9250 inertial measurement unit.
-
-   For other examples please check:
-   https://github.com/espressif/esp-idf/tree/master/examples
-
-   See README.md file to get detailed usage of this example.
-
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
+/**
+ * @file MCP23008.c
+ * @author Franco Bisciglia, David Kündinger
+ * @brief   Librería utilizada para el manejo del expansor I2C de I/O, el IC MCP23008, para el caso específico de la
+ *          aplicación al sistema del proyecto.
+ * @version 0.1
+ * @date 2023-01-01
+ * 
+ * @copyright Copyright (c) 2023
+ * 
+ */
 
 
+/**
+ * =================================================| EXPLICACIÓN DE LIBRERÍA |=================================================
+ *  
+ *      EL TRIGGER_PH ESTÁ EN GP7, MIENTRAS QUE LOS RELES ESTAN DESDE EL RELE 7 EN GP6, HASTA EL RELE 1 EN GP0.
+ *  
+ *      PARA ESCRIBIR EN EL MCP23008, SE DEBE SEGUIR LA SIGUIENTE SECUENCIA;
+ *  
+ *  1)  SE PASA UN BYTE CON LA DIRECCIÓN I2C DEL MCP23008 Y SI VA A SER UNA TRANSACCIÓN DE R/W. EN ESTE CASO, DADO
+ *      QUE EL MCP23008 VA A TENER A0=A1=A2=0, Y ES UNA TRANSACCIÓN DE WRITE, ESTE BYTE QUEDARIA COMO 0x40. PERO, SI SE
+ *      UTILIZA POR EJEMPLO LA FUNCIÓN "i2c_master_write_to_device", LA CUAL INTERNAMENTE TE DESPLAZA 1 BIT HACIA LA IZQ
+ *      EL ARGUMENTO QUE LE PONGAS COMO "I2C SLAVE ADDRES", ENTONCES PARA EL MCP23008 QUEDARÍA 0X20.
+ * 
+ *  2)  SE PASA OTRO BYTE INDICANDO LA DIRECCIÓN DEL REGISTRO QUE QUEREMOS MODIFICAR, POR EJEMPLO EL PORT GPIO SERÍA 0x09, Y PARA
+ *      EL REGISTRO DE CONFIGURACIÓN DE I/O, SERÍA 0x00, QUE SON LOS 2 REGISTROS QUE VAMOS A UTILIZAR.
+ *  
+ *  3)  SE PASA UN ÚLTIMO BYTE, ESTA VEZ CON LA INFORMACIÓN A ESCRIBIR EN EL REGISTRO SELECCIONADO
+ * 
+ *      PARA LEER DEL MCP23008 SERÍA UNA SECUENCIA SIMILAR, DEBE ESCRIBIRSE EL PRIMER BYTE CON LA DIRECCIÓN, EL SEGUNDO BYTE CON EL 
+ *  REGISTRO A LEER, EN ESTE CASO EL GPIO QUE ES 0x09, Y LUEGO LEER EL TERCER BYTE QUE TENDRA EL DATO DEL ESTADO DE LOS GPIO.
+ * 
+ */
 
-
-
-//==================================| NOTA IMPORTANTE PARA CORREGIR |==================================//
-/*
-    IMPORTANTEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-    DADO QUE EN LA PLACA SE CONECTÓ EL PIN DE RESET DEL MCP23008 AL GPIO23 DEL ESP32, Y DICHO PIN DEBE ESTAR
-    SIEMPRE EN ALTO PARA QUE FUNCIONE EL MCP, FALTA PONER EN LA INICIALIZACIÓN QUE SE DEJA DICHO PIN SIEMPRE EN 1
-
-    CORREGIRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR!!!!!!!!!!!!!!!!!!!!!!!
-
-*/
-
-
-
-
-
-
-
-
-
-
-
-
-//==================================| NOTES |==================================//
-/*
-    EL TRIGGER_PH ESTÁ EN GP7, MIENTRAS QUE LOS RELES ESTAN DESDE EL RELE 7 EN GP6, HASTA EL RELE 1 EN GP0.
-
-    PARA ESCRIBIR EN EL MCP23008, SE DEBE SEGUIR LA SIGUIENTE SECUENCIA:
-    
-    1)  SE PASA UN BYTE CON LA DIRECCIÓN I2C DEL MCP23008 Y SI VA A SER UNA TRANSACCIÓN DE R/W. EN ESTE CASO, DADO
-        QUE EL MCP23008 VA A TENER A0=A1=A2=0, Y ES UNA TRANSACCIÓN DE WRITE, ESTE BYTE QUEDARIA COMO 0x40. PERO, SI SE
-        UTILIZA POR EJEMPLO LA FUNCIÓN "i2c_master_write_to_device", LA CUAL INTERNAMENTE TE DESPLAZA 1 BIT HACIA LA IZQ
-        EL ARGUMENTO QUE LE PONGAS COMO "I2C SLAVE ADDRES", ENTONCES PARA EL MCP23008 QUEDARÍA 0X20.
-    
-    2)  SE PASA OTRO BYTE INDICANDO LA DIRECCIÓN DEL REGISTRO QUE QUEREMOS MODIFICAR, POR EJEMPLO EL PORT GPIO SERÍA 0x09, Y PARA
-        EL REGISTRO DE CONFIGURACIÓN DE I/O, SERÍA 0x00, QUE SON LOS 2 REGISTROS QUE VAMOS A UTILIZAR.
-
-    3)  SE PASA UN ÚLTIMO BYTE, ESTA VEZ CON LA INFORMACIÓN A ESCRIBIR EN EL REGISTRO SELECCIONADO
-
-    PARA LEER DEL MCP23008 SERÍA UNA SECUENCIA SIMILAR, DEBE ESCRIBIRSE EL PRIMER BYTE CON LA DIRECCIÓN, EL SEGUNDO BYTE CON EL 
-    REGISTRO A LEER, EN ESTE CASO EL GPIO QUE ES 0x09, Y LUEGO LEER EL TERCER BYTE QUE TENDRA EL DATO DEL ESTADO DE LOS GPIO.
-
-*/
 
 
 //==================================| INCLUDES |==================================//
 
-#include "MCP23008.h"
 #include <stdio.h>
+
 #include "esp_log.h"
+
 #include "driver/i2c.h"
 #include "driver/gpio.h"
 
+#include "MCP23008.h"
 
 
 //==================================| MACROS AND TYPDEF |==================================//
@@ -83,7 +55,8 @@
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
 
-static const char *TAG = "MCP23008_I2C";
+/* Tag para imprimir información en el LOG. */
+static const char *TAG = "MCP23008_I2C_LIBRARY";
 
 
 
@@ -120,7 +93,12 @@ static esp_err_t MCP23008_register_write_byte(uint8_t reg_addr, uint8_t data);
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief       FUNCIÓN QUE SE UTILIZA PARA LEER UN REGISTRO EN ESPECÍFICO DEL MCP23008.
+ * @brief   FUNCIÓN QUE SE UTILIZA PARA LEER UN REGISTRO EN ESPECÍFICO DEL MCP23008.
+ * 
+ * @param reg_addr  Dirección del registro del MCP23008 que se desea leer.
+ * @param data      Buffer donde se guardará el dato leído.
+ * @param len       Cantidad de bytes de datos a leer.
+ * @return esp_err_t 
  */
 static esp_err_t MCP23008_register_read(uint8_t reg_addr, uint8_t *data, size_t len)
 {
@@ -129,8 +107,13 @@ static esp_err_t MCP23008_register_read(uint8_t reg_addr, uint8_t *data, size_t 
 }
 
 
+
 /**
- * @brief       FUNCIÓN QUE SE UTILIZA PARA ESCRIBIR EN UN REGISTRO EN ESPECÍFICO DEL MCP23008.
+ * @brief   FUNCIÓN QUE SE UTILIZA PARA ESCRIBIR EN UN REGISTRO EN ESPECÍFICO DEL MCP23008.
+ * 
+ * @param reg_addr  Dirección del registro del MCP23008 que se desea escribir.
+ * @param data      Dato que se escribirá en el registro correspondiente.
+ * @return esp_err_t 
  */
 static esp_err_t MCP23008_register_write_byte(uint8_t reg_addr, uint8_t data)
 {
@@ -148,6 +131,8 @@ static esp_err_t MCP23008_register_write_byte(uint8_t reg_addr, uint8_t data)
  * @brief   INICIALIZACIÓN DEL MCP23008 SEGÚN NUESTRA APLICACIÓN. PRIMERO SE INICIALIZA EL DRIVER DE I2C DEL ESP32. LUEGO, SE
  *          PROCEDE A CONFIGURAR LOS PUERTOS DE I/O DEL MCP23008, QUE EN NUESTRO CASO QUEDARÍA EL GP7 COMO INPUT (TRIGGER pH).
  *          Y EL RESTO COMO OUTPUT (RELÉS).
+ * 
+ * @return esp_err_t 
  */
 esp_err_t MCP23008_init(void)
 {
@@ -197,9 +182,13 @@ esp_err_t MCP23008_init(void)
 }
 
 
+
 /**
  * @brief   FUNCIÓN PARA CONOCER EL ESTADO DEL PIN pH TRIGGER DEL SENSOR DE pH, EL CUAL SE PONE EN ALTO CUANDO SE SUPERA
  *          UN CIERTO NIVEL DE pH AJUSTABLE MEDIANTE POTENCIÓMETRO, CASO CONTRARIO ENTREGA UN VALOR BAJO.
+ * 
+ * @return true     Se superó el valor de pH establecido.
+ * @return false    No se superó el valor de pH establecido.
  */
 bool read_pH_trigger(void)
 {
@@ -219,8 +208,13 @@ bool read_pH_trigger(void)
 }
 
 
+
 /**
- * @brief  FUNCIÓN MEDIANTE LA CUAL SE PUEDE ESTABLECER EL ESTADO DE LOS RELÉS DE LA PLACA
+ * @brief FUNCIÓN MEDIANTE LA CUAL SE PUEDE ESTABLECER EL ESTADO DE LOS RELÉS DE LA PLACA.
+ * 
+ * @param relay_num     Número de relé (RELE_1 ... RELE_7) al cual se le desea cambiar el estado.
+ * @param relay_state   Estado al cual se lo desea cambiar (0-1).
+ * @return esp_err_t 
  */
 esp_err_t set_relay_state(int8_t relay_num, bool relay_state)
 {
@@ -243,56 +237,3 @@ esp_err_t set_relay_state(int8_t relay_num, bool relay_state)
     return ESP_OK;
 
 }
-
-
-/*
-void app_main(void)
-{
-
-    MCP23008_init();
-
-    set_relay_state(RELE_1, OFF);
-    set_relay_state(RELE_2, OFF);
-    set_relay_state(RELE_3, OFF);
-    set_relay_state(RELE_4, OFF);
-    set_relay_state(RELE_5, OFF);
-    set_relay_state(RELE_6, OFF);
-    set_relay_state(RELE_7, OFF);
-
-    uint8_t buffer;
-
-    while(1)
-    {
-        set_relay_state(RELE_1, ON);
-        set_relay_state(RELE_2, ON);
-        set_relay_state(RELE_3, ON);
-        set_relay_state(RELE_4, ON);
-        set_relay_state(RELE_5, ON);
-        set_relay_state(RELE_6, ON);
-        set_relay_state(RELE_7, ON);
-
-        MCP23008_register_read(MCP23008_GPIO_PORT_REG_ADDR, &buffer, 1);
-
-        ESP_LOGE(TAG, "%i", buffer);
-
-        vTaskDelay(pdMS_TO_TICKS(1000));
-
-
-        set_relay_state(RELE_1, OFF);
-        set_relay_state(RELE_2, OFF);
-        set_relay_state(RELE_3, OFF);
-        set_relay_state(RELE_4, OFF);
-        set_relay_state(RELE_5, OFF);
-        set_relay_state(RELE_6, OFF);
-        set_relay_state(RELE_7, OFF);
-
-        MCP23008_register_read(MCP23008_GPIO_PORT_REG_ADDR, &buffer, 1);
-
-        ESP_LOGE(TAG, "%i", buffer);
-
-
-        vTaskDelay(pdMS_TO_TICKS(1000));
-
-    }
-}
-*/
