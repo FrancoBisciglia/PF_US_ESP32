@@ -8,7 +8,7 @@
 #include "esp_log.h"
 
 
-#define FLOW_SENSOR_PIN 33
+#define FLOW_SENSOR_PIN 32
 
 const char *TAG = "MAIN";
 
