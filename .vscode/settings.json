@@ -12,6 +12,7 @@
     "idf.portWin": "COM7",
     "idf.flashType": "UART",
     "files.associations": {
-        "*.inc": "c"
+        "*.inc": "c",
+        "freertos.h": "c"
     }
 }
