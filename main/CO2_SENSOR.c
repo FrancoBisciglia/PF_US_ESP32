@@ -348,7 +348,7 @@ bool CO2_sensor_is_warming_up(void)
 {
     /**
      *  Se controla si ya se cumplió el tiempo de espera de calentamiento del sensor
-     *  (3 min).
+     *  (1 min).
      */
     return !warm_up_expired(CO2_warm_up_time_start, 60);
 }
