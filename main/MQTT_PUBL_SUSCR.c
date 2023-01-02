@@ -32,6 +32,12 @@
  *      Si se desea publicar un dato en un tópico, se debe utilizar la función estándar "esp_mqtt_client_publish()" 
  *  de la librería de ESP-IDF.
  * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ *  NOTA: FALTA LA FUNCIONALIDAD DE RECONEXION AL BROKER EN CASO DE DESCONEXION POR ERROR.
  */
 
 
@@ -250,11 +256,6 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_name* list_of_topic_names, 
     /**
      *  Se inicializa el array de punteros a la estructura que contendrá los nombres de los tópicos MQTT a suscribir,
      *  junto con el último dato recibido desde dicho tópico.
-     * 
-     *  ==============================================================================================================
-     *  NOTA: TENER EN CUENTA QUE, AL RESERVAR MEMORIA DINÁMICAMENTE, EN ALGUNA PARTE DEL PROGRAMA DEBO HACER AL MENOS
-     *        UN FREE DE ESTA VARIABLE.
-     *  ==============================================================================================================
      */
     if(mqtt_topic_list == NULL)
     {
