@@ -46,6 +46,7 @@
 #include <stdio.h>
 
 #include "esp_log.h"
+#include "esp_check.h"
 
 #include "driver/i2c.h"
 #include "driver/gpio.h"
@@ -162,26 +163,28 @@ esp_err_t MCP23008_init(void)
     };
 
     /* Se efectua la configuración del driver I2C del ESP32 */
-    i2c_param_config(i2c_master_port, &conf);
+    ESP_RETURN_ON_ERROR(i2c_param_config(i2c_master_port, &conf), TAG, "Failed to configure I2C driver.");
 
     /* 
         Se carga la configuración del driver I2C, desactivando en este caso los buffers que son para el caso donde
         se lo utilizaría al ESP32 como slave, y también desactivando las flags de interrupciones (último parametro).
         dado que en este caso no se utilizarán interrupciones.
     */
-    i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
-
+    ESP_RETURN_ON_ERROR(i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0), 
+                        TAG, "Failed to initialize I2C driver.");
 
     /*
         Se realiza una escritura en el MCP23008, en el registro de configuración de I/O, para configurar el GP7 (Trigger pH)
         como entrada y el resto de GP (Relés) como salidas (10000000 = 0x80).
     */
-    MCP23008_register_write_byte(MCP23008_IO_CONFIG_REG_ADDR, 0x80);
+    ESP_RETURN_ON_ERROR(MCP23008_register_write_byte(MCP23008_IO_CONFIG_REG_ADDR, 0x80), 
+                        TAG, "Failed to write in the I/O configuration register.");
 
     /*
         Se realiza una escritura en el MCP23008, en el registro GPIO, para inicializar todos los pines en 0.
     */
-    MCP23008_register_write_byte(MCP23008_GPIO_PORT_REG_ADDR, 0x00);
+    ESP_RETURN_ON_ERROR(MCP23008_register_write_byte(MCP23008_GPIO_PORT_REG_ADDR, 0x00), 
+                        TAG, "Failed to write in the GPIO register.");
 
     return ESP_OK;
 
@@ -229,7 +232,8 @@ esp_err_t set_relay_state(int8_t relay_num, bool relay_state)
     uint8_t buffer;
 
     /* Se realiza la lectura del registro de GPIO del MCP23008 */
-    MCP23008_register_read(MCP23008_GPIO_PORT_REG_ADDR, &buffer, 1);
+    ESP_RETURN_ON_ERROR(MCP23008_register_read(MCP23008_GPIO_PORT_REG_ADDR, &buffer, 1), 
+                        TAG, "Failed to read GPIO state.");
 
     /* 
         Mediante operaciones de bit, se establece en el buffer el estado del rele segun el número de rele, ambos pasados como 
@@ -238,8 +242,34 @@ esp_err_t set_relay_state(int8_t relay_num, bool relay_state)
     BIT_WRITE(buffer, relay_num, relay_state);
 
     /* Se escribe en el registro de GPIO del MCP23008 el buffer resultante, con el estado del relé correspondiente ya establecido  */
-    MCP23008_register_write_byte(MCP23008_GPIO_PORT_REG_ADDR, buffer);
+    ESP_RETURN_ON_ERROR(MCP23008_register_write_byte(MCP23008_GPIO_PORT_REG_ADDR, buffer), 
+                        TAG, "Failed to set relay state.");
 
     return ESP_OK;
+
+}
+
+
+
+/**
+ * @brief   FUNCIÓN PARA CONOCER EL ESTADO DE UN RELÉ DETERMINADO.
+ * 
+ * @return true     Relé activado.
+ * @return false    Relé desactivado.
+ */
+bool get_relay_state(int8_t relay_num)
+{
+
+    /* Se crea un buffer para guardar el dato leido mediante I2C desde el MCP23008 */
+    uint8_t buffer;
+
+    /* Se realiza la lectura del registro de GPIO del MCP23008 */
+    MCP23008_register_read(MCP23008_GPIO_PORT_REG_ADDR, &buffer, 1);
+
+    /* 
+        A partir del número de relé del cual se desea conocer el estado, mediante operación de bit se devuelve
+        0 o 1 dependiendo del estado del mismo.
+    */
+   return ((buffer >> relay_num) & 1);
 
 }
