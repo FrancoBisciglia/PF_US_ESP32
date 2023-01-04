@@ -213,12 +213,14 @@ esp_err_t mqtt_initialize_and_connect(char* MQTT_BROKER_URI, esp_mqtt_client_han
     /**
      *  Se establece qué tipo de eventos MQTT van a ser atendidos por el handler de eventos MQTT.
      */
-    esp_mqtt_client_register_event(*MQTT_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+    ESP_RETURN_ON_ERROR(esp_mqtt_client_register_event(*MQTT_client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL), 
+                        TAG, "Failed to register MQTT event.");
 
     /**
      *  Se inicia la conexión con el broker MQTT.
      */
-    esp_mqtt_client_start(*MQTT_client);
+    ESP_RETURN_ON_ERROR(esp_mqtt_client_start(*MQTT_client), 
+                        TAG, "Failed to start MQTT connection.");
 
     return ESP_OK;
 
@@ -291,7 +293,7 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_name* list_of_topic_names, 
         strcpy(mqtt_topic_list[i].topic, list_of_topic_names[i].topic_name);
 
         /**
-         *  En caso de que la función retorne -1, implica que no se pudo suscribir a el
+         *  En caso de que la función retorne -1, implica que no se pudo suscribir al
          *  tópico correspondiente, y se retorna con error.
          */
         if(esp_mqtt_client_subscribe(mqtt_client, mqtt_topic_list[i].topic, qos) == -1)
