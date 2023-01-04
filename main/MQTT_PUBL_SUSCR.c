@@ -187,17 +187,28 @@ esp_err_t mqtt_initialize_and_connect(char* MQTT_BROKER_URI, esp_mqtt_client_han
 
     /**
      *  Se crea la variable correspondiente a la dirección del broker MQTT, pasada como argumento.
-     * 
-     * NOTA: VER COMO HACER MÁS FLEXIBLE EL PASAJE DEL URI COMO ARGUMENTO (CREANDO UNA VARIABLE EXTERNA POR EJEMPLO, O SIMILAR)
      */
     esp_mqtt_client_config_t mqtt_cfg = {
         .uri = MQTT_BROKER_URI,
+        .disable_auto_reconnect = 0,    //Al poner este campo en FALSE, al ocurrir una desconexión inesperada, se intentará una reconexión
     };
 
     /**
      *  A partir de la configuración establecida, se obtiene la variable handle del cliente MQTT
      */
     *MQTT_client = esp_mqtt_client_init(&mqtt_cfg);
+
+    if(MQTT_client == NULL)
+    {
+        ESP_LOGE(TAG, "MQTT ERROR: Failed to get MQTT client.");
+        
+        /**
+         * NOTA: REVISAR SI ACA ES NECESARIO HACER FREE
+         * 
+         */
+        free(MQTT_client);
+        return ESP_FAIL;
+    }
 
     /**
      *  Se establece qué tipo de eventos MQTT van a ser atendidos por el handler de eventos MQTT.
@@ -279,7 +290,16 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_name* list_of_topic_names, 
     {
         strcpy(mqtt_topic_list[i].topic, list_of_topic_names[i].topic_name);
 
-        esp_mqtt_client_subscribe(mqtt_client, mqtt_topic_list[i].topic, qos);
+        /**
+         *  En caso de que la función retorne -1, implica que no se pudo suscribir a el
+         *  tópico correspondiente, y se retorna con error.
+         */
+        if(esp_mqtt_client_subscribe(mqtt_client, mqtt_topic_list[i].topic, qos) == -1)
+        {
+            ESP_LOGE(TAG, "MQTT ERROR: Failed to suscribe to topic: %s", mqtt_topic_list[i].topic);
+
+            return ESP_FAIL;
+        }
     }
 
     return ESP_OK;
