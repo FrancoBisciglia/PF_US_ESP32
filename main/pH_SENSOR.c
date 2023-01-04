@@ -26,10 +26,13 @@
 
 
 
+//==================================| INCLUDES |==================================//
+
 #include "pH_SENSOR.h"
 
 #include "esp_log.h"
 #include "esp_err.h"
+#include "esp_check.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -39,39 +42,161 @@
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
 
-static int buf[10]; // Se define un arreglo de 10 muestras en donde se almacenarán mediciones parciales 
-static int aux=0; // Se define una variable auxiliar para realizar el ordenamiento por el método burbuja
+/* Tag para imprimir información en el LOG. */
+static const char *TAG = "pH_SENSOR_LIBRARY";
+
+/* Handle de la tarea de obtención de datos del sensor de CO2 */
+static TaskHandle_t xpHTaskHandle = NULL;
+
+/* Variable donde se guarda el valor de pH medido. */
+pH_sensor_ph_t pH_value = 0;
+
+/* Variable que representa canal de ADC1 del sensor de pH */
+pH_sensor_adc1_ch_t PH_SENSOR_ANALOG_PIN;
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
+static void vTaskGetpH(void *pvParameters);
+
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
+
+/**
+ * @brief   Tarea encargada de tomar muestras del ADC al que está conectado el sensor de pH y, a partir
+ *          de la recta obtenida por calibración, calcular el valor de pH.
+ * 
+ * @param pvParameters  Parámetros pasados a la tarea en su creación.
+ */
+static void vTaskGetpH(void *pvParameters)
+{
+    while (1) {
+
+        /**
+         *  Variable en donde se almacenarán conversiones parciales del ADC.
+         */
+        int pH_buffer[10];
+
+        /**
+         *  Se toma 1 conversión del ADC cada un tiempo (10 ms), para un total de 10 muestras.
+         */
+        for(int i = 0; i < 10; i++)
+        {
+            pH_buffer[i] = adc1_get_raw(PH_SENSOR_ANALOG_PIN);
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+
+        /**
+         *  Variable auxiliar para realizar ordenamiento del arreglo de conversiones de ADC.
+         */
+        int pH_aux=0;
+
+        /**
+         *  Se ordenan los valores del menor al mayor con el método de la burbuja.
+         */
+        for(int i=0; i<9; i++)
+        {
+            for(int j=i+1;j<10;j++)
+            {
+                /**
+                 *  NOTA:   ACA NO SE ESTAN ORDENANDO DE MENOR A MAYOR, YA QUE EN NINGUN MOMENTO
+                 *          SE CONSULTA SI UN VALOR ES MENOR O MAYOR QUE OTRO. REVISAR.
+                 */
+                pH_aux = pH_buffer[i];
+                pH_buffer[i]=pH_buffer[j];
+                pH_buffer[j]=pH_aux;
+            }  
+        }
+
+        /**
+         *  A partir del valor medio del arreglo de conversiones calculamos el valor de tensión correspondiente
+         *  al valor digital de dicha muestra, con la fórmula:
+         * 
+         *  V = valor_digital * (V_max / resolución_adc)
+         * 
+         *  Donde:
+         *      -valor_digital: el valor obtenido del ADC.
+         *      -V_max: el máximo valor de tensión aceptado por el ADC.
+         *      -resolución_adc: la resolución del ADC.
+         */
+        float pH_voltage;
+        
+        pH_voltage = pH_buffer[5] * (3.3 / 4096.0);
+        
+        /**
+         *  A partir de la calibración mencionada anteriormente, se obtiene la recta:
+         *  
+         *  pH = m * pH_voltage + h
+         * 
+         *  Obteniendo de la calibración los valores de pendiente y ordenada al origen de la recta, en nuestro caso:
+         * 
+         *  m = -5.21
+         *  h = 21.11
+         * 
+         *  Donde se puede notar que la pendiente es negativa, por lo que a mayor pH, menor valor de tensión en la entrada.
+         */
+        pH_value = -5.21 * pH_voltage + 21.11;
+        
+        vTaskDelay(pdMS_TO_TICKS(3000));
+    }
+}
 
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
-/* Se realiza la función que inicializa el pin ADC1 canal 0, que corresponde al puerto 36 del GPIO */
-esp_err_t ph_sensor_init()
+/**
+ * @brief   Función para inicializar el sensor de pH.
+ * 
+ * @param pH_sens_analog_pin    Canal de ADC en el cual se encuentra conectado el sensor (debe ser del ADC1)
+ * @return esp_err_t 
+ */
+esp_err_t ph_sensor_init(pH_sensor_adc1_ch_t pH_sens_analog_pin)
 {
-    adc1_config_width(ADC_WIDTH_BIT_10); // Se define que el sensor tiene una resolución de 1024 bits
-    adc1_config_channel_atten(SENSOR_PH, ADC_ATTEN_DB_11); // Se le declara la atenuación correspondiente que debe ser 11 decibeles para abarcar todo el rango de la señal de voltaje (0v - 3.3v)
+    //========================| CONFIGURACIÓN ADC |===========================//
 
-    if(xFlowTaskHandle == NULL)
+    /**
+     *  Se guarda el canal del ADC1 utilizado.
+     */
+    PH_SENSOR_ANALOG_PIN = pH_sens_analog_pin;
+
+    /**
+     *  Se configura la resolución del ADC, en este caso, de 12 bits.
+     */
+    ESP_RETURN_ON_ERROR(adc1_config_width(ADC_WIDTH_BIT_12), TAG, "Failed to config ADC width.");
+
+    /**
+     *  Se configura el nivel de atenuación del ADC, en este caso, de 11 dB, lo que implica un
+     *  rango de tensión de hasta aproximadamente 3,1 V.
+     */
+    ESP_RETURN_ON_ERROR(adc1_config_channel_atten(pH_sens_analog_pin, ADC_ATTEN_DB_11), TAG, "Failed to config ADC attenuation.");
+
+
+
+    //========================| CREACIÓN DE TAREA |===========================//
+
+    /**
+     *  Se crea la tarea encargada de obtener el valor de pH a partir del valor de tensión
+     *  entregado por el sensor.
+     * 
+     *  Se le da un nivel de prioridad bajo considerando que la dinámica de la evolución
+     *  del pH en la solución es muy lenta, y en la tarea solamente se obtiene una conversión
+     *  del ADC y se realizan cálculos en base a la misma.
+     */
+    if(xpHTaskHandle == NULL)
     {
         xTaskCreate(
-            vTaskGetFlow,
-            "vTaskGetFlow",
+            vTaskGetpH,
+            "vTaskGetpH",
             2048,
             NULL,
-            3,
-            &xFlowTaskHandle);
+            2,
+            &xpHTaskHandle);
         
         /**
          *  En caso de que el handle sea NULL, implica que no se pudo crear la tarea, y se retorna con error.
          */
-        if(xFlowTaskHandle == NULL)
+        if(xpHTaskHandle == NULL)
         {
-            ESP_LOGE(TAG, "Failed to create vTaskGetFlow task.");
+            ESP_LOGE(TAG, "Failed to create vTaskGetpH task.");
             return ESP_FAIL;
         }
     }
@@ -81,46 +206,16 @@ esp_err_t ph_sensor_init()
 
 
 
-
-void pH_getvalue(void)
+/**
+ * @brief   Función para guardar en la variable pasada como argumento el valor de Ph
+ *          obtenido del sensor de pH.
+ * 
+ * @param pH_value_buffer     Variable donde se guardará el valor de pH obtenido.
+ * @return esp_err_t 
+ */
+esp_err_t pH_getvalue(pH_sensor_ph_t *pH_value_buffer)
 {
-    init_adc_pH(); // Se realiza la inicialización del pin que funcionará como ADC
-    while (1) {
-        /* Esta subrutina toma 1 muestra cada 10 ms y las almacena en un vector buf[i] hasta llegar a 10 muestras*/
-        for(int i=0; i<10;i++){
-            buf[i]= adc1_get_raw(SENSOR_PH); // Lee el valor actual del canal adc y lo almacena en el buffer
-            vTaskDelay(pdMS_TO_TICKS(10)); // Se esperan 10 ms
-        }
+    *pH_value_buffer = pH_value;
 
-   /*luego realizamos un barrido de los valores leidos y descartamos los valores demasiado elevados y los 
-    valores demasiado bajos*/
-        /* Primero se ordenan los datos del menor al mayor con el método de la burbuja */
-        for(int i=0; i<9; i++){
-            for(int j=i+1;j<10;j++){
-                aux = buf[i];
-                buf[i]=buf[j];
-                buf[j]=aux;
-             }  
-        }
-    /* Luego nos quedamos con el valor intermedio de ese arreglo ordenado y realizamos la conversión "Muestras de adc en binario" --> "Voltaje" */
-    float PHVol= buf[5]*3.3/1024.0;
-     /* La proxima ecuación se realiza con la fórmula anterior. Teniendo 3 valores de referencia de pH (4, 7 y 10)
-     se introduce la probeta en las distintas soluciones y se visualiza la tensión que se genera (por la conversión
-     "muestras adc" a "voltaje") y se realiza una gráfica que debe ser una recta, en donde en el eje X irán
-     los valores de tensión que se obtuvieron para cada muestra de pH y, en el eje Y, el valor de pH de la solución 
-     de referencia utilizada.
-     Con esto, se determinan 3 puntos, los cuales se interpolan para formar la ecuación de una recta en donde
-     se despeja la ordenada al origen "h" y la pendiente "m" para generar la ecuación de la forma Y = m * X + h
-     Experimentalmente entonces se obtuvo un valor de pendiente de -5.21 y una ordenada de 21.11.
-     Puede notarse que al ser una pendiente negativa, la recta desciende, con lo cual es evidente que a menor cantidad de muestras de adc
-     (lo que se traduce en menores valores de voltaje medidos) significarán altos valores de pH y visceversa. */
-     
-    float PH= -5.21*PHVol + 21.11;
-    
-    /* Una vez obtenida la ecuación de la recta, se prodece a mostrar los valores de pH en pantalla esperando entre uno y otro 3 segundos*/
-    printf("PH = ");
-    printf("%f\n", PH);
-    vTaskDelay(pdMS_TO_TICKS(3000));
-    }
-    
+    return ESP_OK;
 }
