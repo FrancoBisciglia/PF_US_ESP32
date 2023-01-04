@@ -187,9 +187,12 @@ esp_err_t ultrasonic_measure_level(ultrasonic_sens_t *ultrasonic_sens_descr, sto
     /* 
         Se obtiene la distancia del sensor respecto a la capa superior del líquido contenido en el tanque, para luego
         calcular el nivel de líquido a partir de dicho valor.
+
+        A su vez, se verifica que la función no retorne un valor de error, para evitar arrastrar dicho error.
     */
     float level_distance_cm;
-    ultrasonic_measure_distance_cm(ultrasonic_sens_descr, &level_distance_cm);
+    ESP_RETURN_ON_ERROR(ultrasonic_measure_distance_cm(ultrasonic_sens_descr, &level_distance_cm), 
+                        TAG, "Failed to get distance.");
 
     /* 
         Se calcula el nivel de líquido presente en el tanque en por unidad, a partir de la altura del mismo y de la distancia
