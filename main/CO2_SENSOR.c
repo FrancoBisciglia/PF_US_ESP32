@@ -24,6 +24,7 @@
 #include <esp_timer.h>
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_check.h"
 
 #include "CO2_SENSOR.h"
 
@@ -61,7 +62,7 @@ int64_t CO2_warm_up_time_start = 0;
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
 static void vTaskGetCO2ByPWM(void *pvParameters);
-static void isr_handler(void *args);
+static void co2_sensor_isr_handler(void *args);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -71,7 +72,7 @@ static void isr_handler(void *args);
  * 
  * @param args  Parámetros pasados a la rutina de servicios de interrupción de GPIO.
  */
-static void isr_handler(void *args)
+static void co2_sensor_isr_handler(void *args)
 {
     /**
      *  Esta variable sirve para que, en el caso de que un llamado a "xTaskNotifyFromISR()" desbloquee
@@ -284,19 +285,20 @@ esp_err_t CO2_sensor_init(CO2_sensor_pwm_pin_t CO2_sens_pwm_pin)
      *  Función para configurar un pin GPIO, incluyendo la interrupción. 
      *  Se le pasa como parametro un puntero a la variable configurada anteriormente
      */
-    gpio_config(&pGPIOConfig);
+    ESP_RETURN_ON_ERROR(gpio_config(&pGPIOConfig), TAG, "Failed to load gpio config.");
 
     /**
      *  Mediante esta función, se habilita el servicio mediante el cual se tienen flags globales individuales
      *  para cada GPIO con interrupción, en vez de tener una unica flag global para todas las interrupciones.
      *  El 0 es para instanciar las flags en 0.
      */
-    gpio_install_isr_service(0);
+    ESP_RETURN_ON_ERROR(gpio_install_isr_service(0), TAG, "Failed to install ISR.");
 
     /**
      *  Funcion para agregar efectivamente una interrupcion a un GPIO, junto con su handler.
      */
-    gpio_isr_handler_add(CO2_sens_pwm_pin, isr_handler, NULL);
+    ESP_RETURN_ON_ERROR(gpio_isr_handler_add(CO2_sens_pwm_pin, co2_sensor_isr_handler, NULL), 
+                        TAG, "Failed to add the ISR handler.");
 
 
 
@@ -320,6 +322,15 @@ esp_err_t CO2_sensor_init(CO2_sensor_pwm_pin_t CO2_sens_pwm_pin)
             NULL,
             4,
             &xCO2TaskHandle);
+    
+        /**
+         *  En caso de que el handle sea NULL, implica que no se pudo crear la tarea, y se retorna con error.
+         */
+        if(xCO2TaskHandle == NULL)
+        {
+            ESP_LOGE(TAG, "Failed to create vTaskGetCO2ByPWM task.");
+            return ESP_FAIL;
+        }
     }
 
     return ESP_OK;

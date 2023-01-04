@@ -22,6 +22,7 @@
 
 #include "esp_err.h"
 #include "esp_log.h"
+#include "esp_check.h"
 
 #include "FLOW_SENSOR.h"
 
@@ -133,19 +134,20 @@ esp_err_t flow_sensor_init(flux_sensor_data_pin_t flow_sens_data_pin)
      *  Función para configurar un pin GPIO, incluyendo la interrupción. 
      *  Se le pasa como parametro un puntero a la variable configurada anteriormente
      */
-    gpio_config(&pGPIOConfig);
+    ESP_RETURN_ON_ERROR(gpio_config(&pGPIOConfig), TAG, "Failed to load gpio config.");
 
     /**
      *  Mediante esta función, se habilita el servicio mediante el cual se tienen flags globales individuales
      *  para cada GPIO con interrupción, en vez de tener una unica flag global para todas las interrupciones.
      *  El 0 es para instanciar las flags en 0.
      */
-    gpio_install_isr_service(0);
+    ESP_RETURN_ON_ERROR(gpio_install_isr_service(0), TAG, "Failed to install ISR.");
 
     /**
      *  Funcion para agregar efectivamente una interrupcion a un GPIO, junto con su handler.
      */
-    gpio_isr_handler_add(flow_sens_data_pin, flow_sensor_isr_handler, NULL);
+    ESP_RETURN_ON_ERROR(gpio_isr_handler_add(flow_sens_data_pin, flow_sensor_isr_handler, NULL), 
+                        TAG, "Failed to add the ISR handler.");
 
 
 
@@ -169,6 +171,15 @@ esp_err_t flow_sensor_init(flux_sensor_data_pin_t flow_sens_data_pin)
             NULL,
             3,
             &xFlowTaskHandle);
+        
+        /**
+         *  En caso de que el handle sea NULL, implica que no se pudo crear la tarea, y se retorna con error.
+         */
+        if(xFlowTaskHandle == NULL)
+        {
+            ESP_LOGE(TAG, "Failed to create vTaskGetFlow task.");
+            return ESP_FAIL;
+        }
     }
 
 

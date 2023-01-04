@@ -159,33 +159,35 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
     /**
      *  Se inicializa el "non volatile storage" (almacenamiento no volatil) de la flash, donde se guardará la configuración de WiFi
      */
-    ESP_RETURN_ON_ERROR(nvs_flash_init(), TAG, "Failed to initialize NVS FLASH.");
+    esp_err_t ret;
+    ret = nvs_flash_init();
 
     /**
      *  En caso de que no haya espacio en la sección de NVS de la flash, se la borra y reinicializa.
      */
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_RETURN_ON_ERROR(nvs_flash_erase(), TAG, "Failed to erase NVS FLASH.");
+        ESP_RETURN_ON_ERROR(nvs_flash_init(), TAG, "Failed to initialize NVS FLASH.");
     }
 
     /**
      *  Se inicializa la interfaz de red del ESP32.
      */
-    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_RETURN_ON_ERROR(esp_netif_init(), TAG, "Failed to initialize network interface.");
 
     /**
      *  Se crea un "evento loop" estandar, que es un ciclo interno que se utiliza para controlar eventos, 
      *  como por ejemplo, conexiones o desconexiones a red WiFi, o llegada de datos.
      */
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    ESP_RETURN_ON_ERROR(esp_event_loop_create_default(), TAG, "Failed to create event loop.");
 
     /**
      *  Se le indica a la interfaz de red que vamos a utilizar WiFi y en el modo STA, con la configuración 
      *  estándar o default.
      * 
      */
-    esp_netif_create_default_wifi_sta();
+    ESP_RETURN_ON_ERROR(esp_netif_create_default_wifi_sta(), TAG, "Failed to initialize WIFI STA.");
 
     /**
      *  Se crea una variable mediante la cual se realiza la configuración para el inicio de los parametros 
@@ -196,8 +198,7 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
     /**
      *  Se carga la configuración obtenida, pero todavía no se inicia el WiFi.
      */
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
+    ESP_RETURN_ON_ERROR(esp_wifi_init(&cfg), TAG, "Failed to load WiFi init config.");
 
 
     //========================| CONFIGURACIÓN DEL EVENT LOOP |===========================//
@@ -222,22 +223,24 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
      *  -El cuarto parámetro son los argumentos que se le pasarán al handler.
      *  -El quinto parametro es la instancia del handler declarada anteriormente.
      */
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
-                                                        ESP_EVENT_ANY_ID,
-                                                        &wifi_event_handler,
-                                                        NULL,
-                                                        &wifi_handler_event_instance));
+    ESP_RETURN_ON_ERROR(esp_event_handler_instance_register(WIFI_EVENT,
+                                                            ESP_EVENT_ANY_ID,
+                                                            &wifi_event_handler,
+                                                            NULL,
+                                                            &wifi_handler_event_instance), 
+                                                            TAG, "Failed to register WiFi event handler.");
 
     /**
      *  Se realiza el mismo procedimiento de creacion de instancia de un handler, pero en este caso para eventos del tipo IP.
      * 
      */
     esp_event_handler_instance_t got_ip_event_instance;
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,
+    ESP_RETURN_ON_ERROR(esp_event_handler_instance_register(IP_EVENT,
                                                         IP_EVENT_STA_GOT_IP,
                                                         &ip_event_handler,
                                                         NULL,
-                                                        &got_ip_event_instance));
+                                                        &got_ip_event_instance), 
+                                                        TAG, "Failed to register IP event handler.");
 
 
 
@@ -263,24 +266,21 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
     strcpy((char*)wifi_config.sta.ssid, wifi_network->ssid);
     strcpy((char*)wifi_config.sta.password, wifi_network->pass);
 
-    ESP_LOGI(TAG, "%s", (char*)wifi_config.sta.ssid);
-
-
     /**
      *  Establecemos el modo de la conexion WiFi al tipo STA.
      */
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_RETURN_ON_ERROR(esp_wifi_set_mode(WIFI_MODE_STA), TAG, "Failed to set STA mode.");
 
     /**
      *  Se carga la configuración de WiFi establecida.
      * 
      */
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    ESP_RETURN_ON_ERROR(esp_wifi_set_config(WIFI_IF_STA, &wifi_config), TAG, "Failed to load WiFi config.");
 
     /**
      *  Se inicia el driver de WiFi.
      */
-    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_RETURN_ON_ERROR(esp_wifi_start(), TAG, "Failed to start WiFi driver.");
 
     ESP_LOGI(TAG, "WiFi STA mode initialization complete.");
 
@@ -327,8 +327,12 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
      *  Luego, sea que hubo un error o se estableció la conexión de forma exitosa, nos desuscribimos del 
      *  "event group" y de los handlers.
      */
-    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, got_ip_event_instance));
-    ESP_ERROR_CHECK(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_handler_event_instance));
+    ESP_RETURN_ON_ERROR(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, got_ip_event_instance), 
+                        TAG, "Failed to unregister from IP event handler.");
+
+    ESP_RETURN_ON_ERROR(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_handler_event_instance), 
+                        TAG, "Failed to unregister from WiFi event handler.");
+                        
     vEventGroupDelete(wifi_event_group);
 
     return status;
