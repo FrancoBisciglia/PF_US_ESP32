@@ -20,6 +20,7 @@
 #include "freertos/event_groups.h"
 #include "esp_system.h"
 #include "esp_wifi.h"
+#include "esp_check.h"
 
 #include "nvs_flash.h"
 
@@ -158,7 +159,7 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
     /**
      *  Se inicializa el "non volatile storage" (almacenamiento no volatil) de la flash, donde se guardará la configuración de WiFi
      */
-    esp_err_t ret = nvs_flash_init();
+    ESP_RETURN_ON_ERROR(nvs_flash_init(), TAG, "Failed to initialize NVS FLASH.");
 
     /**
      *  En caso de que no haya espacio en la sección de NVS de la flash, se la borra y reinicializa.

@@ -24,6 +24,7 @@
 #include <esp_idf_lib_helpers.h>
 #include <esp_timer.h>
 #include <ets_sys.h>
+#include "esp_check.h"
 
 #include "driver/gpio.h"
 
