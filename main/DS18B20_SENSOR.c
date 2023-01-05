@@ -1,0 +1,167 @@
+/**
+ * @file DS18B20_SENSOR.c
+ * @author Franco Bisciglia, David Kündinger
+ * @brief   Librería que actúa como interfaz entre el driver del sensor DS18B20 de temperatura sumergible y la aplicación.
+ * @version 0.1
+ * @date 2022-12-29
+ * 
+ * @copyright Copyright (c) 2022
+ * 
+ */
+
+
+
+/**
+ * =================================================| EXPLICACIÓN DE LIBRERÍA |=================================================
+ *  
+ *          
+ */
+
+
+
+//==================================| INCLUDES |==================================//
+
+#include "ds18x20.h"
+#include "DS18B20_SENSOR.h"
+
+#include "esp_log.h"
+#include "esp_err.h"
+#include "esp_check.h"
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+//==================================| MACROS AND TYPDEF |==================================//
+
+//==================================| INTERNAL DATA DEFINITION |==================================//
+
+/* Tag para imprimir información en el LOG. */
+static const char *TAG = "DS18B20_SENSOR_LIBRARY";
+
+/* Handle de la tarea de obtención de datos del sensor DS18B20. */
+static TaskHandle_t xDS18B20TaskHandle = NULL;
+
+/* Variable donde se guarda el valor de temperatura medido. */
+static DS18B20_sensor_temp_t DS18B20_temp_value = 0;
+
+/* Variable que representa el pin GPIO al cual está conectado en sensor DS18B20. */
+static DS18B20_sensor_data_pin_t DS18B20_SENSOR_DATA_PIN;
+
+//==================================| EXTERNAL DATA DEFINITION |==================================//
+
+//==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
+
+static void vTaskGetTemp(void *pvParameters);
+
+//==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
+
+/**
+ * @brief   Tarea encargada de obtener los valores de temperatura desde el sensor DS18B20.
+ * 
+ * @param pvParameters  Parámetros pasados a la tarea en su creación.
+ */
+static void vTaskGetTemp(void *pvParameters)
+{
+    while (1) {
+
+        /**
+         *  Se obtiene el valor de temperatura desde el sensor DS18B20. 
+         *  
+         *  Al poner como address "DS18X20_ANY", estamos pidiendo el dato a todos los sensores
+         *  DS18B20 del bus, pero al haber uno solo en este caso, esto no afecta en nada.
+         */
+        ESP_RETURN_ON_ERROR(ds18b20_measure_and_read(DS18B20_SENSOR_DATA_PIN, DS18X20_ANY, &DS18B20_temp_value),
+                                                     TAG, "Failed to get temp.");
+        
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
+//==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
+
+/**
+ * @brief   Función para inicializar el sensor de temperatura sumergible DS18B20.
+ * 
+ * @param DS18B20_sens_data_pin    Pin de datos del sensor.
+ * @return esp_err_t 
+ */
+esp_err_t DS18B20_sensor_init(DS18B20_sensor_data_pin_t DS18B20_sens_data_pin)
+{
+    /**
+     *  Se guarda el GPIO al cual está conectado el pin de datos del sensor.
+     */
+    DS18B20_SENSOR_DATA_PIN = DS18B20_sens_data_pin;
+
+
+
+    //========================| CONFIGURACIÓN DE GPIO |===========================//
+
+    /* Variable donde se definen las configuraciones para el GPIO */
+    gpio_config_t pGPIOConfig;
+
+    /* Se define mediante mascara de bits el GPIO que configuraremos */
+    pGPIOConfig.pin_bit_mask = (1ULL << DS18B20_sens_data_pin);
+    /* Se define si el pin es I u O (input en este caso) */
+    pGPIOConfig.mode = GPIO_MODE_DEF_INPUT;
+    /* Habilitamos o deshabilitamos la resistencia interna de pull-up (deshabilitada en este caso) */
+    pGPIOConfig.pull_up_en = GPIO_PULLUP_DISABLE;
+    /* Habilitamos o deshabilitamos la resistencia interna de pull-down (deshabilitada en este caso) */
+    pGPIOConfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    /* Definimos si habilitamos la interrupción, y si es asi, de qué tipo (deshabilitada en este caso) */
+    pGPIOConfig.intr_type = GPIO_INTR_DISABLE;
+    
+    /**
+     *  Función para configurar un pin GPIO. 
+     *  Se le pasa como parametro un puntero a la variable configurada anteriormente
+     */
+    ESP_RETURN_ON_ERROR(gpio_config(&pGPIOConfig), TAG, "Failed to load gpio config.");
+
+
+
+    //========================| CREACIÓN DE TAREA |===========================//
+
+    /**
+     *  Se crea la tarea encargada de obtener el valor de temperatura del sensor DS18B20.
+     * 
+     *  Se le da un nivel de prioridad bajo considerando que la dinámica de la evolución
+     *  de la temperatura en la solución es muy lenta, y en la tarea solamente se obtiene 
+     *  el valor de temperatura y se lo guarda en una variable interna.
+     */
+    if(xDS18B20TaskHandle == NULL)
+    {
+        xTaskCreate(
+            vTaskGetTemp,
+            "vTaskGetTemp",
+            2048,
+            NULL,
+            2,
+            &xDS18B20TaskHandle);
+        
+        /**
+         *  En caso de que el handle sea NULL, implica que no se pudo crear la tarea, y se retorna con error.
+         */
+        if(xDS18B20TaskHandle == NULL)
+        {
+            ESP_LOGE(TAG, "Failed to create vTaskGetTemp task.");
+            return ESP_FAIL;
+        }
+    }
+
+    return ESP_OK;
+}
+
+
+
+/**
+ * @brief   Función para guardar en la variable pasada como argumento el valor de temperatura
+ *          obtenido del sensor DS18B20.
+ * 
+ * @param DS18B20_value_buffer     Variable donde se guardará el valor de temperatura obtenido.
+ * @return esp_err_t 
+ */
+esp_err_t DS18B20_getvalue(DS18B20_sensor_temp_t *DS18B20_value_buffer)
+{
+    *DS18B20_value_buffer = DS18B20_temp_value;
+
+    return ESP_OK;
+}
