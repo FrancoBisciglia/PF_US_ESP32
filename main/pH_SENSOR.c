@@ -36,7 +36,8 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
+
+#include "driver/adc.h"
 
 //==================================| MACROS AND TYPDEF |==================================//
 
@@ -94,17 +95,16 @@ static void vTaskGetpH(void *pvParameters)
         /**
          *  Se ordenan los valores del menor al mayor con el método de la burbuja.
          */
-        for(int i=0; i<9; i++)
+        for(int i=1; i < 10; i++)
         {
-            for(int j=i+1;j<10;j++)
+            for(int j=0; j < 10-i; j++)
             {
-                /**
-                 *  NOTA:   ACA NO SE ESTAN ORDENANDO DE MENOR A MAYOR, YA QUE EN NINGUN MOMENTO
-                 *          SE CONSULTA SI UN VALOR ES MENOR O MAYOR QUE OTRO. REVISAR.
-                 */
-                pH_aux = pH_buffer[i];
-                pH_buffer[i]=pH_buffer[j];
-                pH_buffer[j]=pH_aux;
+                if(pH_buffer[j] > pH_buffer[j+1])
+                {
+                    pH_aux = pH_buffer[j];
+                    pH_buffer[j]=pH_buffer[j+1];
+                    pH_buffer[j+1]=pH_aux;
+                }
             }  
         }
 
