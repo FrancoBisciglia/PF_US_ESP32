@@ -159,7 +159,7 @@ esp_err_t DS18B20_sensor_init(DS18B20_sensor_data_pin_t DS18B20_sens_data_pin)
  * @param DS18B20_value_buffer     Variable donde se guardará el valor de temperatura obtenido.
  * @return esp_err_t 
  */
-esp_err_t DS18B20_getvalue(DS18B20_sensor_temp_t *DS18B20_value_buffer)
+esp_err_t DS18B20_getTemp(DS18B20_sensor_temp_t *DS18B20_value_buffer)
 {
     *DS18B20_value_buffer = DS18B20_temp_value;
 

@@ -27,7 +27,7 @@ typedef float pH_sensor_ph_t;
 /*==================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
 
 esp_err_t ph_sensor_init(pH_sensor_adc1_ch_t pH_sens_analog_pin);
-esp_err_t pH_getvalue(pH_sensor_ph_t *pH_value_buffer);
+esp_err_t pH_getValue(pH_sensor_ph_t *pH_value_buffer);
 
 /*==================[END OF FILE]============================================*/
 

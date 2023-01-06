@@ -213,7 +213,7 @@ esp_err_t ph_sensor_init(pH_sensor_adc1_ch_t pH_sens_analog_pin)
  * @param pH_value_buffer     Variable donde se guardará el valor de pH obtenido.
  * @return esp_err_t 
  */
-esp_err_t pH_getvalue(pH_sensor_ph_t *pH_value_buffer)
+esp_err_t pH_getValue(pH_sensor_ph_t *pH_value_buffer)
 {
     *pH_value_buffer = pH_value;
 

@@ -27,7 +27,7 @@ typedef float DS18B20_sensor_temp_t;
 /*==================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
 
 esp_err_t DS18B20_sensor_init(DS18B20_sensor_data_pin_t DS18B20_sens_data_pin);
-esp_err_t DS18B20_getvalue(DS18B20_sensor_temp_t *DS18B20_value_buffer);
+esp_err_t DS18B20_getTemp(DS18B20_sensor_temp_t *DS18B20_value_buffer);
 
 /*==================[END OF FILE]============================================*/
 

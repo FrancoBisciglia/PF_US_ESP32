@@ -216,7 +216,7 @@ esp_err_t TDS_sensor_init(TDS_sensor_adc2_ch_t TDS_sens_analog_pin)
  * @param TDS_value_buffer     Variable donde se guardará el valor de TDS obtenido.
  * @return esp_err_t 
  */
-esp_err_t TDS_getvalue(TDS_sensor_ppm_t *TDS_value_buffer)
+esp_err_t TDS_getValue(TDS_sensor_ppm_t *TDS_value_buffer)
 {
     *TDS_value_buffer = TDS_ppm_value;
 
