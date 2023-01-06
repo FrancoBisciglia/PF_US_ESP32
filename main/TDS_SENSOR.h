@@ -27,7 +27,7 @@ typedef float TDS_sensor_ppm_t;
 /*==================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
 
 esp_err_t TDS_sensor_init(TDS_sensor_adc2_ch_t TDS_sens_analog_pin);
-esp_err_t TDS_getvalue(TDS_sensor_ppm_t *TDS_value_buffer);
+esp_err_t TDS_getValue(TDS_sensor_ppm_t *TDS_value_buffer);
 
 /*==================[END OF FILE]============================================*/
 
