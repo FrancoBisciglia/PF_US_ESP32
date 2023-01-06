@@ -22,6 +22,7 @@
 //==================================| INCLUDES |==================================//
 
 #include "TDS_SENSOR.h"
+#include "DS18B20_SENSOR.h"
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -119,19 +120,17 @@ static void vTaskGetTdsInPpm(void *pvParameters)
 
         /**
          *  Se calcula el coeficiente de compensación de temperatura, tomando el valor de temperatura provisto
-         *  por el sensor de temperatura sumergible colocado en la misma solucion que el sensor de TDS.
+         *  por el sensor de temperatura sumergible DS18B20 colocado en la misma solucion que el sensor de TDS.
          */
+        DS18B20_sensor_temp_t DS18B20_temp;
 
-        //=======================QUEDA POR HACER CUANDO ESTE LA LIBRERÍA DEL SENSOR TEMP SUMERG=====================//
-        //float TDS_temp_comp_coef = 1.0 + 0.02 * (TDS_TEMPERATURE - 25.0);    // Fórmula del coeficiente de temperatura
+        DS18B20_getvalue(&DS18B20_temp);
+        float TDS_temp_comp_coef = 1.0 + 0.02 * (DS18B20_temp - 25.0);
 
         /**
          *  Se calcula la tensión compensada por el coeficiente de temperatura.
-         * 
-         * NOTA: FALTA CORREGIR
          */
-        //float TDS_compensation_voltage = TDS_voltage / TDS_temp_comp_coef;
-        float TDS_compensation_voltage = TDS_voltage / 1;
+        float TDS_compensation_voltage = TDS_voltage / TDS_temp_comp_coef;
 
         /**
          *  Se calcula el valor de TDS en ppm, utilizando una fórmula provista por el fabricante del sensor.
