@@ -124,7 +124,7 @@ static void vTaskGetTdsInPpm(void *pvParameters)
          */
         DS18B20_sensor_temp_t DS18B20_temp;
 
-        DS18B20_getvalue(&DS18B20_temp);
+        DS18B20_getTemp(&DS18B20_temp);
         float TDS_temp_comp_coef = 1.0 + 0.02 * (DS18B20_temp - 25.0);
 
         /**
