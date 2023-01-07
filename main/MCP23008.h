@@ -38,6 +38,7 @@
 esp_err_t MCP23008_init(void);
 bool read_pH_trigger(void);
 esp_err_t set_relay_state(int8_t relay_num, bool relay_state);
+bool get_relay_state(int8_t relay_num);
 
 /*==================[END OF FILE]============================================*/
 #endif // MCP23008_H_
