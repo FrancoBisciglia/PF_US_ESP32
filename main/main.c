@@ -5,6 +5,9 @@
 
 #include "esp_log.h"
 
+#include "WiFi_STA.h"
+#include "esp_wifi.h"
+
 const char *TAG = "MAIN";
 
 /**
@@ -17,9 +20,20 @@ const char *TAG = "MAIN";
 
 void app_main(void)
 {
+    wifi_network_t network = {
+        .ssid = "Claro2022",
+        .pass = "Lavalle1402abcd",
+    };
+
+    connect_wifi(&network);
+
+    int status = WIFI_FAILURE;
 
     while(1)
     {
+        ESP_LOGI(TAG, "MAIN TASK RUNNING");
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        connect_wifi(&network);
         vTaskDelay(pdMS_TO_TICKS(3000));
 
     }

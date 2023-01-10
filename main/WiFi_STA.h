@@ -25,7 +25,7 @@ extern "C" {
 #define WIFI_FAILURE 1 << 1
 #define TCP_SUCCES 1 << 0
 #define TCP_FAILURE 1 << 1
-#define MAX_FAILURES 10
+#define MAX_FAILURES 3
 
 /* Bits de eventos del event group de WiFi. */
 #define WIFI_CONNECTED_BIT BIT0

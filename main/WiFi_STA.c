@@ -94,6 +94,10 @@ void wifi_event_handler(void* arg, esp_event_base_t event_base,
          */
         else {
             xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
+            
+            esp_wifi_stop();
+            esp_wifi_deinit();
+
             ESP_LOGI(TAG,"Connection to the AP failed.");
         }
         
@@ -187,7 +191,7 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
      *  estándar o default.
      * 
      */
-    ESP_RETURN_ON_ERROR(esp_netif_create_default_wifi_sta(), TAG, "Failed to initialize WIFI STA.");
+    esp_netif_create_default_wifi_sta();
 
     /**
      *  Se crea una variable mediante la cual se realiza la configuración para el inicio de los parametros 
@@ -332,7 +336,10 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
 
     ESP_RETURN_ON_ERROR(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_handler_event_instance), 
                         TAG, "Failed to unregister from WiFi event handler.");
-                        
+
+    ESP_RETURN_ON_ERROR(esp_event_loop_delete_default(), 
+                        TAG, "Failed to delete event loop.");
+
     vEventGroupDelete(wifi_event_group);
 
     return status;
