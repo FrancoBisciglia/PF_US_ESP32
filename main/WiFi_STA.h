@@ -25,11 +25,6 @@ extern "C" {
 #define WIFI_FAILURE 1 << 1
 #define TCP_SUCCES 1 << 0
 #define TCP_FAILURE 1 << 1
-#define MAX_FAILURES 3
-
-/* Bits de eventos del event group de WiFi. */
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT      BIT1
 
 /**
  *  Estructura con la información de la red WiFi a conectarse:
@@ -50,9 +45,7 @@ typedef struct
 extern void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 extern void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 esp_err_t connect_wifi(wifi_network_t* wifi_network);
-
-bool return_flag();
-void reset_flag();
+bool wifi_check_connection();
 
 /*==================[END OF FILE]============================================*/
 #ifdef __cplusplus
