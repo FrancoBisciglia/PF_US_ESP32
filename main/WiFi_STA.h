@@ -51,6 +51,9 @@ extern void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
 extern void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 esp_err_t connect_wifi(wifi_network_t* wifi_network);
 
+bool return_flag();
+void reset_flag();
+
 /*==================[END OF FILE]============================================*/
 #ifdef __cplusplus
 }

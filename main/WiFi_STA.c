@@ -42,6 +42,8 @@ static const char *TAG = "WiFi Library";
 /* Event group de WiFi donde se señalizan los distintos eventos WiFi ¨*/
 static EventGroupHandle_t wifi_event_group;
 
+bool reconn_flag = 0;
+
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
@@ -79,27 +81,27 @@ void wifi_event_handler(void* arg, esp_event_base_t event_base,
      */
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         
-        /**
-         *  En caso de que el numero de intentos de reconexión sea menor al establecido, se intenta otra reconexión. 
-         */
-        if (retry_num < MAX_FAILURES) {
-            esp_wifi_connect();
-            retry_num++;
-            ESP_LOGI(TAG, "Retrying to connect to the AP...");
-        } 
+        // /**
+        //  *  En caso de que el numero de intentos de reconexión sea menor al establecido, se intenta otra reconexión. 
+        //  */
+        // if (retry_num < MAX_FAILURES) {
+        //     esp_wifi_connect();
+        //     retry_num++;
+        //     ESP_LOGI(TAG, "Retrying to connect to the AP...");
+        // } 
         
-        /**
-         *  En caso de que se supere el número máximo de intentos, se le informa al loop del event group que hubo un 
-         *  fallo en la conexión.
-         */
-        else {
-            xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
-            
-            esp_wifi_stop();
-            esp_wifi_deinit();
+        // /**
+        //  *  En caso de que se supere el número máximo de intentos, se le informa al loop del event group que hubo un 
+        //  *  fallo en la conexión.
+        //  */
+        // else {
+        //     xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
 
-            ESP_LOGI(TAG,"Connection to the AP failed.");
-        }
+        //     ESP_LOGI(TAG,"Connection to the AP failed.");
+        // }
+
+        xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
+        reconn_flag = 1;
         
     } 
 }
@@ -331,18 +333,25 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
      *  Luego, sea que hubo un error o se estableció la conexión de forma exitosa, nos desuscribimos del 
      *  "event group" y de los handlers.
      */
-    ESP_RETURN_ON_ERROR(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, got_ip_event_instance), 
-                        TAG, "Failed to unregister from IP event handler.");
+    // ESP_RETURN_ON_ERROR(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, got_ip_event_instance), 
+    //                     TAG, "Failed to unregister from IP event handler.");
 
-    ESP_RETURN_ON_ERROR(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_handler_event_instance), 
-                        TAG, "Failed to unregister from WiFi event handler.");
+    // ESP_RETURN_ON_ERROR(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_handler_event_instance), 
+    //                     TAG, "Failed to unregister from WiFi event handler.");
 
-    ESP_RETURN_ON_ERROR(esp_event_loop_delete_default(), 
-                        TAG, "Failed to delete event loop.");
-
-    vEventGroupDelete(wifi_event_group);
+    // vEventGroupDelete(wifi_event_group);
 
     return status;
 
+}
+
+bool return_flag()
+{
+    return reconn_flag;
+}
+
+void reset_flag()
+{
+    reconn_flag = 0;
 }
 

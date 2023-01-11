@@ -32,9 +32,17 @@ void app_main(void)
     while(1)
     {
         ESP_LOGI(TAG, "MAIN TASK RUNNING");
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        connect_wifi(&network);
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        vTaskDelay(pdMS_TO_TICKS(500));
+
+        ESP_LOGI(TAG, "RETURN FLAG: %i", return_flag());
+
+        if(return_flag())
+        {
+            esp_wifi_connect();
+            reset_flag();
+        }
+        vTaskDelay(pdMS_TO_TICKS(500));
+        
 
     }
 
