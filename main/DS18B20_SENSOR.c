@@ -70,8 +70,15 @@ static void vTaskGetTemp(void *pvParameters)
          *  Al poner como address "DS18X20_ANY", estamos pidiendo el dato a todos los sensores
          *  DS18B20 del bus, pero al haber uno solo en este caso, esto no afecta en nada.
          */
-        ESP_RETURN_ON_ERROR(ds18b20_measure_and_read(DS18B20_SENSOR_DATA_PIN, DS18X20_ANY, &DS18B20_temp_value),
-                                                     TAG, "Failed to get temp.");
+        if(ds18b20_measure_and_read(DS18B20_SENSOR_DATA_PIN, DS18X20_ANY, &DS18B20_temp_value) != ESP_OK)
+        {
+            /**
+             *  En caso de error de medición del sensor, cargamos a la variable de temperatura
+             *  el valor definido para detección de error de forma externa a la librería.
+             */
+            DS18B20_temp_value = DS18B20_MEASURE_ERROR;
+            ESP_LOGE(TAG, "Failed to get temp.")
+        }
         
         vTaskDelay(pdMS_TO_TICKS(1000));
     }

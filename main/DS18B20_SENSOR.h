@@ -19,6 +19,8 @@ extern "C" {
 
 /*==================[DEFINES AND MACROS]=====================================*/
 
+#define DS18B20_MEASURE_ERROR -300 
+
 typedef gpio_num_t DS18B20_sensor_data_pin_t;
 typedef float DS18B20_sensor_temp_t;
 

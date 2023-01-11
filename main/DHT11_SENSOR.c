@@ -70,8 +70,16 @@ static void vTaskGetTempAndHum(void *pvParameters)
         /**
          *  Se obtiene el valor de temperatura y humedad relativa desde el sensor DHT11.
          */
-        ESP_RETURN_ON_ERROR(dht_read_float_data(DHT_TYPE_DHT11, DHT11_SENSOR_DATA_PIN, &DHT11_hum_value, &DHT11_temp_value),
-                                                     TAG, "Failed to get temp and hum.");
+        if(dht_read_float_data(DHT_TYPE_DHT11, DHT11_SENSOR_DATA_PIN, &DHT11_hum_value, &DHT11_temp_value) != ESP_OK)
+        {
+            /**
+             *  En caso de error de medición del sensor, cargamos a la variable de temperatura
+             *  y de humedad el valor definido para detección de error de forma externa a la librería.
+             */
+            DHT11_hum_value = DHT11_MEASURE_ERROR;
+            DHT11_temp_value = DHT11_MEASURE_ERROR;
+            ESP_LOGE(TAG, "Failed to get temp and hum.")
+        }
         
         vTaskDelay(pdMS_TO_TICKS(3000));
     }
