@@ -33,8 +33,8 @@
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
 
-/* Variable que identifica la cantidad de veces que se reintentó una conexión */
-static int retry_num = 0;
+/* Bandera para conocer el estado de la conexión WiFi */
+static bool wifi_conn_flag = 0;
 
 /* Tag para imprimir información en el LOG. */
 static const char *TAG = "WiFi Library";
@@ -42,12 +42,16 @@ static const char *TAG = "WiFi Library";
 /* Event group de WiFi donde se señalizan los distintos eventos WiFi ¨*/
 static EventGroupHandle_t wifi_event_group;
 
+/* Handle de la tarea de reconexion de WiFi */
+static TaskHandle_t xWiFiReconnTaskHandle = NULL;
+
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
 void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 void ip_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+static void vTaskWiFiReconn(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -78,26 +82,36 @@ void wifi_event_handler(void* arg, esp_event_base_t event_base,
      *  se ingresa para intentar reconectarse.
      */
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
-        
+
         /**
-         *  En caso de que el numero de intentos de reconexión sea menor al establecido, se intenta otra reconexión. 
+         *  Esta variable sirve para que, en el caso de que un llamado a "xTaskNotifyFromISR()" desbloquee
+         *  una tarea de mayor prioridad que la que estaba corriendo justo antes de entrar en la rutina
+         *  de interrupción, al retornar se haga un context switch a dicha tarea de mayor prioridad en vez
+         *  de a la de menor prioridad (xHigherPriorityTaskWoken = pdTRUE)
          */
-        if (retry_num < MAX_FAILURES) {
-            esp_wifi_connect();
-            retry_num++;
-            ESP_LOGI(TAG, "Retrying to connect to the AP...");
-        } 
-        
+        BaseType_t xHigherPriorityTaskWoken;
+        xHigherPriorityTaskWoken = pdFALSE;
+
         /**
-         *  En caso de que se supere el número máximo de intentos, se le informa al loop del event group que hubo un 
-         *  fallo en la conexión.
+         *  Enviamos un Task Notify a la tarea de reconexión de WiFi, para informarle que se intentó la
+         *  reconexión, pero falló, por lo que se debe intentar nuevamente. Se resetea además la bandera
+         *  representativa del estado de conexión de WiFi.
          */
-        else {
-            xEventGroupSetBits(wifi_event_group, WIFI_FAIL_BIT);
-            ESP_LOGI(TAG,"Connection to the AP failed.");
-        }
+        vTaskNotifyGiveFromISR(xWiFiReconnTaskHandle, &xHigherPriorityTaskWoken);
+        wifi_conn_flag = 0;
+
+        /**
+         *  Devolvemos el procesador a la tarea que corresponda. En el caso de que xHigherPriorityTaskWoken = pdTRUE,
+         *  implica que se debe realizar un context switch a la tarea de mayor prioridad que fue desbloqueada.
+         */
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
         
-    } 
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_CONNECTED) {
+
+        wifi_conn_flag = 1;
+
+    }
+
 }
 
 
@@ -118,23 +132,47 @@ void ip_event_handler(void* arg, esp_event_base_t event_base,
      *  correctamente al ESP32
      */
     if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
-
         /**
          *  Se crea una variable para obtener el dato del IP asignado y mostrarlo en pantalla
          */
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "STA IP:" IPSTR, IP2STR(&event->ip_info.ip));
-        retry_num = 0;
-
-        /**
-         *  Se le informa al event group que la conexión al WiFi fue exitosa
-         */
-        xEventGroupSetBits(wifi_event_group, WIFI_SUCCES);
     }
 
 }
 
 
+
+/**
+ * @brief   Tarea que se encarga de realizar una reconexión a la red WiFi externa en
+ *          caso de desconexión.
+ * 
+ * @param pvParameters  Parámetros pasados a la tarea en su creación.
+ */
+static void vTaskWiFiReconn(void *pvParameters)
+{
+    while(1)
+    {
+        /**
+         *  Se espera indefinidamente a recibir un Task Notify desde el wifi event handler, solo
+         *  en caso de desconexión de la red WiFi.
+         */
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+        /**
+         *  Se realiza el intento de reconexión a la red WiFi.
+         */
+        esp_wifi_connect();
+
+        ESP_LOGW(TAG, "ATTEMPTING TO RECONNECT TO WIFI NETWORK...");
+
+        /**
+         *  Se espera un cierto tiempo antes de intentar la reconexión (5 seg en este caso).
+         */
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
+
+}
 
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -146,14 +184,6 @@ void ip_event_handler(void* arg, esp_event_base_t event_base,
  */
 esp_err_t connect_wifi(wifi_network_t* wifi_network)
 {
-
-    /**
-     *  Se crea una variable para controlar el estado de la conexión
-     */
-    int status = WIFI_FAILURE;
-
-
-
     //========================| INICIALIZACIÓN |===========================//
 
     /**
@@ -187,7 +217,7 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
      *  estándar o default.
      * 
      */
-    ESP_RETURN_ON_ERROR(esp_netif_create_default_wifi_sta(), TAG, "Failed to initialize WIFI STA.");
+    esp_netif_create_default_wifi_sta();
 
     /**
      *  Se crea una variable mediante la cual se realiza la configuración para el inicio de los parametros 
@@ -202,11 +232,6 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
 
 
     //========================| CONFIGURACIÓN DEL EVENT LOOP |===========================//
-
-    /**
-     *  Se crea un event group para manejar los eventos que surjan relacionados con el WiFi
-     */
-    wifi_event_group = xEventGroupCreate();
 
     /**
      *  Se crea una variable que representa una instancia del handler de eventos de WiFi, que luego puede 
@@ -286,56 +311,50 @@ esp_err_t connect_wifi(wifi_network_t* wifi_network)
 
 
 
-    //========================| ESPERA A LA CONEXIÓN |===========================//
+    //========================| CREACIÓN DE TAREA |===========================//
 
     /**
-     *  Con esta función, se espera a la recepción de los bits indicados por parte el loop de eventos del "event group":
+     *  Se crea la tarea encargada de reconectarse al WiFi en caso de desconexión del mismo.
      * 
-     *  -El primer parámetro es la variable que representa el event group.
-     *  -El segundo parametro son los bits que queremos vigilar si se setean.
-     *  -El tercer parametro indica si queremos que se reseteen los bits indicados una vez se detecten.
-     *  -El cuarto parametro indica si queremos quedarnos esperando en este punto a qué se setee alguno de los bits indicados.
-     *  -El quinto parametro indica el tiempo máximo que queremos esperar a esto.
+     *  Se le da una prioridad alta ya que la conexión al WiFi es fundamental para el funcionamiento
+     *  del sistema, pero como esta tarea es muy simple y solo actua en caso de desconexión y el
+     *  resto del tiempo se encuentra bloqueada, no consumirá prácticamente tiempo de procesador.
      */
-    EventBits_t bits = xEventGroupWaitBits( wifi_event_group,
-                                            WIFI_SUCCES | WIFI_FAILURE,
-                                            pdFALSE,
-                                            pdFALSE,
-                                            portMAX_DELAY);
-
-    /**
-     *  Chequeamos si la conexión fue exitosa o hubo algún error.
-     */
-    if(bits & WIFI_SUCCES){
-
-        ESP_LOGI(TAG, "Connected to AP.");
-        status = WIFI_SUCCES;
-
-    } else if(bits & WIFI_FAILURE){
-
-        ESP_LOGI(TAG, "Failed to connect to AP.");
-        status = WIFI_FAILURE;
-
-    } else{
-
-        ESP_LOGI(TAG, "UNEXPECTED EVENT!.");
-        status = WIFI_FAILURE;
-
+    if(xWiFiReconnTaskHandle == NULL)
+    {
+        xTaskCreate(
+            vTaskWiFiReconn,
+            "vTaskWiFiReconn",
+            2048,
+            NULL,
+            4,
+            &xWiFiReconnTaskHandle);
+        
+        /**
+         *  En caso de que el handle sea NULL, implica que no se pudo crear la tarea, y se retorna con error.
+         */
+        if(xWiFiReconnTaskHandle == NULL)
+        {
+            ESP_LOGE(TAG, "Failed to create vTaskWiFiReconn task.");
+            return ESP_FAIL;
+        }
     }
 
-    /**
-     *  Luego, sea que hubo un error o se estableció la conexión de forma exitosa, nos desuscribimos del 
-     *  "event group" y de los handlers.
-     */
-    ESP_RETURN_ON_ERROR(esp_event_handler_instance_unregister(IP_EVENT, IP_EVENT_STA_GOT_IP, got_ip_event_instance), 
-                        TAG, "Failed to unregister from IP event handler.");
-
-    ESP_RETURN_ON_ERROR(esp_event_handler_instance_unregister(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_handler_event_instance), 
-                        TAG, "Failed to unregister from WiFi event handler.");
-                        
-    vEventGroupDelete(wifi_event_group);
-
-    return status;
+    return ESP_OK;
 
 }
+
+
+
+/**
+ * @brief   Función para conocer el estado de conexión WiFi (STA MODE).
+ * 
+ * @return true     Conectado a red externa.
+ * @return false    No conectado a red externa.
+ */
+bool wifi_check_connection()
+{
+    return wifi_conn_flag;
+}
+
 

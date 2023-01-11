@@ -20,8 +20,8 @@ void app_main(void)
 
     while(1)
     {
-        vTaskDelay(pdMS_TO_TICKS(3000));
-
+        ESP_LOGI(TAG, "MAIN TASK RUNNING");
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 
 }
