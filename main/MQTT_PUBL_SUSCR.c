@@ -139,7 +139,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
     case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT SUBSRIBED MESSAGE ARRIVED.");
-        ESP_LOGI(TAG, "MQTT_EVENT_DATA: %.*s", event->data_len, event->data);
+        //ESP_LOGI(TAG, "MQTT_EVENT_DATA: %.*s", event->data_len, event->data);
 
         /**
          *  Se compara el nombre del tópico al cual llegó el dato con la lista de tópicos anteriormente definida.
@@ -149,7 +149,15 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         {
             if(strcmp(mqtt_topic_list[i].topic, event->topic))
             {
-                strcpy(mqtt_topic_list[i].data, event->data);
+                /**
+                 *  Se borra el contenido anterior del dato del tópico correspondiente y se
+                 *  le copia el nuevo, pero solo la cantidad de caracteres "data_len", porque
+                 *  si se copia todo "event->data", hay caracteres basura.
+                 */
+                memset(mqtt_topic_list[i].data, 0, sizeof(mqtt_topic_list[i].data));
+                strncpy(mqtt_topic_list[i].data, event->data, event->data_len);
+
+                ESP_LOGI(TAG, "TOPIC DATA ARRIVED: %s", mqtt_topic_list[i].data);
             }
         }
 
@@ -297,7 +305,7 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_name* list_of_topic_names, 
          *  En caso de que la función retorne -1, implica que no se pudo suscribir al
          *  tópico correspondiente, y se retorna con error.
          */
-        if(esp_mqtt_client_subscribe(mqtt_client, mqtt_topic_list[i].topic, qos) == -1)
+        if(esp_mqtt_client_subscribe(mqtt_client, mqtt_topic_list[i].topic, qos) == ESP_FAIL)
         {
             ESP_LOGE(TAG, "MQTT ERROR: Failed to suscribe to topic: %s", mqtt_topic_list[i].topic);
 
@@ -354,7 +362,7 @@ esp_err_t mqtt_get_char_data_from_topic(const char* topic, char* buffer)
     {
         if(strcmp(mqtt_topic_list[i].topic, topic))
         {
-            strcpy(buffer, mqtt_topic_list[i].topic);
+            strcpy(buffer, mqtt_topic_list[i].data);
         }
     }
 
