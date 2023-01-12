@@ -142,12 +142,20 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         //ESP_LOGI(TAG, "MQTT_EVENT_DATA: %.*s", event->data_len, event->data);
 
         /**
+         *  Debido a que el nombre del topico que llega por "event->topic" generalmente contiene
+         *  caracteres basura por fuera del tamaño de "event->topic_len", entonces se copia hasta
+         *  esa cantidad de caracteres en un array auxiliar que será usado luego para comparación.
+         */
+        char topic_aux[100] = "";
+        strncpy(topic_aux, event->topic, event->topic_len);
+
+        /**
          *  Se compara el nombre del tópico al cual llegó el dato con la lista de tópicos anteriormente definida.
          *  En caso de coincidir con algun nombre de la lista, se copia el dato correspondiente.
          */
         for(int i = 0; i < mqtt_topic_num; i++)
         {
-            if(strcmp(mqtt_topic_list[i].topic, event->topic))
+            if(!strcmp(mqtt_topic_list[i].topic, topic_aux))
             {
                 /**
                  *  Se borra el contenido anterior del dato del tópico correspondiente y se
@@ -334,7 +342,7 @@ esp_err_t mqtt_get_float_data_from_topic(const char* topic, float* buffer)
      */
     for(int i = 0; i < mqtt_topic_num; i++)
     {
-        if(strcmp(mqtt_topic_list[i].topic, topic))
+        if(!strcmp(mqtt_topic_list[i].topic, topic))
         {
             *buffer = atof(mqtt_topic_list[i].data);
         }
@@ -360,7 +368,7 @@ esp_err_t mqtt_get_char_data_from_topic(const char* topic, char* buffer)
      */
     for(int i = 0; i < mqtt_topic_num; i++)
     {
-        if(strcmp(mqtt_topic_list[i].topic, topic))
+        if(!strcmp(mqtt_topic_list[i].topic, topic))
         {
             strcpy(buffer, mqtt_topic_list[i].data);
         }
