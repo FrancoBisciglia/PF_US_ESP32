@@ -78,7 +78,7 @@ static void vTaskGetTempAndHum(void *pvParameters)
              */
             DHT11_hum_value = DHT11_MEASURE_ERROR;
             DHT11_temp_value = DHT11_MEASURE_ERROR;
-            ESP_LOGE(TAG, "Failed to get temp and hum.")
+            ESP_LOGE(TAG, "Failed to get temp and hum.");
         }
         
         vTaskDelay(pdMS_TO_TICKS(3000));

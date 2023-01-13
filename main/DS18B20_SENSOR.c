@@ -77,7 +77,7 @@ static void vTaskGetTemp(void *pvParameters)
              *  el valor definido para detección de error de forma externa a la librería.
              */
             DS18B20_temp_value = DS18B20_MEASURE_ERROR;
-            ESP_LOGE(TAG, "Failed to get temp.")
+            ESP_LOGE(TAG, "Failed to get temp.");
         }
         
         vTaskDelay(pdMS_TO_TICKS(1000));

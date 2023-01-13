@@ -26,6 +26,7 @@ extern "C" {
 typedef struct {
     char data[50];  /* Dato almacenado (en formato char dado que así se lo recibe desde el tópico) */
     char topic[100];    /* Nombre/dirección del tópico MQTT correspondiente. */
+    TaskHandle_t task_handle;
 } mqtt_subscribed_topic_data;
 
 
@@ -35,7 +36,8 @@ typedef struct {
  */
 typedef struct {
     char topic_name[100];
-} mqtt_topic_name;
+    TaskHandle_t topic_task_handle;
+} mqtt_topic_t;
 
 /*==================[EXTERNAL DATA DECLARATION]==============================*/
 
@@ -43,7 +45,7 @@ typedef struct {
 
 esp_err_t mqtt_initialize_and_connect(char* MQTT_BROKER_URI, esp_mqtt_client_handle_t* MQTT_client);
 bool mqtt_check_connection();
-esp_err_t mqtt_suscribe_to_topics(const mqtt_topic_name* list_of_topic_names, const unsigned int number_of_topics, esp_mqtt_client_handle_t mqtt_client, int qos);
+esp_err_t mqtt_suscribe_to_topics(const mqtt_topic_t* list_of_topics, const unsigned int number_of_topics, esp_mqtt_client_handle_t mqtt_client, int qos);
 esp_err_t mqtt_get_float_data_from_topic(const char* topic, float* buffer);
 esp_err_t mqtt_get_char_data_from_topic(const char* topic, char* buffer);
 

@@ -141,6 +141,9 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT SUBSRIBED MESSAGE ARRIVED.");
         //ESP_LOGI(TAG, "MQTT_EVENT_DATA: %.*s", event->data_len, event->data);
 
+        BaseType_t xHigherPriorityTaskWoken;
+        xHigherPriorityTaskWoken = pdFALSE;
+
         /**
          *  Debido a que el nombre del topico que llega por "event->topic" generalmente contiene
          *  caracteres basura por fuera del tamaño de "event->topic_len", entonces se copia hasta
@@ -165,9 +168,18 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 memset(mqtt_topic_list[i].data, 0, sizeof(mqtt_topic_list[i].data));
                 strncpy(mqtt_topic_list[i].data, event->data, event->data_len);
 
+                if(mqtt_topic_list[i].task_handle != NULL)
+                {
+                    vTaskNotifyGiveFromISR(mqtt_topic_list[i].task_handle, &xHigherPriorityTaskWoken);
+                }
+
                 ESP_LOGI(TAG, "TOPIC DATA ARRIVED: %s", mqtt_topic_list[i].data);
+
+                continue;
             }
         }
+
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 
         break;
 
@@ -258,21 +270,21 @@ bool mqtt_check_connection()
 /**
  * @brief   Función mediante la cual se registran y se suscribe a los tópicos MQTT que se pasen como argumento.
  * 
- * @param list_of_topic_names   Listado de nombres de los tópicos MQTT a suscribir.
+ * @param list_of_topics   Listado de nombres de los tópicos MQTT a suscribir.
  * @param number_of_topics  Cantidad de tópicos.
  * @param mqtt_client   Handle del cliente MQTT.
  * @param qos   Quality of Service de la comunicación MQTT.
  * 
  * @return esp_err_t 
  */
-esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_name* list_of_topic_names, const unsigned int number_of_topics, 
+esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_t* list_of_topics, const unsigned int number_of_topics, 
                                     esp_mqtt_client_handle_t mqtt_client, int qos)
 {
 
     /**
      *  Se verifica que los argumentos recibidos no estén vacíos.
      */
-    if(list_of_topic_names == NULL || number_of_topics == 0)
+    if(list_of_topics == NULL || number_of_topics == 0)
     {
         ESP_LOGE(TAG, "MQTT ERROR: Failed to suscribe to topics. Enter valid arguments.");
         return ESP_ERR_INVALID_ARG;
@@ -307,7 +319,8 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_name* list_of_topic_names, 
      */
     for(int i = 0; i < number_of_topics; i++)
     {
-        strcpy(mqtt_topic_list[i].topic, list_of_topic_names[i].topic_name);
+        mqtt_topic_list[i].task_handle = list_of_topics[i].topic_task_handle;
+        strcpy(mqtt_topic_list[i].topic, list_of_topics[i].topic_name);
 
         /**
          *  En caso de que la función retorne -1, implica que no se pudo suscribir al
