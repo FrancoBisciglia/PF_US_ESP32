@@ -79,7 +79,12 @@ static bool MQTT_CONNECTED = 0;
 //Cantidad de tópicos a suscribir.
 static unsigned int mqtt_topic_num = 0;
 
-//Variable en la cual se guardaran los nombres de los tópicos MQTT suscritos, junto con los datos que se obtendrán por publicaciones en los mismos.
+/**
+ *  Variable en la cual se guardaran los nombres de los tópicos MQTT suscritos, 
+ *  junto con los datos que se obtendrán por publicaciones en los mismos, y el task
+ *  handle de la tarea a la cual se le quiere informar la llegada de un nuevo
+ *  dato al topico correspondiente.
+ */
 static mqtt_subscribed_topic_data* mqtt_topic_list = NULL;
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
@@ -141,6 +146,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT SUBSRIBED MESSAGE ARRIVED.");
         //ESP_LOGI(TAG, "MQTT_EVENT_DATA: %.*s", event->data_len, event->data);
 
+        /**
+         *  Esta variable sirve para que, en el caso de que un llamado a "xTaskNotifyFromISR()" desbloquee
+         *  una tarea de mayor prioridad que la que estaba corriendo justo antes de entrar en la rutina
+         *  de interrupción, al retornar se haga un context switch a dicha tarea de mayor prioridad en vez
+         *  de a la de menor prioridad (xHigherPriorityTaskWoken = pdTRUE)
+         */
         BaseType_t xHigherPriorityTaskWoken;
         xHigherPriorityTaskWoken = pdFALSE;
 
@@ -168,6 +179,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 memset(mqtt_topic_list[i].data, 0, sizeof(mqtt_topic_list[i].data));
                 strncpy(mqtt_topic_list[i].data, event->data, event->data_len);
 
+                /**
+                 *  En caso de que para este tópico se haya cargado un Task Handle, se le envia un
+                 *  Task Notify a la tarea correspondiente.
+                 */
                 if(mqtt_topic_list[i].task_handle != NULL)
                 {
                     vTaskNotifyGiveFromISR(mqtt_topic_list[i].task_handle, &xHigherPriorityTaskWoken);
@@ -284,7 +299,7 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_t* list_of_topics, const un
     /**
      *  Se verifica que los argumentos recibidos no estén vacíos.
      */
-    if(list_of_topics == NULL || number_of_topics == 0)
+    if(list_of_topics == NULL || number_of_topics == 0 || mqtt_client == NULL || qos < 0 || qos > 3)
     {
         ESP_LOGE(TAG, "MQTT ERROR: Failed to suscribe to topics. Enter valid arguments.");
         return ESP_ERR_INVALID_ARG;
@@ -315,7 +330,7 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_t* list_of_topics, const un
     }
 
     /**
-     *  Se copian los nombres de los tópicos correspondientes y se suscribe a los mismos.
+     *  Se copian los nombres y Task Handle de los tópicos correspondientes y se suscribe a los mismos.
      */
     for(int i = 0; i < number_of_topics; i++)
     {
