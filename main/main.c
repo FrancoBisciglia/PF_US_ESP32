@@ -9,92 +9,87 @@
 #include "DS18B20_SENSOR.h"
 #include "WiFi_STA.h"
 #include "MQTT_PUBL_SUSCR.h"
+#include "freertos/timers.h"
 
 
 #define MQTT_TEMP_SOLUC_TOPIC "/TempSoluc/Data"
 
 typedef enum {
-    TEMP_SOLUCION_CORRECTA = 0,
-    TEMP_SOLUCION_BAJA,
-    TEMP_SOLUCION_ELEVADA,
-} estado_MEF_control_temp_soluc_t;
+    BOMBEO_SOLUCION = 0,
+    ESPERA_BOMBEO,
+} estado_MEF_control_bombeo_soluc_t;
 
 typedef enum {
-    ALGORITMO_CONTROL_TEMP_SOLUC = 0,
+    ALGORITMO_CONTROL_BOMBEO_SOLUC = 0,
     MODO_MANUAL,
-} estado_MEF_principal_control_temp_soluc_t;
+} estado_MEF_principal_control_bombeo_soluc_t;
 
 const char *TAG = "MAIN";
 
-TaskHandle_t xAlgoritmoControlTempSolucTaskHandle = NULL;
+TaskHandle_t xAlgoritmoControlBombeoSolucTaskHandle = NULL;
 TaskHandle_t xManualModeTaskHandle = NULL;
-TaskHandle_t xTempDataTaskHandle = NULL;
-TaskHandle_t xNewSPTaskHandle = NULL;
+TaskHandle_t xNewTiempoBombeoTaskHandle = NULL;
+TaskHandle_t xNewTiempoEsperaBombeoTaskHandle = NULL;
+
+TimerHandle_t xTimerBomba;
+
+TickType_t timeLeft;
+
+float TiempoBombeo = 1000;
+float TiempoEsperaBombeo = 2000;
 
 esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 
-DS18B20_sensor_temp_t soluc_temp = 0;
-DS18B20_sensor_temp_t limite_inferior_temp_soluc = 28.75;
-DS18B20_sensor_temp_t limite_superior_temp_soluc = 30.25;
-DS18B20_sensor_temp_t ancho_ventana_hist = 0.5;
-DS18B20_sensor_temp_t delta_temp_soluc = 1.5;
-
 bool manual_mode_flag = 0;
-bool reset_transition_flag = 0;
+bool timer_finished_flag = 0;
 
 
-void MEFControlTempSoluc(void)
+
+
+void vTimerCallback( TimerHandle_t pxTimer )
 {
-    static estado_MEF_control_temp_soluc_t est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
+    BaseType_t xHigherPriorityTaskWoken;
+    xHigherPriorityTaskWoken = pdFALSE;
 
-    if(reset_transition_flag)
-    {
-        est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
-        reset_transition_flag = 0;
-    }
+    timer_finished_flag = 1;
 
-    switch(est_MEF_control_temp_soluc)
+    ESP_LOGW(TAG, "ENTERED TIMER CALLBACK");
+
+    vTaskNotifyGiveFromISR(xAlgoritmoControlBombeoSolucTaskHandle, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+
+void MEFControlBombeoSoluc(void)
+{
+    static estado_MEF_control_bombeo_soluc_t est_MEF_control_bombeo_soluc = BOMBEO_SOLUCION;
+
+    switch(est_MEF_control_bombeo_soluc)
     {
         
-    case TEMP_SOLUCION_CORRECTA:
+    case BOMBEO_SOLUCION:
 
-        ESP_LOGW(TAG, "CALEFACTOR APAGADO");
-        ESP_LOGW(TAG, "REFRIGERADOR APAGADO");
-
-        if(soluc_temp < (limite_inferior_temp_soluc - (ancho_ventana_hist / 2)))
+        if(timer_finished_flag)
         {
-            est_MEF_control_temp_soluc = TEMP_SOLUCION_BAJA;
-        }
-
-        if(soluc_temp > (limite_superior_temp_soluc + (ancho_ventana_hist / 2)))
-        {
-            est_MEF_control_temp_soluc = TEMP_SOLUCION_ELEVADA;
+            timer_finished_flag = 0;
+            xTimerChangePeriod(xTimerBomba, pdMS_TO_TICKS(TiempoEsperaBombeo), 0);
+            xTimerReset(xTimerBomba, 0);
+            est_MEF_control_bombeo_soluc = ESPERA_BOMBEO;
+            ESP_LOGW(TAG, "BOMBA APAGADA");
         }
 
         break;
 
 
-    case TEMP_SOLUCION_BAJA:
+    case ESPERA_BOMBEO:
 
-        ESP_LOGW(TAG, "CALEFACTOR ENCEDIDO");
-        ESP_LOGW(TAG, "REFRIGERADOR APAGADO");
-
-        if(soluc_temp > (limite_inferior_temp_soluc + (ancho_ventana_hist / 2)))
+        if(timer_finished_flag)
         {
-            est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
-        }
-
-        break;
-
-
-    case TEMP_SOLUCION_ELEVADA:
-
-        ESP_LOGW(TAG, "CALEFACTOR APAGADO");
-        ESP_LOGW(TAG, "REFRIGERADOR ENCENDIDO");
-
-        if(soluc_temp < (limite_superior_temp_soluc - (ancho_ventana_hist / 2)))
-        {
-            est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
+            timer_finished_flag = 0;
+            xTimerChangePeriod(xTimerBomba, pdMS_TO_TICKS(TiempoBombeo), 0);
+            xTimerReset(xTimerBomba, 0);
+            est_MEF_control_bombeo_soluc = BOMBEO_SOLUCION;
+            ESP_LOGW(TAG, "BOMBA ENCENDIDA");
         }
 
         break;
@@ -102,46 +97,46 @@ void MEFControlTempSoluc(void)
 }
 
 
-void vTaskSolutionTemperatureControl(void *pvParameters)
+void vTaskBombeoControl(void *pvParameters)
 {
 
-    static estado_MEF_principal_control_temp_soluc_t est_MEF_principal = ALGORITMO_CONTROL_TEMP_SOLUC;
+    static estado_MEF_principal_control_bombeo_soluc_t est_MEF_principal = ALGORITMO_CONTROL_BOMBEO_SOLUC;
+
+    ESP_LOGW(TAG, "BOMBA ENCENDIDA");
 
     while(1)
     {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-
         switch(est_MEF_principal)
         {
         
-        case ALGORITMO_CONTROL_TEMP_SOLUC:
+        case ALGORITMO_CONTROL_BOMBEO_SOLUC:
+
+            MEFControlBombeoSoluc();
 
             if(manual_mode_flag)
             {
+                timeLeft = xTimerGetExpiryTime(xTimerBomba) - xTaskGetTickCount();
+                xTimerStop(xTimerBomba, 0);
                 est_MEF_principal = MODO_MANUAL;
-                reset_transition_flag = 1;
             }
-
-            MEFControlTempSoluc();
 
             break;
 
 
         case MODO_MANUAL:
+            ;
+            char buffer[50];
+            mqtt_get_char_data_from_topic("/BombeoSoluc/Modo_Manual/Bomba", buffer);
+
+            ESP_LOGW(TAG, "MANUAL MODE BOMBA: %s", buffer);
 
             if(!manual_mode_flag)
             {
-                est_MEF_principal = ALGORITMO_CONTROL_TEMP_SOLUC;
+                est_MEF_principal = ALGORITMO_CONTROL_BOMBEO_SOLUC;
+                xTimerChangePeriod(xTimerBomba, timeLeft, 0);
             }
-
-            char buffer1[50];
-            char buffer2[50];
-            mqtt_get_char_data_from_topic("/TempSoluc/Modo_Manual/Refrigerador", buffer1);
-            mqtt_get_char_data_from_topic("/TempSoluc/Modo_Manual/Calefactor", buffer2);
-
-            ESP_LOGW(TAG, "MANUAL MODE CALEFACTOR: %s", buffer2);
-            ESP_LOGW(TAG, "MANUAL MODE REFRIGERADOR: %s", buffer1);
 
             break;
         }
@@ -156,71 +151,61 @@ void vTaskManualMode(void *pvParameters)
         ESP_LOGI(TAG, "MANUAL MODE TASK RUN");
 
         char buffer[10];
-        mqtt_get_char_data_from_topic("/TempSoluc/Modo", buffer);
+        mqtt_get_char_data_from_topic("/BombaSoluc/Modo", buffer);
 
         if(!strcmp("MANUAL", buffer))
         {
             manual_mode_flag = 1;
+            
         }
 
         else
         {
             manual_mode_flag = 0;
         }
+
+        xTaskNotifyGive(xAlgoritmoControlBombeoSolucTaskHandle);
     }
 }
 
-void vTaskGetTempData(void *pvParameters)
+void vTaskNewTiempoBombeo(void *pvParameters)
 {
     while(1)
     {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-        DS18B20_getTemp(&soluc_temp);
-        char buffer[10];
-        snprintf(buffer, sizeof(buffer), "%.3f", soluc_temp);
-        esp_mqtt_client_publish(Cliente_MQTT, "Sensores de solucion/Temperatura", buffer, 0, 0, 0);
+        mqtt_get_float_data_from_topic("/SP/TiempoBombeo", &TiempoBombeo);
 
-        ESP_LOGW(TAG, "NEW MEASURMENT ARRIVED: %.3f", soluc_temp);
+        ESP_LOGI(TAG, "NUEVO TIEMPO BOMBEO: %.3f", TiempoBombeo);
 
-        xTaskNotifyGive(xAlgoritmoControlTempSolucTaskHandle);
-    }   
+    }
 }
 
-void vTaskNewTempSP(void *pvParameters)
+void vTaskNewTiempoEsperaBombeo(void *pvParameters)
 {
     while(1)
     {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-        float SP_temp_soluc = 0;
-        mqtt_get_float_data_from_topic("/SP/TempSoluc", &SP_temp_soluc);
+        mqtt_get_float_data_from_topic("/SP/TiempoEsperaBombeo", &TiempoEsperaBombeo);
 
-        ESP_LOGI(TAG, "NUEVO SP: %.3f", SP_temp_soluc);
+        ESP_LOGI(TAG, "NUEVO TIEMPO ESPERA BOMBEO: %.3f", TiempoEsperaBombeo);
 
-        limite_inferior_temp_soluc = SP_temp_soluc - delta_temp_soluc;
-        limite_superior_temp_soluc = SP_temp_soluc + delta_temp_soluc;
-
-        ESP_LOGI(TAG, "LIMITE INFERIOR: %.3f", limite_inferior_temp_soluc);
-        ESP_LOGI(TAG, "LIMITE SUPERIOR: %.3f", limite_superior_temp_soluc);
-
-        //reset_transition_flag = 1;
-
-        ESP_LOGI(TAG, "SP TASK RUN");
     }
 }
+
 
 void app_main(void)
 {
     //=======================| CREACION TAREAS |=======================//
 
     xTaskCreate(
-            vTaskSolutionTemperatureControl,
-            "vTaskSolutionTemperatureControl",
+            vTaskBombeoControl,
+            "vTaskBombeoControl",
             4096,
             NULL,
             2,
-            &xAlgoritmoControlTempSolucTaskHandle);
+            &xAlgoritmoControlBombeoSolucTaskHandle);
     
     xTaskCreate(
             vTaskManualMode,
@@ -231,20 +216,20 @@ void app_main(void)
             &xManualModeTaskHandle);
 
     xTaskCreate(
-            vTaskGetTempData,
-            "vTaskGetTempData",
-            2048,
-            NULL,
-            4,
-            &xTempDataTaskHandle);
-
-    xTaskCreate(
-            vTaskNewTempSP,
-            "vTaskNewTempSP",
+            vTaskNewTiempoEsperaBombeo,
+            "vTaskNewTiempoEsperaBombeo",
             2048,
             NULL,
             3,
-            &xNewSPTaskHandle);
+            &xNewTiempoEsperaBombeoTaskHandle);
+
+    xTaskCreate(
+            vTaskNewTiempoBombeo,
+            "vTaskNewTiempoBombeo",
+            2048,
+            NULL,
+            3,
+            &xNewTiempoBombeoTaskHandle);
 
     //=======================| CONEXION WIFI |=======================//
 
@@ -262,14 +247,14 @@ void app_main(void)
     while(!mqtt_check_connection()){vTaskDelay(pdMS_TO_TICKS(100));}
 
     mqtt_topic_t list_of_topics[] = {
-        [0].topic_name = "/SP/TempSoluc",
-        [0].topic_task_handle = xNewSPTaskHandle,
-        [1].topic_name = "/TempSoluc/Modo",
+        [0].topic_name = "/BombeoSoluc/Modo_Manual/Bomba",
+        [0].topic_task_handle = xAlgoritmoControlBombeoSolucTaskHandle,
+        [1].topic_name = "/BombaSoluc/Modo",
         [1].topic_task_handle = xManualModeTaskHandle,
-        [2].topic_name = "/TempSoluc/Modo_Manual/Refrigerador",
-        [2].topic_task_handle = xAlgoritmoControlTempSolucTaskHandle,
-        [3].topic_name = "/TempSoluc/Modo_Manual/Calefactor",
-        [3].topic_task_handle = xAlgoritmoControlTempSolucTaskHandle
+        [2].topic_name = "/SP/TiempoBombeo",
+        [2].topic_task_handle = xNewTiempoBombeoTaskHandle,
+        [3].topic_name = "/SP/TiempoEsperaBombeo",
+        [3].topic_task_handle = xNewTiempoEsperaBombeoTaskHandle
     };
 
     if(mqtt_suscribe_to_topics(list_of_topics, 4, Cliente_MQTT, 0) != ESP_OK)
@@ -278,8 +263,14 @@ void app_main(void)
     }
 
 
-    //=======================| INIT SENSOR NIVEL |=======================//
+    //=======================| INIT TIMERS |=======================//
 
-    DS18B20_sensor_init(18);
-    DS18B20_task_to_notify_on_new_measurment(xTempDataTaskHandle);
+    xTimerBomba = xTimerCreate("Timer Bomba",       // Just a text name, not used by the kernel.
+                              pdMS_TO_TICKS(TiempoBombeo),     // The timer period in ticks.
+                              pdFALSE,        // The timers will auto-reload themselves when they expire.
+                              (void *)0,     // Assign each timer a unique id equal to its array index.
+                              vTimerCallback // Each timer calls the same callback when it expires.
+    );
+
+    xTimerStart(xTimerBomba, 0);
 }
