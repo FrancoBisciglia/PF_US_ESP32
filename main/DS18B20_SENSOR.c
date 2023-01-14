@@ -41,6 +41,9 @@ static const char *TAG = "DS18B20_SENSOR_LIBRARY";
 /* Handle de la tarea de obtención de datos del sensor DS18B20. */
 static TaskHandle_t xDS18B20TaskHandle = NULL;
 
+/* Handle de la tarea a la cual se le informará que se completó una nueva medición. */
+TaskHandle_t xDS18B20TaskToNotifyOnNewMeasurment = NULL;
+
 /* Variable donde se guarda el valor de temperatura medido. */
 static DS18B20_sensor_temp_t DS18B20_temp_value = 0;
 
@@ -80,6 +83,8 @@ static void vTaskGetTemp(void *pvParameters)
             ESP_LOGE(TAG, "Failed to get temp.");
         }
         
+        xTaskNotifyGive(xDS18B20TaskToNotifyOnNewMeasurment);
+
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
@@ -171,4 +176,11 @@ esp_err_t DS18B20_getTemp(DS18B20_sensor_temp_t *DS18B20_value_buffer)
     *DS18B20_value_buffer = DS18B20_temp_value;
 
     return ESP_OK;
+}
+
+
+
+void DS18B20_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify)
+{
+    xDS18B20TaskToNotifyOnNewMeasurment = task_to_notify;
 }

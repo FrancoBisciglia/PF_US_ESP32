@@ -30,6 +30,7 @@ typedef float DS18B20_sensor_temp_t;
 
 esp_err_t DS18B20_sensor_init(DS18B20_sensor_data_pin_t DS18B20_sens_data_pin);
 esp_err_t DS18B20_getTemp(DS18B20_sensor_temp_t *DS18B20_value_buffer);
+void DS18B20_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify);
 
 /*==================[END OF FILE]============================================*/
 

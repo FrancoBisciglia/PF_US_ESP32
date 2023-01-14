@@ -123,6 +123,6 @@ void app_main(void)
 
     //=======================| INIT SENSOR NIVEL |=======================//
 
-    //DS18B20_sensor_init(18);
-
+    DS18B20_sensor_init(18);
+    DS18B20_task_to_notify_on_new_measurment()
 }
