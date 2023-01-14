@@ -399,6 +399,7 @@ esp_err_t mqtt_get_char_data_from_topic(const char* topic, char* buffer)
         if(!strcmp(mqtt_topic_list[i].topic, topic))
         {
             strcpy(buffer, mqtt_topic_list[i].data);
+            ESP_LOGI(TAG, "BUFFER: %s", buffer);
         }
     }
 

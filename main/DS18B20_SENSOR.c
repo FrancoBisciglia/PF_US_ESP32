@@ -83,7 +83,17 @@ static void vTaskGetTemp(void *pvParameters)
             ESP_LOGE(TAG, "Failed to get temp.");
         }
         
-        xTaskNotifyGive(xDS18B20TaskToNotifyOnNewMeasurment);
+        /**
+         *  Se le notifica a la tarea configurada que se completó la medición.
+         * 
+         *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
+         *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
+         *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
+         */
+        if(xDS18B20TaskToNotifyOnNewMeasurment != NULL)
+        {
+            xTaskNotifyGive(xDS18B20TaskToNotifyOnNewMeasurment);
+        }
 
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
@@ -180,6 +190,12 @@ esp_err_t DS18B20_getTemp(DS18B20_sensor_temp_t *DS18B20_value_buffer)
 
 
 
+/**
+ * @brief   Función para configurar que, al finalizarse una nueva medición del sensor,
+ *          se mande un Task Notify a la tarea cuyo Task Handle se pasa como argumento.
+ * 
+ * @param task_to_notify    Task Handle de la tarea a la cual se le quiere informar que se finalizó con una medición.
+ */
 void DS18B20_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify)
 {
     xDS18B20TaskToNotifyOnNewMeasurment = task_to_notify;
