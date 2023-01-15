@@ -394,6 +394,6 @@ void app_main(void)
      *  NOTA: MODIFICAR EL CANAL DE ADC, DADO QUE SE DEBIO CAMBIAR EL PIN DEL SENSOR TDS
      *  YA QUE EL ADC2 NO FUNCIONA CON WIFI, ASI QUE SE PASÓ AL ADC1.
      */
-    TDS_sensor_init(ADC2_CHANNEL_3);
+    TDS_sensor_init(ADC1_CHANNEL_3);
     TDS_sensor_task_to_notify_on_new_measurment(xTdsDataTaskHandle);
 }
