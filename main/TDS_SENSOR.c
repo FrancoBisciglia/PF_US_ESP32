@@ -50,7 +50,7 @@ TaskHandle_t xTdsSensorTaskToNotifyOnNewMeasurment = NULL;
 static TDS_sensor_ppm_t TDS_ppm_value = 0;
 
 /* Variable que representa canal de ADC2 del sensor de TDS */
-static TDS_sensor_adc2_ch_t TDS_SENSOR_ANALOG_PIN;
+static TDS_sensor_adc1_ch_t TDS_SENSOR_ANALOG_PIN;
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
@@ -80,8 +80,7 @@ static void vTaskGetTdsInPpm(void *pvParameters)
          */
         for(int i = 0; i < 10; i++)
         {
-            adc2_get_raw(TDS_SENSOR_ANALOG_PIN, ADC_WIDTH_BIT_12, &TDS_buffer[i]);
-            ESP_LOGE(TAG, "TDS: %i", TDS_buffer[i]);
+            TDS_buffer[i] = adc1_get_raw(TDS_SENSOR_ANALOG_PIN);
             vTaskDelay(pdMS_TO_TICKS(10));
         }
 
@@ -168,7 +167,7 @@ static void vTaskGetTdsInPpm(void *pvParameters)
  * @param TDS_sens_analog_pin    Canal de ADC en el cual se encuentra conectado el sensor (debe ser del ADC2)
  * @return esp_err_t 
  */
-esp_err_t TDS_sensor_init(TDS_sensor_adc2_ch_t TDS_sens_analog_pin)
+esp_err_t TDS_sensor_init(TDS_sensor_adc1_ch_t TDS_sens_analog_pin)
 {
     //========================| CONFIGURACIÓN ADC |===========================//
 
@@ -186,7 +185,7 @@ esp_err_t TDS_sensor_init(TDS_sensor_adc2_ch_t TDS_sens_analog_pin)
      *  Se configura el nivel de atenuación del ADC, en este caso, de 11 dB, lo que implica un
      *  rango de tensión de hasta aproximadamente 3,1 V.
      */
-    ESP_RETURN_ON_ERROR(adc2_config_channel_atten(TDS_sens_analog_pin, ADC_ATTEN_DB_11), TAG, "Failed to config ADC attenuation.");
+    ESP_RETURN_ON_ERROR(adc1_config_channel_atten(TDS_sens_analog_pin, ADC_ATTEN_DB_11), TAG, "Failed to config ADC attenuation.");
 
 
 
