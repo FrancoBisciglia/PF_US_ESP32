@@ -43,6 +43,9 @@ static const char *TAG = "TDS_SENSOR_LIBRARY";
 /* Handle de la tarea de obtención de datos del sensor de TDS */
 static TaskHandle_t xTdsTaskHandle = NULL;
 
+/* Handle de la tarea a la cual se le informará que se completó una nueva medición. */
+TaskHandle_t xTdsSensorTaskToNotifyOnNewMeasurment = NULL;
+
 /* Variable donde se guarda el valor de TDS medido. */
 static TDS_sensor_ppm_t TDS_ppm_value = 0;
 
@@ -78,6 +81,7 @@ static void vTaskGetTdsInPpm(void *pvParameters)
         for(int i = 0; i < 10; i++)
         {
             adc2_get_raw(TDS_SENSOR_ANALOG_PIN, ADC_WIDTH_BIT_12, &TDS_buffer[i]);
+            ESP_LOGE(TAG, "TDS: %i", TDS_buffer[i]);
             vTaskDelay(pdMS_TO_TICKS(10));
         }
 
@@ -139,6 +143,18 @@ static void vTaskGetTdsInPpm(void *pvParameters)
          */
         TDS_ppm_value = (133.42 * TDS_compensation_voltage * TDS_compensation_voltage * TDS_compensation_voltage - 255.86 * TDS_compensation_voltage * TDS_compensation_voltage + 857.39 * TDS_compensation_voltage) * 0.5; // Fórmula para convertir el voltaje en valor TDS ppm
 
+
+        /**
+         *  Se le notifica a la tarea configurada que se completó la medición.
+         * 
+         *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
+         *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
+         *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
+         */
+        if(xTdsSensorTaskToNotifyOnNewMeasurment != NULL)
+        {
+            xTaskNotifyGive(xTdsSensorTaskToNotifyOnNewMeasurment);
+        }
 
         vTaskDelay(pdMS_TO_TICKS(3000));
     }
@@ -221,4 +237,17 @@ esp_err_t TDS_getValue(TDS_sensor_ppm_t *TDS_value_buffer)
     *TDS_value_buffer = TDS_ppm_value;
 
     return ESP_OK;
+}
+
+
+
+/**
+ * @brief   Función para configurar que, al finalizarse una nueva medición del sensor,
+ *          se mande un Task Notify a la tarea cuyo Task Handle se pasa como argumento.
+ * 
+ * @param task_to_notify    Task Handle de la tarea a la cual se le quiere informar que se finalizó con una medición.
+ */
+void TDS_sensor_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify)
+{
+    xTdsSensorTaskToNotifyOnNewMeasurment = task_to_notify;
 }

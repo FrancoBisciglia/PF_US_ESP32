@@ -16,6 +16,8 @@ extern "C" {
 #include <stdio.h>
 #include "esp_err.h"
 #include "driver/adc.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 /*==================[DEFINES AND MACROS]=====================================*/
 
@@ -28,6 +30,7 @@ typedef float pH_sensor_ph_t;
 
 esp_err_t ph_sensor_init(pH_sensor_adc1_ch_t pH_sens_analog_pin);
 esp_err_t pH_getValue(pH_sensor_ph_t *pH_value_buffer);
+void pH_sensor_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify);
 
 /*==================[END OF FILE]============================================*/
 

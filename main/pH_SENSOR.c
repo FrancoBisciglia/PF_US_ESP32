@@ -49,6 +49,9 @@ static const char *TAG = "pH_SENSOR_LIBRARY";
 /* Handle de la tarea de obtención de datos del sensor de pH */
 static TaskHandle_t xpHTaskHandle = NULL;
 
+/* Handle de la tarea a la cual se le informará que se completó una nueva medición. */
+TaskHandle_t xpHSensorTaskToNotifyOnNewMeasurment = NULL;
+
 /* Variable donde se guarda el valor de pH medido. */
 pH_sensor_ph_t pH_value = 0;
 
@@ -136,6 +139,18 @@ static void vTaskGetpH(void *pvParameters)
          *  Donde se puede notar que la pendiente es negativa, por lo que a mayor pH, menor valor de tensión en la entrada.
          */
         pH_value = -5.21 * pH_voltage + 21.11;
+
+        /**
+         *  Se le notifica a la tarea configurada que se completó la medición.
+         * 
+         *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
+         *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
+         *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
+         */
+        if(xpHSensorTaskToNotifyOnNewMeasurment != NULL)
+        {
+            xTaskNotifyGive(xpHSensorTaskToNotifyOnNewMeasurment);
+        }
         
         vTaskDelay(pdMS_TO_TICKS(3000));
     }
@@ -218,4 +233,17 @@ esp_err_t pH_getValue(pH_sensor_ph_t *pH_value_buffer)
     *pH_value_buffer = pH_value;
 
     return ESP_OK;
+}
+
+
+
+/**
+ * @brief   Función para configurar que, al finalizarse una nueva medición del sensor,
+ *          se mande un Task Notify a la tarea cuyo Task Handle se pasa como argumento.
+ * 
+ * @param task_to_notify    Task Handle de la tarea a la cual se le quiere informar que se finalizó con una medición.
+ */
+void pH_sensor_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify)
+{
+    xpHSensorTaskToNotifyOnNewMeasurment = task_to_notify;
 }
