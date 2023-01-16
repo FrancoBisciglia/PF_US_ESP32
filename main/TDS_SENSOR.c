@@ -43,8 +43,8 @@ static const char *TAG = "TDS_SENSOR_LIBRARY";
 /* Handle de la tarea de obtención de datos del sensor de TDS */
 static TaskHandle_t xTdsTaskHandle = NULL;
 
-/* Handle de la tarea a la cual se le informará que se completó una nueva medición. */
-TaskHandle_t xTdsSensorTaskToNotifyOnNewMeasurment = NULL;
+/* Puntero a función que apuntará a la función callback pasada como argumento en la función de configuración de callback. */
+TdsSensorCallbackFunction TdsSensorCallback = NULL;
 
 /* Variable donde se guarda el valor de TDS medido. */
 static TDS_sensor_ppm_t TDS_ppm_value = 0;
@@ -144,15 +144,15 @@ static void vTaskGetTdsInPpm(void *pvParameters)
 
 
         /**
-         *  Se le notifica a la tarea configurada que se completó la medición.
+         *  Se ejecuta la función callback configurada.
          * 
          *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
          *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
          *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
          */
-        if(xTdsSensorTaskToNotifyOnNewMeasurment != NULL)
+        if(TdsSensorCallback != NULL)
         {
-            xTaskNotifyGive(xTdsSensorTaskToNotifyOnNewMeasurment);
+            TdsSensorCallback(NULL);
         }
 
         vTaskDelay(pdMS_TO_TICKS(3000));
@@ -246,7 +246,7 @@ esp_err_t TDS_getValue(TDS_sensor_ppm_t *TDS_value_buffer)
  * 
  * @param task_to_notify    Task Handle de la tarea a la cual se le quiere informar que se finalizó con una medición.
  */
-void TDS_sensor_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify)
+void TDS_sensor_callback_function_on_new_measurment(TdsSensorCallbackFunction callback_function)
 {
-    xTdsSensorTaskToNotifyOnNewMeasurment = task_to_notify;
+    TdsSensorCallback = callback_function;
 }

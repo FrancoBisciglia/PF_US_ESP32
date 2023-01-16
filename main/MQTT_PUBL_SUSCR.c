@@ -143,17 +143,8 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
 
     case MQTT_EVENT_DATA:
-        ESP_LOGI(TAG, "MQTT SUBSRIBED MESSAGE ARRIVED.");
+        ESP_LOGI(TAG, "MQTT SUBSCRIBED MESSAGE ARRIVED.");
         //ESP_LOGI(TAG, "MQTT_EVENT_DATA: %.*s", event->data_len, event->data);
-
-        /**
-         *  Esta variable sirve para que, en el caso de que un llamado a "xTaskNotifyFromISR()" desbloquee
-         *  una tarea de mayor prioridad que la que estaba corriendo justo antes de entrar en la rutina
-         *  de interrupción, al retornar se haga un context switch a dicha tarea de mayor prioridad en vez
-         *  de a la de menor prioridad (xHigherPriorityTaskWoken = pdTRUE)
-         */
-        BaseType_t xHigherPriorityTaskWoken;
-        xHigherPriorityTaskWoken = pdFALSE;
 
         /**
          *  Debido a que el nombre del topico que llega por "event->topic" generalmente contiene
@@ -180,12 +171,11 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 strncpy(mqtt_topic_list[i].data, event->data, event->data_len);
 
                 /**
-                 *  En caso de que para este tópico se haya cargado un Task Handle, se le envia un
-                 *  Task Notify a la tarea correspondiente.
+                 *  En caso de que para este tópico se haya cargado una función callback, se la ejecuta.
                  */
-                if(mqtt_topic_list[i].task_handle != NULL)
+                if(mqtt_topic_list[i].topic_cb != NULL)
                 {
-                    vTaskNotifyGiveFromISR(mqtt_topic_list[i].task_handle, &xHigherPriorityTaskWoken);
+                    mqtt_topic_list[i].topic_cb(NULL);
                 }
 
                 ESP_LOGI(TAG, "TOPIC DATA ARRIVED: %s", mqtt_topic_list[i].data);
@@ -193,8 +183,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
                 continue;
             }
         }
-
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 
         break;
 
@@ -330,11 +318,11 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_t* list_of_topics, const un
     }
 
     /**
-     *  Se copian los nombres y Task Handle de los tópicos correspondientes y se suscribe a los mismos.
+     *  Se copian los nombres y punteros a función callback de los tópicos correspondientes y se suscribe a los mismos.
      */
     for(int i = 0; i < number_of_topics; i++)
     {
-        mqtt_topic_list[i].task_handle = list_of_topics[i].topic_task_handle;
+        mqtt_topic_list[i].topic_cb = list_of_topics[i].topic_function_cb;
         strcpy(mqtt_topic_list[i].topic, list_of_topics[i].topic_name);
 
         /**

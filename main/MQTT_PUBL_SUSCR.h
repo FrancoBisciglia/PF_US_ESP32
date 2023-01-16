@@ -19,6 +19,12 @@ extern "C" {
 /*==================[DEFINES AND MACROS]=====================================*/
 
 /**
+ *  @brief  Puntero a función que será utilizado para ejecutar la función que se pase
+ *          como callback cuando llegue un dato al tópico correspondiente.
+ */
+typedef void (*CallbackFunction)(void *pvParameters);
+
+/**
  * @brief   Estructura utilizada para almacenar los datos provenientes de los tópicos 
  *          MQTT correspondientes.
  * 
@@ -26,7 +32,7 @@ extern "C" {
 typedef struct {
     char data[50];  /* Dato almacenado (en formato char dado que así se lo recibe desde el tópico). */
     char topic[100];    /* Nombre/dirección del tópico MQTT correspondiente. */
-    TaskHandle_t task_handle;   /* Task Handle de la tarea a la cual se quiere informar cuando llegue un dato al tópico. */
+    CallbackFunction topic_cb;   /* Puntero a función callback que se llamará cuando llegue un dato al tópico. */
 } mqtt_subscribed_topic_data;
 
 
@@ -36,7 +42,7 @@ typedef struct {
  */
 typedef struct {
     char topic_name[100];   /* Nombre del topico MQTT a suscribir. */
-    TaskHandle_t topic_task_handle;     /* Task Handle de la tarea a la cual se quiere informar cuando llegue un dato al tópico. */
+    CallbackFunction topic_function_cb;     /* Puntero a función callback que se llamará cuando llegue un dato al tópico. */
 } mqtt_topic_t;
 
 /*==================[EXTERNAL DATA DECLARATION]==============================*/

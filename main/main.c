@@ -31,9 +31,6 @@ typedef enum {
 const char *TAG = "MAIN";
 
 TaskHandle_t xAlgoritmoControlTdsSolucTaskHandle = NULL;
-TaskHandle_t xManualModeTaskHandle = NULL;
-TaskHandle_t xTdsDataTaskHandle = NULL;
-TaskHandle_t xNewSPTaskHandle = NULL;
 
 esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 
@@ -210,7 +207,7 @@ void vTaskSolutionTdsControl(void *pvParameters)
 
     while(1)
     {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
 
 
         switch(est_MEF_principal)
@@ -250,73 +247,72 @@ void vTaskSolutionTdsControl(void *pvParameters)
     }
 }
 
-void vTaskManualMode(void *pvParameters)
+void CallbackManualMode(void *pvParameters)
 {
-    while(1)
-    {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        ESP_LOGI(TAG, "MANUAL MODE TASK RUN");
+    ESP_LOGI(TAG, "MANUAL MODE TASK RUN");
 
+    char buffer[10];
+    mqtt_get_char_data_from_topic("/TdsSoluc/Modo", buffer);
+
+    if(!strcmp("MANUAL", buffer))
+    {
+        manual_mode_flag = 1;
+    }
+
+    else
+    {
+        manual_mode_flag = 0;
+    }
+
+    xTaskNotifyGive(xAlgoritmoControlTdsSolucTaskHandle);
+}
+
+void CallbackManualModeNewActuatorState(void *pvParameters)
+{
+    xTaskNotifyGive(xAlgoritmoControlTdsSolucTaskHandle);
+}
+
+void CallbackGetTdsData(void *pvParameters)
+{
+    TDS_getValue(&soluc_tds);
+
+    if(mqtt_check_connection())
+    {
         char buffer[10];
-        mqtt_get_char_data_from_topic("/TdsSoluc/Modo", buffer);
-
-        if(!strcmp("MANUAL", buffer))
-        {
-            manual_mode_flag = 1;
-        }
-
-        else
-        {
-            manual_mode_flag = 0;
-        }
-
-        xTaskNotifyGive(xAlgoritmoControlTdsSolucTaskHandle);
+        snprintf(buffer, sizeof(buffer), "%.3f", soluc_tds);
+        esp_mqtt_client_publish(Cliente_MQTT, "Sensores de solucion/TDS", buffer, 0, 0, 0);
     }
+
+    ESP_LOGW(TAG, "NEW MEASURMENT ARRIVED: %.3f", soluc_tds);
 }
 
-void vTaskGetTdsData(void *pvParameters)
+void CallbackNewTdsSP(void *pvParameters)
 {
-    while(1)
-    {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    float SP_tds_soluc = 0;
+    mqtt_get_float_data_from_topic("/SP/TdsSoluc", &SP_tds_soluc);
 
-        TDS_getValue(&soluc_tds);
+    ESP_LOGI(TAG, "NUEVO SP: %.3f", SP_tds_soluc);
 
-        if(mqtt_check_connection())
-        {
-            char buffer[10];
-            snprintf(buffer, sizeof(buffer), "%.3f", soluc_tds);
-            esp_mqtt_client_publish(Cliente_MQTT, "Sensores de solucion/TDS", buffer, 0, 0, 0);
-        }
+    limite_inferior_tds_soluc = SP_tds_soluc - delta_tds_soluc;
+    limite_superior_tds_soluc = SP_tds_soluc + delta_tds_soluc;
 
-        ESP_LOGW(TAG, "NEW MEASURMENT ARRIVED: %.3f", soluc_tds);
-
-        xTaskNotifyGive(xAlgoritmoControlTdsSolucTaskHandle);
-    }   
+    ESP_LOGI(TAG, "LIMITE INFERIOR: %.3f", limite_inferior_tds_soluc);
+    ESP_LOGI(TAG, "LIMITE SUPERIOR: %.3f", limite_superior_tds_soluc);
 }
 
-void vTaskNewTdsSP(void *pvParameters)
-{
-    while(1)
-    {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-        float SP_tds_soluc = 0;
-        mqtt_get_float_data_from_topic("/SP/TdsSoluc", &SP_tds_soluc);
-
-        ESP_LOGI(TAG, "NUEVO SP: %.3f", SP_tds_soluc);
-
-        limite_inferior_tds_soluc = SP_tds_soluc - delta_tds_soluc;
-        limite_superior_tds_soluc = SP_tds_soluc + delta_tds_soluc;
-
-        ESP_LOGI(TAG, "LIMITE INFERIOR: %.3f", limite_inferior_tds_soluc);
-        ESP_LOGI(TAG, "LIMITE SUPERIOR: %.3f", limite_superior_tds_soluc);
-
-    }
-}
 
 void app_main(void)
 {
+    //=======================| INIT TIMERS |=======================//
+
+    xTimerValvulaTDS = xTimerCreate("Timer Bomba",       // Just a text name, not used by the kernel.
+                              pdMS_TO_TICKS(TiempoCierreValvulaTDS),     // The timer period in ticks.
+                              pdFALSE,        // The timers will auto-reload themselves when they expire.
+                              (void *)0,     // Assign each timer a unique id equal to its array index.
+                              vTimerCallback // Each timer calls the same callback when it expires.
+    );
+
     //=======================| CREACION TAREAS |=======================//
 
     xTaskCreate(
@@ -326,30 +322,6 @@ void app_main(void)
             NULL,
             2,
             &xAlgoritmoControlTdsSolucTaskHandle);
-    
-    xTaskCreate(
-            vTaskManualMode,
-            "vTaskManualMode",
-            2048,
-            NULL,
-            5,
-            &xManualModeTaskHandle);
-
-    xTaskCreate(
-            vTaskGetTdsData,
-            "vTaskGetTdsData",
-            2048,
-            NULL,
-            4,
-            &xTdsDataTaskHandle);
-
-    xTaskCreate(
-            vTaskNewTdsSP,
-            "vTaskNewTdsSP",
-            2048,
-            NULL,
-            3,
-            &xNewSPTaskHandle);
 
     //=======================| CONEXION WIFI |=======================//
 
@@ -368,13 +340,13 @@ void app_main(void)
 
     mqtt_topic_t list_of_topics[] = {
         [0].topic_name = "/SP/TdsSoluc",
-        [0].topic_task_handle = xNewSPTaskHandle,
+        [0].topic_function_cb = CallbackNewTdsSP,
         [1].topic_name = "/TdsSoluc/Modo",
-        [1].topic_task_handle = xManualModeTaskHandle,
+        [1].topic_function_cb = CallbackManualMode,
         [2].topic_name = "/TdsSoluc/Modo_Manual/Valvula_aum_tds",
-        [2].topic_task_handle = xAlgoritmoControlTdsSolucTaskHandle,
+        [2].topic_function_cb = CallbackManualModeNewActuatorState,
         [3].topic_name = "/TdsSoluc/Modo_Manual/Valvula_dism_tds",
-        [3].topic_task_handle = xAlgoritmoControlTdsSolucTaskHandle
+        [3].topic_function_cb = CallbackManualModeNewActuatorState
     };
 
     if(mqtt_suscribe_to_topics(list_of_topics, 4, Cliente_MQTT, 0) != ESP_OK)
@@ -382,22 +354,11 @@ void app_main(void)
         ESP_LOGE(TAG, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
     }
 
-
-    //=======================| INIT TIMERS |=======================//
-
-    xTimerValvulaTDS = xTimerCreate("Timer Bomba",       // Just a text name, not used by the kernel.
-                              pdMS_TO_TICKS(TiempoCierreValvulaTDS),     // The timer period in ticks.
-                              pdFALSE,        // The timers will auto-reload themselves when they expire.
-                              (void *)0,     // Assign each timer a unique id equal to its array index.
-                              vTimerCallback // Each timer calls the same callback when it expires.
-    );
-
-
     //=======================| INIT SENSOR |=======================//
     /**
      *  NOTA: MODIFICAR EL CANAL DE ADC, DADO QUE SE DEBIO CAMBIAR EL PIN DEL SENSOR TDS
      *  YA QUE EL ADC2 NO FUNCIONA CON WIFI, ASI QUE SE PASÓ AL ADC1.
      */
     TDS_sensor_init(ADC1_CHANNEL_3);
-    TDS_sensor_task_to_notify_on_new_measurment(xTdsDataTaskHandle);
+    TDS_sensor_callback_function_on_new_measurment(CallbackGetTdsData);
 }
