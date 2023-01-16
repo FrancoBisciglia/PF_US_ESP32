@@ -281,9 +281,13 @@ void vTaskGetTdsData(void *pvParameters)
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
         TDS_getValue(&soluc_tds);
-        char buffer[10];
-        snprintf(buffer, sizeof(buffer), "%.3f", soluc_tds);
-        esp_mqtt_client_publish(Cliente_MQTT, "Sensores de solucion/TDS", buffer, 0, 0, 0);
+
+        if(mqtt_check_connection())
+        {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%.3f", soluc_tds);
+            esp_mqtt_client_publish(Cliente_MQTT, "Sensores de solucion/TDS", buffer, 0, 0, 0);
+        }
 
         ESP_LOGW(TAG, "NEW MEASURMENT ARRIVED: %.3f", soluc_tds);
 
