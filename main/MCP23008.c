@@ -62,27 +62,6 @@ static const char *TAG = "MCP23008_I2C_LIBRARY";
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
-/* Enumeración correspondiente a los 7 reles que posee la placa */
-enum relays
-{
-    RELE_1 = 0,
-    RELE_2,
-    RELE_3,
-    RELE_4,
-    RELE_5,
-    RELE_6,
-    RELE_7
-};
-
-/* Enumeración correspondiente a los estados de los reles */
-enum state_relays
-{
-    OFF = 0,
-    ON
-}; 
-
-
-
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
 static esp_err_t MCP23008_register_read(uint8_t reg_addr, uint8_t *data, size_t len);

@@ -11,8 +11,19 @@
 
 //==================================| INCLUDES |==================================//
 
+#include <stdio.h>
+
+#include "esp_log.h"
+#include "esp_err.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/timers.h"
+
+#include "MQTT_PUBL_SUSCR.h"
+#include "TDS_SENSOR.h"
+#include "MCP23008.h"
+#include "AUXILIARES_ALGORITMO_CONTROL_TDS_SOLUCION.h"
 
 //==================================| MACROS AND TYPDEF |==================================//
 
@@ -48,16 +59,20 @@ void vTaskSolutionTdsControl(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
-void MEFControlAperturaValvulaTDS(void)
+void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
 {
     static estado_MEF_control_apertura_valvulas_tds_t est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
 
     if(reset_transition_flag_valvula_tds)
     {
         est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
+
         reset_transition_flag_valvula_tds = 0;
-        xTimerStop(xTimerValvulaTDS, 0);
+
+        xTimerStop(aux_control_tds_get_timer_handle(), 0);
         timer_finished_flag = 0;
+
+        set_relay_state(valve_relay_num, OFF);
         ESP_LOGW(TAG, "VALVULA CERRADA");
     }
 
@@ -69,10 +84,13 @@ void MEFControlAperturaValvulaTDS(void)
         if(timer_finished_flag)
         {
             timer_finished_flag = 0;
-            xTimerChangePeriod(xTimerValvulaTDS, pdMS_TO_TICKS(TiempoAperturaValvulaTDS), 0);
-            xTimerReset(xTimerValvulaTDS, 0);
-            est_MEF_control_apertura_valvula_tds = VALVULA_ABIERTA;
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(TiempoAperturaValvulaTDS), 0);
+            xTimerReset(aux_control_tds_get_timer_handle(), 0);
+
+            set_relay_state(valve_relay_num, ON);
             ESP_LOGW(TAG, "VALVULA ABIERTA");
+
+            est_MEF_control_apertura_valvula_tds = VALVULA_ABIERTA;
         }
 
         break;
@@ -83,10 +101,13 @@ void MEFControlAperturaValvulaTDS(void)
         if(timer_finished_flag)
         {
             timer_finished_flag = 0;
-            xTimerChangePeriod(xTimerValvulaTDS, pdMS_TO_TICKS(TiempoCierreValvulaTDS), 0);
-            xTimerReset(xTimerValvulaTDS, 0);
-            est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(TiempoCierreValvulaTDS), 0);
+            xTimerReset(aux_control_tds_get_timer_handle(), 0);
+
+            set_relay_state(valve_relay_num, OFF);
             ESP_LOGW(TAG, "VALVULA CERRADA");
+
+            est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
         }
 
         break;
@@ -104,17 +125,14 @@ void MEFControlTdsSoluc(void)
         reset_transition_flag_control_tds = 0;
 
         /**
-         *  Se resetea tambien el estado de la MEF de control
-         *  de la válvula.
+         *  Se resetea tambien el estado de la MEF de control de la válvula. 
+         *  Se debe llamar 2 veces a la MEF, 1 por cada válvula, ya que se comparte 
+         *  la instancia de función de la MEF.
          */
         reset_transition_flag_valvula_tds = 1;
-
-        /**
-         *  NOTA: ACA COMO SE VA A COMPARTIR LA MISMA MEF PARA AMBOS ESTADOS,
-         *  Y SE LE VA A PASAR COMO ARGUMENTO EL NOMBRE DE LA VALVULA A CONTROLAR,
-         *  SE LA DEBE LLAMAR 2 VECES, 1 POR CADA VALVULA, PARA RESETEAR AMBAS VALVULAS.
-         */
-        MEFControlAperturaValvulaTDS();
+        MEFControlAperturaValvulaTDS(VALVULA_AUMENTO_TDS);
+        reset_transition_flag_valvula_tds = 1;
+        MEFControlAperturaValvulaTDS(VALVULA_DISMINUCION_TDS);
     }
 
     switch(est_MEF_control_tds_soluc)
@@ -127,8 +145,8 @@ void MEFControlTdsSoluc(void)
          */
         if(soluc_tds < (limite_inferior_tds_soluc - (ancho_ventana_hist / 2)))
         {
-            xTimerChangePeriod(xTimerValvulaTDS, pdMS_TO_TICKS(TiempoCierreValvulaTDS), 0);
-            xTimerReset(xTimerValvulaTDS, 0);
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(TiempoCierreValvulaTDS), 0);
+            xTimerReset(aux_control_tds_get_timer_handle(), 0);
             est_MEF_control_tds_soluc = TDS_SOLUCION_BAJO;
         }
 
@@ -137,8 +155,8 @@ void MEFControlTdsSoluc(void)
          */
         if(soluc_tds > (limite_superior_tds_soluc + (ancho_ventana_hist / 2)))
         {
-            xTimerChangePeriod(xTimerValvulaTDS, pdMS_TO_TICKS(TiempoCierreValvulaTDS), 0);
-            xTimerReset(xTimerValvulaTDS, 0);
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(TiempoCierreValvulaTDS), 0);
+            xTimerReset(aux_control_tds_get_timer_handle(), 0);
             est_MEF_control_tds_soluc = TDS_SOLUCION_ELEVADO;
         }
 
@@ -156,7 +174,7 @@ void MEFControlTdsSoluc(void)
             est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
         }
 
-        MEFControlAperturaValvulaTDS();
+        MEFControlAperturaValvulaTDS(VALVULA_AUMENTO_TDS);
 
         break;
 
@@ -172,7 +190,7 @@ void MEFControlTdsSoluc(void)
             est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
         }
 
-        MEFControlAperturaValvulaTDS();
+        MEFControlAperturaValvulaTDS(VALVULA_DISMINUCION_TDS);
 
         break;
     }
@@ -213,13 +231,23 @@ void vTaskSolutionTdsControl(void *pvParameters)
                 break;
             }
 
-            char buffer1[50];
-            char buffer2[50];
-            mqtt_get_char_data_from_topic(MANUAL_MODE_VALVULA_AUM_TDS_STATE_MQTT_TOPIC, buffer1);
-            mqtt_get_char_data_from_topic(MANUAL_MODE_VALVULA_DISM_TDS_STATE_MQTT_TOPIC, buffer2);
+            float manual_mode_valvula_aum_tds_state = -1;
+            float manual_mode_valvula_dism_tds_state = -1;
+            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_AUM_TDS_STATE_MQTT_TOPIC, &manual_mode_valvula_aum_tds_state);
+            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_DISM_TDS_STATE_MQTT_TOPIC, &manual_mode_valvula_dism_tds_state);
 
-            ESP_LOGW(TAG, "MANUAL MODE VALVULA AUMENTO TDS: %s", buffer1);
-            ESP_LOGW(TAG, "MANUAL MODE VALVULA DISMINUCIÓN TDS: %s", buffer2);
+            if(manual_mode_valvula_aum_tds_state == 0 || manual_mode_valvula_aum_tds_state == 1)
+            {
+                set_relay_state(valve_relay_num, manual_mode_valvula_aum_tds_state);
+            }
+
+            if(manual_mode_valvula_dism_tds_state == 0 || manual_mode_valvula_dism_tds_state == 1)
+            {
+                set_relay_state(valve_relay_num, manual_mode_valvula_dism_tds_state);
+            }
+
+            ESP_LOGW(TAG, "MANUAL MODE VALVULA AUMENTO TDS: %s", manual_mode_valvula_aum_tds_state);
+            ESP_LOGW(TAG, "MANUAL MODE VALVULA DISMINUCIÓN TDS: %s", manual_mode_valvula_dism_tds_state);
 
             break;
         }

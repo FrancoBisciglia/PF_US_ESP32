@@ -15,6 +15,16 @@ extern "C" {
 
 /*============================[DEFINES AND MACROS]=====================================*/
 
+/**
+ *  Enumeración correspondiente al número de relés de las válvulas de control de TDS.
+ * 
+ *  NOTA: CUANDO SE SEPA BIEN QUÉ RELÉ SE ASOCIA A QUÉ ACTUADOR, MODIFICAR LOS NÚMEROS.
+ */
+typedef enum {
+    VALVULA_AUMENTO_TDS = 0,
+    VALVULA_DISMINUCION_TDS,
+};
+
 typedef enum {
     VALVULA_CERRADA = 0,
     VALVULA_ABIERTA,

@@ -11,20 +11,29 @@
 
 //==================================| INCLUDES |==================================//
 
+#include <stdio.h>
+#include <string.h>
+
+#include "esp_log.h"
+#include "esp_err.h"
+
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/timers.h"
 
+#include "MQTT_PUBL_SUSCR.h"
+#include "TDS_SENSOR.h"
 #include "MEF_ALGORITMO_CONTROL_TDS_SOLUCION.h"
 
 //==================================| MACROS AND TYPDEF |==================================//
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
 
+static const char *aux_control_tds_tag = "AUXILIAR_CONTROL_TDS_SOLUCION";
+
 esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 
-TimerHandle_t xTimerValvulaTDS;
-
-TickType_t timeLeft;
+TimerHandle_t xTimerValvulaTDS = NULL;
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
@@ -47,8 +56,6 @@ void vTimerCallback( TimerHandle_t pxTimer )
 
 void CallbackManualMode(void *pvParameters)
 {
-    ESP_LOGI(TAG, "MANUAL MODE TASK RUN");
-
     char buffer[10];
     mqtt_get_char_data_from_topic(MANUAL_MODE_MQTT_TOPIC, buffer);
 
@@ -109,17 +116,52 @@ void CallbackNewTdsSP(void *pvParameters)
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
 
-esp_err_t aux_control_tds_init(void)
+esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
 {
+    /**
+     *  Copiamos el handle del cliente MQTT en la variable interna.
+     */
+    Cliente_MQTT = mqtt_client;
+
     //=======================| INIT TIMERS |=======================//
 
     xTimerValvulaTDS = xTimerCreate("Timer Valvulas Tds",       // Just a text name, not used by the kernel.
-                              pdMS_TO_TICKS(TiempoCierreValvulaTDS),     // The timer period in ticks.
+                              0,                // The timer period in ticks.
                               pdFALSE,        // The timers will auto-reload themselves when they expire.
                               (void *)0,     // Assign each timer a unique id equal to its array index.
                               vTimerCallback // Each timer calls the same callback when it expires.
     );
+
+    if(xTimerValvulaTDS == NULL)
+    {
+        ESP_LOGE(TAG, "FAILED TO CREATE TIMER.");
+        return ESP_FAIL;
+    }
+
+
+    //=======================| TÓPICOS MQTT |=======================//
+
+    mqtt_topic_t list_of_topics[] = {
+        [0].topic_name = "/SP/TdsSoluc",
+        [0].topic_function_cb = CallbackNewTdsSP,
+        [1].topic_name = "/TdsSoluc/Modo",
+        [1].topic_function_cb = CallbackManualMode,
+        [2].topic_name = "/TdsSoluc/Modo_Manual/Valvula_aum_tds",
+        [2].topic_function_cb = CallbackManualModeNewActuatorState,
+        [3].topic_name = "/TdsSoluc/Modo_Manual/Valvula_dism_tds",
+        [3].topic_function_cb = CallbackManualModeNewActuatorState
+    };
+
+    if(mqtt_suscribe_to_topics(list_of_topics, 4, Cliente_MQTT, 0) != ESP_OK)
+    {
+        ESP_LOGE(TAG, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
+        return ESP_FAIL;
+    }
+
+    return ESP_OK;
 }
+
+
 
 
 TimerHandle_t aux_control_tds_get_timer_handle(void)

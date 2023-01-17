@@ -25,6 +25,9 @@ extern "C" {
 
 /*=====================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
 
+esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client);
+TimerHandle_t aux_control_tds_get_timer_handle(void);
+
 /*==================[END OF FILE]============================================*/
 #ifdef __cplusplus
 }
