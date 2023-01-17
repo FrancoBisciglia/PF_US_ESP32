@@ -15,6 +15,22 @@ extern "C" {
 
 /*============================[DEFINES AND MACROS]=====================================*/
 
+typedef enum {
+    VALVULA_CERRADA = 0,
+    VALVULA_ABIERTA,
+} estado_MEF_control_apertura_valvulas_tds_t;
+
+typedef enum {
+    TDS_SOLUCION_CORRECTO = 0,
+    TDS_SOLUCION_BAJO,
+    TDS_SOLUCION_ELEVADO,
+} estado_MEF_control_tds_soluc_t;
+
+typedef enum {
+    ALGORITMO_CONTROL_TDS_SOLUC = 0,
+    MODO_MANUAL,
+} estado_MEF_principal_control_tds_soluc_t;
+
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 
 /*=====================[EXTERNAL FUNCTIONS DECLARATION]=========================*/

@@ -51,7 +51,7 @@ typedef struct {
 
 esp_err_t mqtt_initialize_and_connect(char* MQTT_BROKER_URI, esp_mqtt_client_handle_t* MQTT_client);
 bool mqtt_check_connection();
-esp_err_t mqtt_suscribe_to_topics(const mqtt_topic_t* list_of_topics, const unsigned int number_of_topics, esp_mqtt_client_handle_t mqtt_client, int qos);
+esp_err_t mqtt_suscribe_to_topics(const mqtt_topic_t* list_of_topics, const unsigned int number_of_new_topics, esp_mqtt_client_handle_t mqtt_client, int qos);
 esp_err_t mqtt_get_float_data_from_topic(const char* topic, float* buffer);
 esp_err_t mqtt_get_char_data_from_topic(const char* topic, char* buffer);
 

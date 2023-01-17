@@ -274,20 +274,20 @@ bool mqtt_check_connection()
  * @brief   Función mediante la cual se registran y se suscribe a los tópicos MQTT que se pasen como argumento.
  * 
  * @param list_of_topics   Listado de nombres de los tópicos MQTT a suscribir.
- * @param number_of_topics  Cantidad de tópicos.
+ * @param number_of_new_topics  Cantidad de tópicos nuevos a suscribir.
  * @param mqtt_client   Handle del cliente MQTT.
  * @param qos   Quality of Service de la comunicación MQTT.
  * 
  * @return esp_err_t 
  */
-esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_t* list_of_topics, const unsigned int number_of_topics, 
+esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_t* list_of_topics, const unsigned int number_of_new_topics, 
                                     esp_mqtt_client_handle_t mqtt_client, int qos)
 {
 
     /**
      *  Se verifica que los argumentos recibidos no estén vacíos.
      */
-    if(list_of_topics == NULL || number_of_topics == 0 || mqtt_client == NULL || qos < 0 || qos > 3)
+    if(list_of_topics == NULL || number_of_new_topics == 0 || mqtt_client == NULL || qos < 0 || qos > 3)
     {
         ESP_LOGE(TAG, "MQTT ERROR: Failed to suscribe to topics. Enter valid arguments.");
         return ESP_ERR_INVALID_ARG;
@@ -296,7 +296,7 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_t* list_of_topics, const un
     /**
      *  Se guarda la cantidad de topicos a suscribir.
      */
-    mqtt_topic_num = number_of_topics;
+    mqtt_topic_num += number_of_new_topics;
 
     /**
      *  Se inicializa el array de punteros a la estructura que contendrá los nombres de los tópicos MQTT a suscribir,
@@ -304,7 +304,16 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_t* list_of_topics, const un
      */
     if(mqtt_topic_list == NULL)
     {
-        mqtt_topic_list = calloc(number_of_topics, sizeof(mqtt_subscribed_topic_data));
+        mqtt_topic_list = calloc(number_of_new_topics, sizeof(mqtt_subscribed_topic_data));
+    }
+
+    /**
+     *  En caso de que ya se haya inicializado la primera vez, se procede a concatenar los nuevos topicos en el array,
+     *  aumentando a su vez el tamaño del mismo en una cantidad igual a "number_of_new_topics".
+     */
+    else
+    {
+        mqtt_topic_list = (mqtt_subscribed_topic_data*) realloc(mqtt_topic_list, mqtt_topic_num * sizeof(mqtt_subscribed_topic_data));
     }
 
     /**
@@ -320,10 +329,10 @@ esp_err_t mqtt_suscribe_to_topics(  const mqtt_topic_t* list_of_topics, const un
     /**
      *  Se copian los nombres y punteros a función callback de los tópicos correspondientes y se suscribe a los mismos.
      */
-    for(int i = 0; i < number_of_topics; i++)
+    for(int i = (mqtt_topic_num - number_of_new_topics); i < mqtt_topic_num; i++)
     {
-        mqtt_topic_list[i].topic_cb = list_of_topics[i].topic_function_cb;
-        strcpy(mqtt_topic_list[i].topic, list_of_topics[i].topic_name);
+        mqtt_topic_list[i].topic_cb = list_of_topics[i-(mqtt_topic_num - number_of_new_topics)].topic_function_cb;
+        strcpy(mqtt_topic_list[i].topic, list_of_topics[i-(mqtt_topic_num - number_of_new_topics)].topic_name);
 
         /**
          *  En caso de que la función retorne -1, implica que no se pudo suscribir al
