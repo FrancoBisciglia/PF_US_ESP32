@@ -158,6 +158,8 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
         return ESP_FAIL;
     }
 
+    TDS_sensor_callback_function_on_new_measurment(CallbackGetTdsData);
+
     return ESP_OK;
 }
 

@@ -13,6 +13,12 @@ extern "C" {
 
 /*==================================[INCLUDES]=============================================*/
 
+#include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "freertos/timers.h"
+#include "mqtt_client.h"
+
 /*============================[DEFINES AND MACROS]=====================================*/
 
 #define NEW_TDS_SP_MQTT_TOPIC   "/SP/TdsSoluc"

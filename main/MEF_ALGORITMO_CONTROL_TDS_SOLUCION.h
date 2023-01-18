@@ -13,6 +13,13 @@ extern "C" {
 
 /*==================================[INCLUDES]=============================================*/
 
+#include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "mqtt_client.h"
+
+#include "TDS_SENSOR.h"
+
 /*============================[DEFINES AND MACROS]=====================================*/
 
 /**
@@ -20,7 +27,7 @@ extern "C" {
  * 
  *  NOTA: CUANDO SE SEPA BIEN QUÉ RELÉ SE ASOCIA A QUÉ ACTUADOR, MODIFICAR LOS NÚMEROS.
  */
-typedef enum {
+typedef enum valvulas_control_tds{
     VALVULA_AUMENTO_TDS = 0,
     VALVULA_DISMINUCION_TDS,
 };
@@ -44,6 +51,10 @@ typedef enum {
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 
 /*=====================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
+
+esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client);
+TaskHandle_t mef_tds_get_task_handle(void);
+TDS_sensor_ppm_t mef_tds_get_delta_tds(void);
 
 /*==================[END OF FILE]============================================*/
 #ifdef __cplusplus
