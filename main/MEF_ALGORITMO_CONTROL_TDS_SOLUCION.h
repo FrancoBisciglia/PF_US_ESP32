@@ -27,9 +27,10 @@ extern "C" {
  * 
  *  NOTA: CUANDO SE SEPA BIEN QUÉ RELÉ SE ASOCIA A QUÉ ACTUADOR, MODIFICAR LOS NÚMEROS.
  */
-typedef enum valvulas_control_tds{
+typedef enum actuadores_control_tds_soluc{
     VALVULA_AUMENTO_TDS = 0,
     VALVULA_DISMINUCION_TDS,
+    BOMBA = 6,
 };
 
 typedef enum {
@@ -55,6 +56,10 @@ typedef enum {
 esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client);
 TaskHandle_t mef_tds_get_task_handle(void);
 TDS_sensor_ppm_t mef_tds_get_delta_tds(void);
+void mef_tds_set_tds_control_limits(TDS_sensor_ppm_t nuevo_limite_inferior_tds_soluc, TDS_sensor_ppm_t nuevo_limite_superior_tds_soluc);
+void mef_tds_set_tds_value(TDS_sensor_ppm_t nuevo_valor_tds_soluc);
+void mef_tds_set_manual_mode_flag_value(bool manual_mode_flag_state);
+void mef_tds_set_timer_flag_value(bool timer_flag_state);
 
 /*==================[END OF FILE]============================================*/
 #ifdef __cplusplus

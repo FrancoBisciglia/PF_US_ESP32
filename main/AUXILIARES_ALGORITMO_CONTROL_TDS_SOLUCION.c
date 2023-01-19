@@ -24,6 +24,7 @@
 #include "MQTT_PUBL_SUSCR.h"
 #include "TDS_SENSOR.h"
 #include "MEF_ALGORITMO_CONTROL_TDS_SOLUCION.h"
+#include "AUXILIARES_ALGORITMO_CONTROL_TDS_SOLUCION.h"
 
 //==================================| MACROS AND TYPDEF |==================================//
 
@@ -48,7 +49,7 @@ void vTimerCallback( TimerHandle_t pxTimer )
 
     mef_tds_set_timer_flag_value(1);
 
-    ESP_LOGW(TAG, "ENTERED TIMER CALLBACK");
+    ESP_LOGW(aux_control_tds_tag, "ENTERED TIMER CALLBACK");
 
     vTaskNotifyGiveFromISR(mef_tds_get_task_handle(), &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -79,11 +80,7 @@ void CallbackManualModeNewActuatorState(void *pvParameters)
 
 void CallbackGetTdsData(void *pvParameters)
 {
-    /**
-     *  NOTA: ACA SE DEBE CREAR UNA FUNCION EN EL ARCHIVO DE LA MEF
-     *  MEDIANTE LA CUAL PUEDA ACTUALIZAR EL VALOR DEL SENSOR, ASI NO
-     *  HAY NECESIDAD DE ACCEDER A ESA VARIABLE EXTERNAMENTE.
-     */
+    TDS_sensor_ppm_t soluc_tds;
     TDS_getValue(&soluc_tds);
 
     if(mqtt_check_connection())
@@ -93,7 +90,9 @@ void CallbackGetTdsData(void *pvParameters)
         esp_mqtt_client_publish(Cliente_MQTT, TDS_SOLUC_MQTT_TOPIC, buffer, 0, 0, 0);
     }
 
-    ESP_LOGW(TAG, "NEW MEASURMENT ARRIVED: %.3f", soluc_tds);
+    mef_tds_set_tds_value(soluc_tds);
+
+    ESP_LOGW(aux_control_tds_tag, "NEW MEASURMENT ARRIVED: %.3f", soluc_tds);
 }
 
 void CallbackNewTdsSP(void *pvParameters)
@@ -101,16 +100,16 @@ void CallbackNewTdsSP(void *pvParameters)
     TDS_sensor_ppm_t SP_tds_soluc = 0;
     mqtt_get_float_data_from_topic(NEW_TDS_SP_MQTT_TOPIC, &SP_tds_soluc);
 
-    ESP_LOGI(TAG, "NUEVO SP: %.3f", SP_tds_soluc);
+    ESP_LOGI(aux_control_tds_tag, "NUEVO SP: %.3f", SP_tds_soluc);
 
     TDS_sensor_ppm_t limite_inferior_tds_soluc, limite_superior_tds_soluc;
-    limite_inferior_tds_soluc = SP_tds_soluc - delta_tds_soluc;
-    limite_superior_tds_soluc = SP_tds_soluc + delta_tds_soluc;
+    limite_inferior_tds_soluc = SP_tds_soluc - mef_tds_get_delta_tds();
+    limite_superior_tds_soluc = SP_tds_soluc + mef_tds_get_delta_tds();
 
     mef_tds_set_tds_control_limits(limite_inferior_tds_soluc, limite_superior_tds_soluc);
 
-    ESP_LOGI(TAG, "LIMITE INFERIOR: %.3f", limite_inferior_tds_soluc);
-    ESP_LOGI(TAG, "LIMITE SUPERIOR: %.3f", limite_superior_tds_soluc);
+    ESP_LOGI(aux_control_tds_tag, "LIMITE INFERIOR: %.3f", limite_inferior_tds_soluc);
+    ESP_LOGI(aux_control_tds_tag, "LIMITE SUPERIOR: %.3f", limite_superior_tds_soluc);
 }
 
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
@@ -126,7 +125,7 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
     //=======================| INIT TIMERS |=======================//
 
     xTimerValvulaTDS = xTimerCreate("Timer Valvulas Tds",       // Just a text name, not used by the kernel.
-                              0,                // The timer period in ticks.
+                              1,                // The timer period in ticks.
                               pdFALSE,        // The timers will auto-reload themselves when they expire.
                               (void *)0,     // Assign each timer a unique id equal to its array index.
                               vTimerCallback // Each timer calls the same callback when it expires.
@@ -134,7 +133,7 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
 
     if(xTimerValvulaTDS == NULL)
     {
-        ESP_LOGE(TAG, "FAILED TO CREATE TIMER.");
+        ESP_LOGE(aux_control_tds_tag, "FAILED TO CREATE TIMER.");
         return ESP_FAIL;
     }
 
@@ -154,7 +153,7 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
 
     if(mqtt_suscribe_to_topics(list_of_topics, 4, Cliente_MQTT, 0) != ESP_OK)
     {
-        ESP_LOGE(TAG, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
+        ESP_LOGE(aux_control_tds_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
         return ESP_FAIL;
     }
 

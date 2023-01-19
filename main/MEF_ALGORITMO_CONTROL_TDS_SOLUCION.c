@@ -24,6 +24,7 @@
 #include "TDS_SENSOR.h"
 #include "MCP23008.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_TDS_SOLUCION.h"
+#include "MEF_ALGORITMO_CONTROL_TDS_SOLUCION.h"
 
 //==================================| MACROS AND TYPDEF |==================================//
 
@@ -53,7 +54,7 @@ static bool mef_tds_reset_transition_flag_valvula_tds = 0;
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-void MEFControlAperturaValvulaTDS(void);
+void MEFControlAperturaValvulaTDS(int8_t valve_relay_num);
 void MEFControlTdsSoluc(void);
 void vTaskSolutionTdsControl(void *pvParameters);
 
@@ -73,7 +74,7 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
         mef_tds_timer_finished_flag = 0;
 
         set_relay_state(valve_relay_num, OFF);
-        ESP_LOGW(TAG, "VALVULA CERRADA");
+        ESP_LOGW(mef_tds_tag, "VALVULA CERRADA");
     }
 
     switch(est_MEF_control_apertura_valvula_tds)
@@ -84,11 +85,11 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
         if(mef_tds_timer_finished_flag)
         {
             mef_tds_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(TiempoAperturaValvulaTDS), 0);
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_apertura_valvula_TDS), 0);
             xTimerReset(aux_control_tds_get_timer_handle(), 0);
 
             set_relay_state(valve_relay_num, ON);
-            ESP_LOGW(TAG, "VALVULA ABIERTA");
+            ESP_LOGW(mef_tds_tag, "VALVULA ABIERTA");
 
             est_MEF_control_apertura_valvula_tds = VALVULA_ABIERTA;
         }
@@ -101,11 +102,11 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
         if(mef_tds_timer_finished_flag)
         {
             mef_tds_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(TiempoCierreValvulaTDS), 0);
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_cierre_valvula_TDS), 0);
             xTimerReset(aux_control_tds_get_timer_handle(), 0);
 
             set_relay_state(valve_relay_num, OFF);
-            ESP_LOGW(TAG, "VALVULA CERRADA");
+            ESP_LOGW(mef_tds_tag, "VALVULA CERRADA");
 
             est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
         }
@@ -141,21 +142,21 @@ void MEFControlTdsSoluc(void)
     case TDS_SOLUCION_CORRECTO:
 
         /**
-         *  NOTA: ACA FALTA AGREGAR LA CONDICIÓN DE SI LA BOMBA ESTA ENCENDIDA
+         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE ENCENDIDA
          */
-        if(mef_tds_soluc_tds < (mef_tds_limite_inferior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)))
+        if(mef_tds_soluc_tds < (mef_tds_limite_inferior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) && get_relay_state(BOMBA))
         {
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(TiempoCierreValvulaTDS), 0);
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_cierre_valvula_TDS), 0);
             xTimerReset(aux_control_tds_get_timer_handle(), 0);
             est_MEF_control_tds_soluc = TDS_SOLUCION_BAJO;
         }
 
         /**
-         *  NOTA: ACA FALTA AGREGAR LA CONDICIÓN DE SI LA BOMBA ESTA ENCENDIDA
+         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE ENCENDIDA
          */
-        if(mef_tds_soluc_tds > (mef_tds_limite_superior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)))
+        if(mef_tds_soluc_tds > (mef_tds_limite_superior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) && get_relay_state(BOMBA))
         {
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(TiempoCierreValvulaTDS), 0);
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_cierre_valvula_TDS), 0);
             xTimerReset(aux_control_tds_get_timer_handle(), 0);
             est_MEF_control_tds_soluc = TDS_SOLUCION_ELEVADO;
         }
@@ -166,9 +167,9 @@ void MEFControlTdsSoluc(void)
     case TDS_SOLUCION_BAJO:
 
         /**
-         *  NOTA: ACA FALTA AGREGAR LA CONDICIÓN DE SI LA BOMBA ESTA APAGADA
+         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE APAGADA
          */
-        if(mef_tds_soluc_tds > (mef_tds_limite_inferior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)))
+        if(mef_tds_soluc_tds > (mef_tds_limite_inferior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) || !get_relay_state(BOMBA))
         {
             mef_tds_reset_transition_flag_valvula_tds = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
@@ -182,9 +183,9 @@ void MEFControlTdsSoluc(void)
     case TDS_SOLUCION_ELEVADO:
 
         /**
-         *  NOTA: ACA FALTA AGREGAR LA CONDICIÓN DE SI LA BOMBA ESTA APAGADA
+         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE APAGADA
          */
-        if(mef_tds_soluc_tds < (mef_tds_limite_superior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)))
+        if(mef_tds_soluc_tds < (mef_tds_limite_superior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) || get_relay_state(BOMBA))
         {
             mef_tds_reset_transition_flag_valvula_tds = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
@@ -238,16 +239,15 @@ void vTaskSolutionTdsControl(void *pvParameters)
 
             if(manual_mode_valvula_aum_tds_state == 0 || manual_mode_valvula_aum_tds_state == 1)
             {
-                set_relay_state(valve_relay_num, manual_mode_valvula_aum_tds_state);
+                set_relay_state(VALVULA_AUMENTO_TDS, manual_mode_valvula_aum_tds_state);
+                ESP_LOGW(mef_tds_tag, "MANUAL MODE VALVULA AUMENTO TDS: %.0f", manual_mode_valvula_aum_tds_state);
             }
 
             if(manual_mode_valvula_dism_tds_state == 0 || manual_mode_valvula_dism_tds_state == 1)
             {
-                set_relay_state(valve_relay_num, manual_mode_valvula_dism_tds_state);
+                set_relay_state(VALVULA_DISMINUCION_TDS, manual_mode_valvula_dism_tds_state);
+                ESP_LOGW(mef_tds_tag, "MANUAL MODE VALVULA DISMINUCIÓN TDS: %.0f", manual_mode_valvula_dism_tds_state);
             }
-
-            ESP_LOGW(TAG, "MANUAL MODE VALVULA AUMENTO TDS: %s", manual_mode_valvula_aum_tds_state);
-            ESP_LOGW(TAG, "MANUAL MODE VALVULA DISMINUCIÓN TDS: %s", manual_mode_valvula_dism_tds_state);
 
             break;
         }
@@ -261,14 +261,28 @@ esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client)
     MefTdsClienteMQTT = mqtt_client;
 
     //=======================| CREACION TAREAS |=======================//
-
-    xTaskCreate(
+    
+    if(xMefTdsAlgoritmoControlTaskHandle == NULL)
+    {
+        xTaskCreate(
             vTaskSolutionTdsControl,
             "vTaskSolutionTdsControl",
             4096,
             NULL,
             2,
             &xMefTdsAlgoritmoControlTaskHandle);
+        
+        /**
+         *  En caso de que el handle sea NULL, implica que no se pudo crear la tarea, y se retorna con error.
+         */
+        if(xMefTdsAlgoritmoControlTaskHandle == NULL)
+        {
+            ESP_LOGE(mef_tds_tag, "Failed to create vTaskSolutionTdsControl task.");
+            return ESP_FAIL;
+        }
+    }
+    
+    return ESP_OK;
 }
 
 

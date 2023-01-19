@@ -4,6 +4,7 @@
 #include "freertos/task.h"
 
 #include "esp_log.h"
+#include "esp_check.h"
 
 #include "TDS_SENSOR.h"
 #include "WiFi_STA.h"
@@ -35,9 +36,9 @@ void app_main(void)
 
     while(!mqtt_check_connection()){vTaskDelay(pdMS_TO_TICKS(100));}
 
-    TDS_sensor_init(ADC1_CHANNEL_3);
-    MCP23008_init();
+    ESP_ERROR_CHECK_WITHOUT_ABORT(TDS_sensor_init(ADC1_CHANNEL_3));
+    ESP_ERROR_CHECK_WITHOUT_ABORT(MCP23008_init());
 
-    aux_control_tds_init(MainClienteMqtt);
-    mef_tds_init(MainClienteMqtt);
+    ESP_ERROR_CHECK_WITHOUT_ABORT(aux_control_tds_init(MainClienteMqtt));
+    ESP_ERROR_CHECK_WITHOUT_ABORT(mef_tds_init(MainClienteMqtt));
 }
