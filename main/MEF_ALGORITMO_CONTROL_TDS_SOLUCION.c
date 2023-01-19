@@ -30,6 +30,7 @@
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
 
+/* Tag para imprimir información en el LOG. */
 static const char *mef_tds_tag = "MEF_CONTROL_TDS_SOLUCION";
 
 static TaskHandle_t xMefTdsAlgoritmoControlTaskHandle = NULL;

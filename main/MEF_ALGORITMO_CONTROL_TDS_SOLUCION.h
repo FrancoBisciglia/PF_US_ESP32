@@ -33,17 +33,30 @@ typedef enum actuadores_control_tds_soluc{
     BOMBA = 6,
 };
 
+
+/**
+ *  Enumeración correspondiente a los estados de la MEF de control de apertura y cierre
+ *  de las válvulas de control de TDS.
+ */
 typedef enum {
     VALVULA_CERRADA = 0,
     VALVULA_ABIERTA,
 } estado_MEF_control_apertura_valvulas_tds_t;
 
+
+/**
+ *  Enumeración correspondiente a los estados de la MEF de control de TDS de la solución.
+ */
 typedef enum {
     TDS_SOLUCION_CORRECTO = 0,
     TDS_SOLUCION_BAJO,
     TDS_SOLUCION_ELEVADO,
 } estado_MEF_control_tds_soluc_t;
 
+
+/**
+ *  Enumeración correspondiente a los estados de la MEF principal del algoritmo de control de TDS.
+ */
 typedef enum {
     ALGORITMO_CONTROL_TDS_SOLUC = 0,
     MODO_MANUAL,

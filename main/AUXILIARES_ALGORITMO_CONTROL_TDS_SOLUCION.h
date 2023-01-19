@@ -21,6 +21,9 @@ extern "C" {
 
 /*============================[DEFINES AND MACROS]=====================================*/
 
+/**
+ *  Definición de los tópicos MQTT a suscribirse.
+ */
 #define NEW_TDS_SP_MQTT_TOPIC   "/SP/TdsSoluc"
 #define TDS_SOLUC_MQTT_TOPIC    "Sensores de solucion/TDS"
 #define MANUAL_MODE_MQTT_TOPIC  "/TdsSoluc/Modo"
