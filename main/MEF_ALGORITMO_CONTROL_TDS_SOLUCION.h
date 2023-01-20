@@ -73,6 +73,7 @@ void mef_tds_set_tds_control_limits(TDS_sensor_ppm_t nuevo_limite_inferior_tds_s
 void mef_tds_set_tds_value(TDS_sensor_ppm_t nuevo_valor_tds_soluc);
 void mef_tds_set_manual_mode_flag_value(bool manual_mode_flag_state);
 void mef_tds_set_timer_flag_value(bool timer_flag_state);
+void mef_tds_set_sensor_error_flag_value(bool sensor_error_flag_state);
 
 /*==================[END OF FILE]============================================*/
 #ifdef __cplusplus

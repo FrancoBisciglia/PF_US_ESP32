@@ -30,6 +30,14 @@ extern "C" {
 #define MANUAL_MODE_VALVULA_AUM_TDS_STATE_MQTT_TOPIC    "/TdsSoluc/Modo_Manual/Valvula_aum_tds"
 #define MANUAL_MODE_VALVULA_DISM_TDS_STATE_MQTT_TOPIC   "/TdsSoluc/Modo_Manual/Valvula_dism_tds"
 
+/**
+ *  Definición del rango de TDS de la solución considerado como válido, en ppm.
+ */
+#define LIMITE_INFERIOR_RANGO_VALIDO_TDS 10
+#define LIMITE_SUPERIOR_RANGO_VALIDO_TDS 2000
+
+#define CODIGO_ERROR_SENSOR_TDS -10
+
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 
 /*=====================[EXTERNAL FUNCTIONS DECLARATION]=========================*/

@@ -148,11 +148,42 @@ void CallbackManualModeNewActuatorState(void *pvParameters)
 void CallbackGetTdsData(void *pvParameters)
 {
     /**
+     *  Variable donde se guarda el retorno de la función de obtención del valor
+     *  del sensor, para verificar si se ejecutó correctamente o no.
+     */
+    esp_err_t return_status = ESP_FAIL;
+
+    /**
      *  Se obtiene el nuevo dato de TDS de la solución nutritiva.
      */
     TDS_sensor_ppm_t soluc_tds;
-    TDS_getValue(&soluc_tds);
+    return_status = TDS_getValue(&soluc_tds);
 
+    /**
+     *  Se verifica que la función de obtención del valor de TDS no haya retornado con error, y que el valor de TDS
+     *  retornado este dentro del rango considerado como válido para dicha variable.
+     * 
+     *  En caso de que no se cumplan estas condiciones, se setea la bandera de error de sensor, utilizada por la MEF
+     *  de control de TDS, y se le carga al valor de TDS un código de error preestablecido (-10), para que así, al
+     *  leerse dicho valor, se pueda saber que ocurrió un error.
+     */
+    if(return_status == ESP_FAIL || soluc_tds < LIMITE_INFERIOR_RANGO_VALIDO_TDS || soluc_tds > LIMITE_SUPERIOR_RANGO_VALIDO_TDS)
+    {
+        soluc_tds = CODIGO_ERROR_SENSOR_TDS;
+        mef_tds_set_sensor_error_flag_value(1);
+        ESP_LOGE(aux_control_tds_tag, "TDS SENSOR ERROR DETECTED");
+    }
+
+    else
+    {
+        mef_tds_set_sensor_error_flag_value(0);
+        ESP_LOGW(aux_control_tds_tag, "NEW MEASURMENT ARRIVED: %.3f", soluc_tds);
+    }
+
+
+    /**
+     *  Si hay una conexión con el broker MQTT, se publica el valor de TDS sensado.
+     */
     if(mqtt_check_connection())
     {
         char buffer[10];
@@ -161,8 +192,6 @@ void CallbackGetTdsData(void *pvParameters)
     }
 
     mef_tds_set_tds_value(soluc_tds);
-
-    ESP_LOGW(aux_control_tds_tag, "NEW MEASURMENT ARRIVED: %.3f", soluc_tds);
 }
 
 
