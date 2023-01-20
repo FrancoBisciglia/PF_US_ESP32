@@ -211,8 +211,12 @@ void MEFControlTdsSoluc(void)
          */
         if(mef_tds_soluc_tds < (mef_tds_limite_inferior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_tds_sensor_error_flag)
         {
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_cierre_valvula_TDS), 0);
-            xTimerReset(aux_control_tds_get_timer_handle(), 0);
+            /**
+             *  Se setea la bandera de timeout del timer para que en la sub-MEF de control de las válvulas, cuyo
+             *  estado de reset es con VALVULA APAGADA, se transicione inmediatamente al estado de VALVULA
+             *  ENCENDIDA.
+             */
+            mef_tds_timer_finished_flag = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_BAJO;
         }
 
@@ -228,8 +232,12 @@ void MEFControlTdsSoluc(void)
          */
         if(mef_tds_soluc_tds > (mef_tds_limite_superior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_tds_sensor_error_flag)
         {
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_cierre_valvula_TDS), 0);
-            xTimerReset(aux_control_tds_get_timer_handle(), 0);
+            /**
+             *  Se setea la bandera de timeout del timer para que en la sub-MEF de control de las válvulas, cuyo
+             *  estado de reset es con VALVULA APAGADA, se transicione inmediatamente al estado de VALVULA
+             *  ENCENDIDA.
+             */
+            mef_tds_timer_finished_flag = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_ELEVADO;
         }
 
