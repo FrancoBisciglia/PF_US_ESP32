@@ -242,9 +242,9 @@ esp_err_t TDS_getValue(TDS_sensor_ppm_t *TDS_value_buffer)
 
 /**
  * @brief   Función para configurar que, al finalizarse una nueva medición del sensor,
- *          se mande un Task Notify a la tarea cuyo Task Handle se pasa como argumento.
+ *          se ejecute la función que se pasa como argumento.
  * 
- * @param task_to_notify    Task Handle de la tarea a la cual se le quiere informar que se finalizó con una medición.
+ * @param callback_function    Función a ejecutar al finalizar una medición del sensor.
  */
 void TDS_sensor_callback_function_on_new_measurment(TdsSensorCallbackFunction callback_function)
 {

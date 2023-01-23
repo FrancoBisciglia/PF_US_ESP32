@@ -41,8 +41,8 @@ static const char *TAG = "DS18B20_SENSOR_LIBRARY";
 /* Handle de la tarea de obtención de datos del sensor DS18B20. */
 static TaskHandle_t xDS18B20TaskHandle = NULL;
 
-/* Handle de la tarea a la cual se le informará que se completó una nueva medición. */
-TaskHandle_t xDS18B20TaskToNotifyOnNewMeasurment = NULL;
+/* Puntero a función que apuntará a la función callback pasada como argumento en la función de configuración de callback. */
+DS18B20SensorCallbackFunction DS18B20Callback = NULL;
 
 /* Variable donde se guarda el valor de temperatura medido. */
 static DS18B20_sensor_temp_t DS18B20_temp_value = 0;
@@ -192,11 +192,11 @@ esp_err_t DS18B20_getTemp(DS18B20_sensor_temp_t *DS18B20_value_buffer)
 
 /**
  * @brief   Función para configurar que, al finalizarse una nueva medición del sensor,
- *          se mande un Task Notify a la tarea cuyo Task Handle se pasa como argumento.
+ *          se ejecute la función que se pasa como argumento.
  * 
- * @param task_to_notify    Task Handle de la tarea a la cual se le quiere informar que se finalizó con una medición.
+ * @param callback_function    Función a ejecutar al finalizar una medición del sensor.
  */
-void DS18B20_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify)
+void DS18B20_callback_function_on_new_measurment(DS18B20SensorCallbackFunction callback_function)
 {
-    xDS18B20TaskToNotifyOnNewMeasurment = task_to_notify;
+    DS18B20Callback = callback_function;
 }
