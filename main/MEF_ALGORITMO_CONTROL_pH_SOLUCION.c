@@ -40,40 +40,41 @@ static TaskHandle_t xMefPhAlgoritmoControlTaskHandle = NULL;
 static esp_mqtt_client_handle_t MefPhClienteMQTT = NULL;
 
 /* Variable donde se guarda el valor de pH de la solución sensado. */
-static TDS_sensor_ppm_t mef_tds_soluc_tds = 0;
+static pH_sensor_ph_t mef_ph_soluc_ph = 0;
 /* Límite inferior del rango considerado como correcto en el algoritmo de control de pH. */
-static TDS_sensor_ppm_t mef_tds_limite_inferior_tds_soluc = 200;
+static pH_sensor_ph_t mef_ph_limite_inferior_ph_soluc = 5;
 /* Límite superior del rango considerado como correcto en el algoritmo de control de pH. */
-static TDS_sensor_ppm_t mef_tds_limite_superior_tds_soluc = 1000;
+static pH_sensor_ph_t mef_ph_limite_superior_ph_soluc = 7;
 /* Ancho de la ventana de histeresis posicionada alrededor de los límites del rango considerado como correcto. */
-static TDS_sensor_ppm_t mef_tds_ancho_ventana_hist = 100;
+static pH_sensor_ph_t mef_ph_ancho_ventana_hist = 0.25;
 /* Delta de pH considerado. */
-static TDS_sensor_ppm_t mef_tds_delta_tds_soluc = 400;
-
-ME QUEDE ACA
-
-/* Tiempos de apertura y cierre de las válvulas de aumento y disminución de TDS, en ms. */
-static float mef_tds_tiempo_apertura_valvula_TDS = 1000;
-static float mef_tds_tiempo_cierre_valvula_TDS = 2000;
+static pH_sensor_ph_t mef_ph_delta_ph_soluc = 1;
 
 
-/* Bandera utilizada para controlar si se está o no en modo manual en el algoritmo de control de TDS. */
-static bool mef_tds_manual_mode_flag = 0;
+/* Tiempos de apertura y cierre de las válvulas de aumento y disminución de pH, en ms. */
+static float mef_ph_tiempo_apertura_valvula_ph = 1000;
+static float mef_ph_tiempo_cierre_valvula_ph = 2000;
+
+
+/* Bandera utilizada para controlar si se está o no en modo manual en el algoritmo de control de pH. */
+static bool mef_ph_manual_mode_flag = 0;
 /**
  *  Bandera utilizada para verificar si se cumplió el timeout del timer utilizado para controlar la apertura y cierre
- *  de las válvulas de control de TDS.
+ *  de las válvulas de control de pH.
  */
-static bool mef_tds_timer_finished_flag = 0;
+static bool mef_ph_timer_finished_flag = 0;
 
-/* Banderas utilizadas para controlar las transiciones con reset de las MEFs de control de TDS y de control de las válvulas. */
-static bool mef_tds_reset_transition_flag_control_tds = 0;
-static bool mef_tds_reset_transition_flag_valvula_tds = 0;
-/* Bandera utilizada para verificar si hubo error de sensado del sensor de TDS. */
-static bool mef_tds_sensor_error_flag = 0;
+/* Banderas utilizadas para controlar las transiciones con reset de las MEFs de control de pH y de control de las válvulas. */
+static bool mef_ph_reset_transition_flag_control_ph = 0;
+static bool mef_ph_reset_transition_flag_valvula_ph = 0;
+/* Bandera utilizada para verificar si hubo error de sensado del sensor de pH. */
+static bool mef_ph_sensor_error_flag = 0;
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
+
+ME QUEDE ACA
 
 void MEFControlAperturaValvulaTDS(int8_t valve_relay_num);
 void MEFControlTdsSoluc(void);
@@ -101,14 +102,14 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
      *  Se controla si se debe hacer una transición con reset, caso en el cual se vuelve al estado
      *  de válvula cerrada y se para el timer correspondiente.
      */
-    if(mef_tds_reset_transition_flag_valvula_tds)
+    if(mef_ph_reset_transition_flag_valvula_ph)
     {
         est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
 
-        mef_tds_reset_transition_flag_valvula_tds = 0;
+        mef_ph_reset_transition_flag_valvula_ph = 0;
 
         xTimerStop(aux_control_tds_get_timer_handle(), 0);
-        mef_tds_timer_finished_flag = 0;
+        mef_ph_timer_finished_flag = 0;
 
         set_relay_state(valve_relay_num, OFF);
         ESP_LOGW(mef_pH_tag, "VALVULA CERRADA");
@@ -124,10 +125,10 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
          *  se abre la válvula, y se carga en el timer el tiempo de apertura de la válvula.
          */
-        if(mef_tds_timer_finished_flag)
+        if(mef_ph_timer_finished_flag)
         {
-            mef_tds_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_apertura_valvula_TDS), 0);
+            mef_ph_timer_finished_flag = 0;
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_ph_tiempo_apertura_valvula_ph), 0);
             xTimerReset(aux_control_tds_get_timer_handle(), 0);
 
             set_relay_state(valve_relay_num, ON);
@@ -145,10 +146,10 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
          *  se cierra la válvula, y se carga en el timer el tiempo de cierre de la válvula.
          */
-        if(mef_tds_timer_finished_flag)
+        if(mef_ph_timer_finished_flag)
         {
-            mef_tds_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_cierre_valvula_TDS), 0);
+            mef_ph_timer_finished_flag = 0;
+            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_ph_tiempo_cierre_valvula_ph), 0);
             xTimerReset(aux_control_tds_get_timer_handle(), 0);
 
             set_relay_state(valve_relay_num, OFF);
@@ -179,19 +180,19 @@ void MEFControlTdsSoluc(void)
      *  Se controla si se debe hacer una transición con reset, caso en el cual se vuelve al estado
      *  de TDS_SOLUCION_CORRECTO, con ambas válvulas cerradas.
      */
-    if(mef_tds_reset_transition_flag_control_tds)
+    if(mef_ph_reset_transition_flag_control_ph)
     {
         est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
-        mef_tds_reset_transition_flag_control_tds = 0;
+        mef_ph_reset_transition_flag_control_ph = 0;
 
         /**
          *  Se resetea tambien el estado de la MEF de control de la válvula. 
          *  Se debe llamar 2 veces a la MEF, 1 por cada válvula, ya que se comparte 
          *  la instancia de función de la MEF.
          */
-        mef_tds_reset_transition_flag_valvula_tds = 1;
+        mef_ph_reset_transition_flag_valvula_ph = 1;
         MEFControlAperturaValvulaTDS(VALVULA_AUMENTO_TDS);
-        mef_tds_reset_transition_flag_valvula_tds = 1;
+        mef_ph_reset_transition_flag_valvula_ph = 1;
         MEFControlAperturaValvulaTDS(VALVULA_DISMINUCION_TDS);
     }
 
@@ -211,14 +212,14 @@ void MEFControlTdsSoluc(void)
          * 
          *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE ENCENDIDA
          */
-        if(mef_tds_soluc_tds < (mef_tds_limite_inferior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_tds_sensor_error_flag)
+        if(mef_ph_soluc_ph < (mef_ph_limite_inferior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_ph_sensor_error_flag)
         {
             /**
              *  Se setea la bandera de timeout del timer para que en la sub-MEF de control de las válvulas, cuyo
              *  estado de reset es con VALVULA APAGADA, se transicione inmediatamente al estado de VALVULA
              *  ENCENDIDA.
              */
-            mef_tds_timer_finished_flag = 1;
+            mef_ph_timer_finished_flag = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_BAJO;
         }
 
@@ -232,14 +233,14 @@ void MEFControlTdsSoluc(void)
          * 
          *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE ENCENDIDA
          */
-        if(mef_tds_soluc_tds > (mef_tds_limite_superior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_tds_sensor_error_flag)
+        if(mef_ph_soluc_ph > (mef_ph_limite_superior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_ph_sensor_error_flag)
         {
             /**
              *  Se setea la bandera de timeout del timer para que en la sub-MEF de control de las válvulas, cuyo
              *  estado de reset es con VALVULA APAGADA, se transicione inmediatamente al estado de VALVULA
              *  ENCENDIDA.
              */
-            mef_tds_timer_finished_flag = 1;
+            mef_ph_timer_finished_flag = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_ELEVADO;
         }
 
@@ -257,9 +258,9 @@ void MEFControlTdsSoluc(void)
          * 
          *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE APAGADA
          */
-        if(mef_tds_soluc_tds > (mef_tds_limite_inferior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) || !get_relay_state(BOMBA) || mef_tds_sensor_error_flag)
+        if(mef_ph_soluc_ph > (mef_ph_limite_inferior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) || !get_relay_state(BOMBA) || mef_ph_sensor_error_flag)
         {
-            mef_tds_reset_transition_flag_valvula_tds = 1;
+            mef_ph_reset_transition_flag_valvula_ph = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
         }
 
@@ -279,9 +280,9 @@ void MEFControlTdsSoluc(void)
          * 
          *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE APAGADA
          */
-        if(mef_tds_soluc_tds < (mef_tds_limite_superior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) || get_relay_state(BOMBA) || mef_tds_sensor_error_flag)
+        if(mef_ph_soluc_ph < (mef_ph_limite_superior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) || get_relay_state(BOMBA) || mef_ph_sensor_error_flag)
         {
-            mef_tds_reset_transition_flag_valvula_tds = 1;
+            mef_ph_reset_transition_flag_valvula_ph = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
         }
 
@@ -325,10 +326,10 @@ void vTaskSolutionTdsControl(void *pvParameters)
              *  en donde el accionamiento de las válvulas de control de TDS será manejado por el usuario
              *  vía mensajes MQTT.
              */
-            if(mef_tds_manual_mode_flag)
+            if(mef_ph_manual_mode_flag)
             {
                 est_MEF_principal = MODO_MANUAL;
-                mef_tds_reset_transition_flag_control_tds = 1;
+                mef_ph_reset_transition_flag_control_ph = 1;
             }
 
             MEFControlTdsSoluc();
@@ -343,7 +344,7 @@ void vTaskSolutionTdsControl(void *pvParameters)
              *  de modo AUTOMATICO, en donde se controla el nivel de TDS de la solución a partir de los
              *  valores del sensor de TDS y las válvulas de control de TDS.
              */
-            if(!mef_tds_manual_mode_flag)
+            if(!mef_ph_manual_mode_flag)
             {
                 est_MEF_principal = ALGORITMO_CONTROL_TDS_SOLUC;
                 break;
@@ -440,7 +441,7 @@ TaskHandle_t mef_tds_get_task_handle(void)
  */
 TDS_sensor_ppm_t mef_tds_get_delta_tds(void)
 {
-    return mef_tds_delta_tds_soluc;
+    return mef_ph_delta_ph_soluc;
 }
 
 
@@ -453,8 +454,8 @@ TDS_sensor_ppm_t mef_tds_get_delta_tds(void)
  */
 void mef_tds_set_tds_control_limits(TDS_sensor_ppm_t nuevo_limite_inferior_tds_soluc, TDS_sensor_ppm_t nuevo_limite_superior_tds_soluc)
 {
-    mef_tds_limite_inferior_tds_soluc = nuevo_limite_inferior_tds_soluc;
-    mef_tds_limite_superior_tds_soluc = nuevo_limite_superior_tds_soluc;
+    mef_ph_limite_inferior_ph_soluc = nuevo_limite_inferior_tds_soluc;
+    mef_ph_limite_superior_ph_soluc = nuevo_limite_superior_tds_soluc;
 }
 
 
@@ -466,7 +467,7 @@ void mef_tds_set_tds_control_limits(TDS_sensor_ppm_t nuevo_limite_inferior_tds_s
  */
 void mef_tds_set_tds_value(TDS_sensor_ppm_t nuevo_valor_tds_soluc)
 {
-    mef_tds_soluc_tds = nuevo_valor_tds_soluc;
+    mef_ph_soluc_ph = nuevo_valor_tds_soluc;
 }
 
 
@@ -479,7 +480,7 @@ void mef_tds_set_tds_value(TDS_sensor_ppm_t nuevo_valor_tds_soluc)
  */
 void mef_tds_set_manual_mode_flag_value(bool manual_mode_flag_state)
 {
-    mef_tds_manual_mode_flag = manual_mode_flag_state;
+    mef_ph_manual_mode_flag = manual_mode_flag_state;
 }
 
 
@@ -493,7 +494,7 @@ void mef_tds_set_manual_mode_flag_value(bool manual_mode_flag_state)
  */
 void mef_tds_set_timer_flag_value(bool timer_flag_state)
 {
-    mef_tds_timer_finished_flag = timer_flag_state;
+    mef_ph_timer_finished_flag = timer_flag_state;
 }
 
 
@@ -505,5 +506,5 @@ void mef_tds_set_timer_flag_value(bool timer_flag_state)
  */
 void mef_tds_set_sensor_error_flag_value(bool sensor_error_flag_state)
 {
-    mef_tds_sensor_error_flag = sensor_error_flag_state;
+    mef_ph_sensor_error_flag = sensor_error_flag_state;
 }

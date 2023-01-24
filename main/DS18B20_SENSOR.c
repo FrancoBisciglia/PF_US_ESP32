@@ -84,15 +84,15 @@ static void vTaskGetTemp(void *pvParameters)
         }
         
         /**
-         *  Se le notifica a la tarea configurada que se completó la medición.
+         *  Se ejecuta la función callback configurada.
          * 
          *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
          *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
          *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
          */
-        if(xDS18B20TaskToNotifyOnNewMeasurment != NULL)
+        if(DS18B20Callback != NULL)
         {
-            xTaskNotifyGive(xDS18B20TaskToNotifyOnNewMeasurment);
+            DS18B20Callback(NULL);
         }
 
         vTaskDelay(pdMS_TO_TICKS(1000));
@@ -183,6 +183,15 @@ esp_err_t DS18B20_sensor_init(DS18B20_sensor_data_pin_t DS18B20_sens_data_pin)
  */
 esp_err_t DS18B20_getTemp(DS18B20_sensor_temp_t *DS18B20_value_buffer)
 {
+    /**
+     *  En caso de que se haya producido un error al sensar, se retorna
+     *  ESP_FAIL para indicar la presencia de dicho error.
+     */
+    if(DS18B20_temp_value == DS18B20_MEASURE_ERROR)
+    {
+        return ESP_FAIL;
+    }
+
     *DS18B20_value_buffer = DS18B20_temp_value;
 
     return ESP_OK;
