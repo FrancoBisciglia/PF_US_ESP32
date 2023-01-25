@@ -49,8 +49,8 @@ static const char *TAG = "pH_SENSOR_LIBRARY";
 /* Handle de la tarea de obtención de datos del sensor de pH */
 static TaskHandle_t xpHTaskHandle = NULL;
 
-/* Handle de la tarea a la cual se le informará que se completó una nueva medición. */
-TaskHandle_t xpHSensorTaskToNotifyOnNewMeasurment = NULL;
+/* Puntero a función que apuntará a la función callback pasada como argumento en la función de configuración de callback. */
+PhSensorCallbackFunction PhSensorCallback = NULL;
 
 /* Variable donde se guarda el valor de pH medido. */
 pH_sensor_ph_t pH_value = 0;
@@ -141,15 +141,15 @@ static void vTaskGetpH(void *pvParameters)
         pH_value = -5.21 * pH_voltage + 21.11;
 
         /**
-         *  Se le notifica a la tarea configurada que se completó la medición.
+         *  Se ejecuta la función callback configurada.
          * 
          *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
          *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
          *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
          */
-        if(xpHSensorTaskToNotifyOnNewMeasurment != NULL)
+        if(PhSensorCallback != NULL)
         {
-            xTaskNotifyGive(xpHSensorTaskToNotifyOnNewMeasurment);
+            PhSensorCallback(NULL);
         }
         
         vTaskDelay(pdMS_TO_TICKS(3000));
@@ -239,11 +239,11 @@ esp_err_t pH_getValue(pH_sensor_ph_t *pH_value_buffer)
 
 /**
  * @brief   Función para configurar que, al finalizarse una nueva medición del sensor,
- *          se mande un Task Notify a la tarea cuyo Task Handle se pasa como argumento.
+ *          se ejecute la función que se pasa como argumento.
  * 
- * @param task_to_notify    Task Handle de la tarea a la cual se le quiere informar que se finalizó con una medición.
+ * @param callback_function    Función a ejecutar al finalizar una medición del sensor.
  */
-void pH_sensor_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify)
+void pH_sensor_callback_function_on_new_measurment(PhSensorCallbackFunction callback_function)
 {
-    xpHSensorTaskToNotifyOnNewMeasurment = task_to_notify;
+    PhSensorCallback = callback_function;
 }

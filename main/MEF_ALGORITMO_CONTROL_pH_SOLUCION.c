@@ -74,29 +74,27 @@ static bool mef_ph_sensor_error_flag = 0;
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-ME QUEDE ACA
-
-void MEFControlAperturaValvulaTDS(int8_t valve_relay_num);
-void MEFControlTdsSoluc(void);
-void vTaskSolutionTdsControl(void *pvParameters);
+void MEFControlAperturaValvulaPh(int8_t valve_relay_num);
+void MEFControlPhSoluc(void);
+void vTaskSolutionPhControl(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
  * @brief   Función de la MEF de control del cierre y apertura de las válvulas para aumento y disminución
- *          de TDS en la solución.
+ *          de pH en la solución.
  *          
  *          Dado que el algoritmo es el mismo para ambas válvulas, y que en ningun momento se deben accionar
  *          ambas a la vez, se utiliza la misma función para el manejo de ambas.
  * 
- * @param valve_relay_num   Número de relé a accionar, correspondiente a alguna de las 2 válvulas de control de TDS.
+ * @param valve_relay_num   Número de relé a accionar, correspondiente a alguna de las 2 válvulas de control de pH.
  */
-void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
+void MEFControlAperturaValvulaPh(int8_t valve_relay_num)
 {
     /**
      * Variable que representa el estado de la MEF de control de las válvulas.
      */
-    static estado_MEF_control_apertura_valvulas_tds_t est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
+    static estado_MEF_control_apertura_valvulas_pH_t est_MEF_control_apertura_valvula_ph = VALVULA_CERRADA;
 
     /**
      *  Se controla si se debe hacer una transición con reset, caso en el cual se vuelve al estado
@@ -104,11 +102,11 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
      */
     if(mef_ph_reset_transition_flag_valvula_ph)
     {
-        est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
+        est_MEF_control_apertura_valvula_ph = VALVULA_CERRADA;
 
         mef_ph_reset_transition_flag_valvula_ph = 0;
 
-        xTimerStop(aux_control_tds_get_timer_handle(), 0);
+        xTimerStop(aux_control_ph_get_timer_handle(), 0);
         mef_ph_timer_finished_flag = 0;
 
         set_relay_state(valve_relay_num, OFF);
@@ -116,7 +114,7 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
     }
 
 
-    switch(est_MEF_control_apertura_valvula_tds)
+    switch(est_MEF_control_apertura_valvula_ph)
     {
         
     case VALVULA_CERRADA:
@@ -128,13 +126,13 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
         if(mef_ph_timer_finished_flag)
         {
             mef_ph_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_ph_tiempo_apertura_valvula_ph), 0);
-            xTimerReset(aux_control_tds_get_timer_handle(), 0);
+            xTimerChangePeriod(aux_control_ph_get_timer_handle(), pdMS_TO_TICKS(mef_ph_tiempo_apertura_valvula_ph), 0);
+            xTimerReset(aux_control_ph_get_timer_handle(), 0);
 
             set_relay_state(valve_relay_num, ON);
             ESP_LOGW(mef_pH_tag, "VALVULA ABIERTA");
 
-            est_MEF_control_apertura_valvula_tds = VALVULA_ABIERTA;
+            est_MEF_control_apertura_valvula_ph = VALVULA_ABIERTA;
         }
 
         break;
@@ -149,13 +147,13 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
         if(mef_ph_timer_finished_flag)
         {
             mef_ph_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_ph_tiempo_cierre_valvula_ph), 0);
-            xTimerReset(aux_control_tds_get_timer_handle(), 0);
+            xTimerChangePeriod(aux_control_ph_get_timer_handle(), pdMS_TO_TICKS(mef_ph_tiempo_cierre_valvula_ph), 0);
+            xTimerReset(aux_control_ph_get_timer_handle(), 0);
 
             set_relay_state(valve_relay_num, OFF);
             ESP_LOGW(mef_pH_tag, "VALVULA CERRADA");
 
-            est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
+            est_MEF_control_apertura_valvula_ph = VALVULA_CERRADA;
         }
 
         break;
@@ -165,24 +163,24 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
 
 
 /**
- * @brief   Función de la MEF de control del nivel de TDS en la solución nutritiva. Mediante un control
+ * @brief   Función de la MEF de control del nivel de pH en la solución nutritiva. Mediante un control
  *          de ventana de histéresis, se accionan las válvulas correspondientes según sea requerido para
- *          mantener el nivel de TDS de la solución dentro de los límites inferior y superior establecidos.
+ *          mantener el nivel de pH de la solución dentro de los límites inferior y superior establecidos.
  */
-void MEFControlTdsSoluc(void)
+void MEFControlPhSoluc(void)
 {
     /**
-     * Variable que representa el estado de la MEF de control del TDS de la solución.
+     * Variable que representa el estado de la MEF de control del pH de la solución.
      */
-    static estado_MEF_control_tds_soluc_t est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
+    static estado_MEF_control_pH_soluc_t est_MEF_control_ph_soluc = PH_SOLUCION_CORRECTO;
 
     /**
      *  Se controla si se debe hacer una transición con reset, caso en el cual se vuelve al estado
-     *  de TDS_SOLUCION_CORRECTO, con ambas válvulas cerradas.
+     *  de PH_SOLUCION_CORRECTO, con ambas válvulas cerradas.
      */
     if(mef_ph_reset_transition_flag_control_ph)
     {
-        est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
+        est_MEF_control_ph_soluc = PH_SOLUCION_CORRECTO;
         mef_ph_reset_transition_flag_control_ph = 0;
 
         /**
@@ -191,26 +189,24 @@ void MEFControlTdsSoluc(void)
          *  la instancia de función de la MEF.
          */
         mef_ph_reset_transition_flag_valvula_ph = 1;
-        MEFControlAperturaValvulaTDS(VALVULA_AUMENTO_TDS);
+        MEFControlAperturaValvulaPh(VALVULA_AUMENTO_PH);
         mef_ph_reset_transition_flag_valvula_ph = 1;
-        MEFControlAperturaValvulaTDS(VALVULA_DISMINUCION_TDS);
+        MEFControlAperturaValvulaPh(VALVULA_DISMINUCION_PH);
     }
 
 
-    switch(est_MEF_control_tds_soluc)
+    switch(est_MEF_control_ph_soluc)
     {
         
-    case TDS_SOLUCION_CORRECTO:
+    case PH_SOLUCION_CORRECTO:
 
         /**
-         *  En caso de que el nivel de TDS de la solución caiga por debajo del límite inferior de la ventana de histeresis
-         *  centrada en el límite inferior de nivel de TDS establecido, se cambia al estado en el cual se realizará la
-         *  apertura por tramos de la válvula de aumento de TDS. Además, esto debe hacerse sólo cuando se esté bombeando
-         *  solución a los cultivos, ya que el sensor de TDS está ubicado en el tramo final del canal de cultivos, por lo
-         *  que solo sensa el valor de TDS cuando circula solución por el mismo. También, no debe estar levantada la bandera
+         *  En caso de que el nivel de pH de la solución caiga por debajo del límite inferior de la ventana de histeresis
+         *  centrada en el límite inferior de nivel de pH establecido, se cambia al estado en el cual se realizará la
+         *  apertura por tramos de la válvula de aumento de pH. Además, esto debe hacerse sólo cuando se esté bombeando
+         *  solución a los cultivos, ya que el sensor de pH está ubicado en el tramo final del canal de cultivos, por lo
+         *  que solo sensa el valor de pH cuando circula solución por el mismo. También, no debe estar levantada la bandera
          *  de error de sensor.
-         * 
-         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE ENCENDIDA
          */
         if(mef_ph_soluc_ph < (mef_ph_limite_inferior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_ph_sensor_error_flag)
         {
@@ -220,18 +216,16 @@ void MEFControlTdsSoluc(void)
              *  ENCENDIDA.
              */
             mef_ph_timer_finished_flag = 1;
-            est_MEF_control_tds_soluc = TDS_SOLUCION_BAJO;
+            est_MEF_control_ph_soluc = PH_SOLUCION_BAJO;
         }
 
         /**
-         *  En caso de que el nivel de TDS de la solución suba por encima del límite superior de la ventana de histeresis
-         *  centrada en el límite superior de nivel de TDS establecido, se cambia al estado en el cual se realizará la
-         *  apertura por tramos de la válvula de disminución de TDS. Además, esto debe hacerse sólo cuando se esté bombeando
-         *  solución a los cultivos, ya que el sensor de TDS está ubicado en el tramo final del canal de cultivos, por lo
-         *  que solo sensa el valor de TDS cuando circula solución por el mismo. También, no debe estar levantada la bandera
+         *  En caso de que el nivel de pH de la solución suba por encima del límite superior de la ventana de histeresis
+         *  centrada en el límite superior de nivel de pH establecido, se cambia al estado en el cual se realizará la
+         *  apertura por tramos de la válvula de disminución de pH. Además, esto debe hacerse sólo cuando se esté bombeando
+         *  solución a los cultivos, ya que el sensor de pH está ubicado en el tramo final del canal de cultivos, por lo
+         *  que solo sensa el valor de pH cuando circula solución por el mismo. También, no debe estar levantada la bandera
          *  de error de sensor.
-         * 
-         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE ENCENDIDA
          */
         if(mef_ph_soluc_ph > (mef_ph_limite_superior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_ph_sensor_error_flag)
         {
@@ -241,64 +235,60 @@ void MEFControlTdsSoluc(void)
              *  ENCENDIDA.
              */
             mef_ph_timer_finished_flag = 1;
-            est_MEF_control_tds_soluc = TDS_SOLUCION_ELEVADO;
+            est_MEF_control_ph_soluc = PH_SOLUCION_ELEVADO;
         }
 
         break;
 
 
-    case TDS_SOLUCION_BAJO:
+    case PH_SOLUCION_BAJO:
 
         /**
-         *  Cuando el nivel de TDS sobrepase el límite superior de la ventana de histeresis centrada en el límite inferior
-         *  del rango de TDS correcto, se transiciona al estado con las válvulas cerrada. Además, si en algún momento se
-         *  apaga la bomba, también se transiciona a dicho estado, ya que el sensor de TDS está ubicado en el tramo final
-         *  del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula solución por el mismo. También, si
+         *  Cuando el nivel de pH sobrepase el límite superior de la ventana de histeresis centrada en el límite inferior
+         *  del rango de pH correcto, se transiciona al estado con las válvulas cerrada. Además, si en algún momento se
+         *  apaga la bomba, también se transiciona a dicho estado, ya que el sensor de pH está ubicado en el tramo final
+         *  del canal de cultivos, por lo que solo sensa el valor de pH cuando circula solución por el mismo. También, si
          *  se levanta la bandera de error de sensor, se transiciona a dicho estado.
-         * 
-         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE APAGADA
          */
         if(mef_ph_soluc_ph > (mef_ph_limite_inferior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) || !get_relay_state(BOMBA) || mef_ph_sensor_error_flag)
         {
             mef_ph_reset_transition_flag_valvula_ph = 1;
-            est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
+            est_MEF_control_ph_soluc = PH_SOLUCION_CORRECTO;
         }
 
-        MEFControlAperturaValvulaTDS(VALVULA_AUMENTO_TDS);
+        MEFControlAperturaValvulaPh(VALVULA_AUMENTO_PH);
 
         break;
 
 
-    case TDS_SOLUCION_ELEVADO:
+    case PH_SOLUCION_ELEVADO:
 
         /**
-         *  Cuando el nivel de TDS caiga por debajo del límite inferior de la ventana de histeresis centrada en el límite 
-         *  superior del rango de TDS correcto, se transiciona al estado con las válvulas cerrada. Además, si en algún momento se
-         *  apaga la bomba, también se transiciona a dicho estado, ya que el sensor de TDS está ubicado en el tramo final
-         *  del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula solución por el mismo. También, si
+         *  Cuando el nivel de pH caiga por debajo del límite inferior de la ventana de histeresis centrada en el límite 
+         *  superior del rango de pH correcto, se transiciona al estado con las válvulas cerrada. Además, si en algún momento se
+         *  apaga la bomba, también se transiciona a dicho estado, ya que el sensor de pH está ubicado en el tramo final
+         *  del canal de cultivos, por lo que solo sensa el valor de pH cuando circula solución por el mismo. También, si
          *  se levanta la bandera de error de sensor, se transiciona a dicho estado.
-         * 
-         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE APAGADA
          */
         if(mef_ph_soluc_ph < (mef_ph_limite_superior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) || get_relay_state(BOMBA) || mef_ph_sensor_error_flag)
         {
             mef_ph_reset_transition_flag_valvula_ph = 1;
-            est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
+            est_MEF_control_ph_soluc = PH_SOLUCION_CORRECTO;
         }
 
-        MEFControlAperturaValvulaTDS(VALVULA_DISMINUCION_TDS);
+        MEFControlAperturaValvulaPh(VALVULA_DISMINUCION_PH);
 
         break;
     }
 }
 
 
-void vTaskSolutionTdsControl(void *pvParameters)
+void vTaskSolutionPhControl(void *pvParameters)
 {
     /**
      * Variable que representa el estado de la MEF de jerarquía superior del algoritmo de control del TDS de la solución.
      */
-    static estado_MEF_principal_control_tds_soluc_t est_MEF_principal = ALGORITMO_CONTROL_TDS_SOLUC;
+    static estado_MEF_principal_control_ph_soluc_t est_MEF_principal = ALGORITMO_CONTROL_PH_SOLUC;
 
     while(1)
     {
@@ -306,12 +296,12 @@ void vTaskSolutionTdsControl(void *pvParameters)
          *  Se realiza un Notify Take a la espera de señales que indiquen:
          *  
          *  -Que se debe pasar a modo MANUAL o modo AUTO.
-         *  -Que estando en modo MANUAL, se deba cambiar el estado de alguna de las válvulas de control de TDS.
+         *  -Que estando en modo MANUAL, se deba cambiar el estado de alguna de las válvulas de control de pH.
          *  -Que se cumplió el timeout del timer de control del tiempo de apertura y cierre de las válvulas.
          * 
          *  Además, se le coloca un timeout para evaluar las transiciones de las MEFs periódicamente, en caso
-         *  de que no llegue ninguna de las señales mencionadas, y para controlar el nivel de TDS que llega
-         *  desde el sensor de TDS.
+         *  de que no llegue ninguna de las señales mencionadas, y para controlar el nivel de pH que llega
+         *  desde el sensor de pH.
          */
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
 
@@ -319,11 +309,11 @@ void vTaskSolutionTdsControl(void *pvParameters)
         switch(est_MEF_principal)
         {
         
-        case ALGORITMO_CONTROL_TDS_SOLUC:
+        case ALGORITMO_CONTROL_PH_SOLUC:
 
             /**
              *  En caso de que se levante la bandera de modo MANUAL, se debe transicionar a dicho estado,
-             *  en donde el accionamiento de las válvulas de control de TDS será manejado por el usuario
+             *  en donde el accionamiento de las válvulas de control de pH será manejado por el usuario
              *  vía mensajes MQTT.
              */
             if(mef_ph_manual_mode_flag)
@@ -332,7 +322,7 @@ void vTaskSolutionTdsControl(void *pvParameters)
                 mef_ph_reset_transition_flag_control_ph = 1;
             }
 
-            MEFControlTdsSoluc();
+            MEFControlPhSoluc();
 
             break;
 
@@ -341,34 +331,34 @@ void vTaskSolutionTdsControl(void *pvParameters)
 
             /**
              *  En caso de que se baje la bandera de modo MANUAL, se debe transicionar nuevamente al estado
-             *  de modo AUTOMATICO, en donde se controla el nivel de TDS de la solución a partir de los
-             *  valores del sensor de TDS y las válvulas de control de TDS.
+             *  de modo AUTOMATICO, en donde se controla el nivel de pH de la solución a partir de los
+             *  valores del sensor de pH y las válvulas de control de pH.
              */
             if(!mef_ph_manual_mode_flag)
             {
-                est_MEF_principal = ALGORITMO_CONTROL_TDS_SOLUC;
+                est_MEF_principal = ALGORITMO_CONTROL_PH_SOLUC;
                 break;
             }
 
             /**
-             *  Se obtiene el nuevo estado en el que deben estar las válvulas de control de TDS y se accionan
+             *  Se obtiene el nuevo estado en el que deben estar las válvulas de control de pH y se accionan
              *  los relés correspondientes.
              */
-            float manual_mode_valvula_aum_tds_state = -1;
-            float manual_mode_valvula_dism_tds_state = -1;
-            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_AUM_TDS_STATE_MQTT_TOPIC, &manual_mode_valvula_aum_tds_state);
-            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_DISM_TDS_STATE_MQTT_TOPIC, &manual_mode_valvula_dism_tds_state);
+            float manual_mode_valvula_aum_ph_state = -1;
+            float manual_mode_valvula_dism_ph_state = -1;
+            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_AUM_PH_STATE_MQTT_TOPIC, &manual_mode_valvula_aum_ph_state);
+            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC, &manual_mode_valvula_dism_ph_state);
 
-            if(manual_mode_valvula_aum_tds_state == 0 || manual_mode_valvula_aum_tds_state == 1)
+            if(manual_mode_valvula_aum_ph_state == 0 || manual_mode_valvula_aum_ph_state == 1)
             {
-                set_relay_state(VALVULA_AUMENTO_TDS, manual_mode_valvula_aum_tds_state);
-                ESP_LOGW(mef_pH_tag, "MANUAL MODE VALVULA AUMENTO TDS: %.0f", manual_mode_valvula_aum_tds_state);
+                set_relay_state(VALVULA_AUMENTO_PH, manual_mode_valvula_aum_ph_state);
+                ESP_LOGW(mef_pH_tag, "MANUAL MODE VALVULA AUMENTO pH: %.0f", manual_mode_valvula_aum_ph_state);
             }
 
-            if(manual_mode_valvula_dism_tds_state == 0 || manual_mode_valvula_dism_tds_state == 1)
+            if(manual_mode_valvula_dism_ph_state == 0 || manual_mode_valvula_dism_ph_state == 1)
             {
-                set_relay_state(VALVULA_DISMINUCION_TDS, manual_mode_valvula_dism_tds_state);
-                ESP_LOGW(mef_pH_tag, "MANUAL MODE VALVULA DISMINUCIÓN TDS: %.0f", manual_mode_valvula_dism_tds_state);
+                set_relay_state(VALVULA_DISMINUCION_PH, manual_mode_valvula_dism_ph_state);
+                ESP_LOGW(mef_pH_tag, "MANUAL MODE VALVULA DISMINUCIÓN pH: %.0f", manual_mode_valvula_dism_ph_state);
             }
 
             break;
@@ -379,12 +369,12 @@ void vTaskSolutionTdsControl(void *pvParameters)
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Función para inicializar el módulo de MEFs del algoritmo de control de TDS. 
+ * @brief   Función para inicializar el módulo de MEFs del algoritmo de control de pH. 
  * 
  * @param mqtt_client   Handle del cliente MQTT.
  * @return esp_err_t 
  */
-esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client)
+esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
 {
     /**
      *  Copiamos el handle del cliente MQTT en la variable interna.
@@ -395,13 +385,13 @@ esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client)
     
     /**
      *  Se crea la tarea mediante la cual se controlará la transicion de las
-     *  MEFs del algoritmo de control de TDS.
+     *  MEFs del algoritmo de control de pH.
      */
     if(xMefPhAlgoritmoControlTaskHandle == NULL)
     {
         xTaskCreate(
-            vTaskSolutionTdsControl,
-            "vTaskSolutionTdsControl",
+            vTaskSolutionPhControl,
+            "vTaskSolutionPhControl",
             4096,
             NULL,
             2,
@@ -412,7 +402,7 @@ esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client)
          */
         if(xMefPhAlgoritmoControlTaskHandle == NULL)
         {
-            ESP_LOGE(mef_pH_tag, "Failed to create vTaskSolutionTdsControl task.");
+            ESP_LOGE(mef_pH_tag, "Failed to create vTaskSolutionPhControl task.");
             return ESP_FAIL;
         }
     }
@@ -423,11 +413,11 @@ esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client)
 
 
 /**
- * @brief   Función que devuelve el Task Handle de la tarea principal del algoritmo de control de TDS.
+ * @brief   Función que devuelve el Task Handle de la tarea principal del algoritmo de control de pH.
  * 
  * @return TaskHandle_t Task Handle de la tarea.
  */
-TaskHandle_t mef_tds_get_task_handle(void)
+TaskHandle_t mef_ph_get_task_handle(void)
 {
     return xMefPhAlgoritmoControlTaskHandle;
 }
@@ -435,11 +425,11 @@ TaskHandle_t mef_tds_get_task_handle(void)
 
 
 /**
- * @brief   Función que devuelve el valor del delta de TDS establecido.
+ * @brief   Función que devuelve el valor del delta de pH establecido.
  * 
- * @return TDS_sensor_ppm_t Delta de TDS en ppm.
+ * @return pH_sensor_ph_t Delta de pH.
  */
-TDS_sensor_ppm_t mef_tds_get_delta_tds(void)
+pH_sensor_ph_t mef_ph_get_delta_ph(void)
 {
     return mef_ph_delta_ph_soluc;
 }
@@ -447,27 +437,27 @@ TDS_sensor_ppm_t mef_tds_get_delta_tds(void)
 
 
 /**
- * @brief   Función para establecer nuevos límites del rango de TDS considerado como correcto para el algoritmo de control de TDS.
+ * @brief   Función para establecer nuevos límites del rango de pH considerado como correcto para el algoritmo de control de pH.
  * 
- * @param nuevo_limite_inferior_tds_soluc   Límite inferior del rango.
- * @param nuevo_limite_superior_tds_soluc   Límite superior del rango.
+ * @param nuevo_limite_inferior_ph_soluc   Límite inferior del rango.
+ * @param nuevo_limite_superior_ph_soluc   Límite superior del rango.
  */
-void mef_tds_set_tds_control_limits(TDS_sensor_ppm_t nuevo_limite_inferior_tds_soluc, TDS_sensor_ppm_t nuevo_limite_superior_tds_soluc)
+void mef_ph_set_ph_control_limits(pH_sensor_ph_t nuevo_limite_inferior_ph_soluc, pH_sensor_ph_t nuevo_limite_superior_ph_soluc)
 {
-    mef_ph_limite_inferior_ph_soluc = nuevo_limite_inferior_tds_soluc;
-    mef_ph_limite_superior_ph_soluc = nuevo_limite_superior_tds_soluc;
+    mef_ph_limite_inferior_ph_soluc = nuevo_limite_inferior_ph_soluc;
+    mef_ph_limite_superior_ph_soluc = nuevo_limite_superior_ph_soluc;
 }
 
 
 
 /**
- * @brief   Función para actualizar el valor de TDS de la solución sensado.
+ * @brief   Función para actualizar el valor de pH de la solución sensado.
  * 
- * @param nuevo_valor_tds_soluc Nuevo valor de TDS de la solución en ppm.
+ * @param nuevo_valor_ph_soluc Nuevo valor de TDS de la solución en ppm.
  */
-void mef_tds_set_tds_value(TDS_sensor_ppm_t nuevo_valor_tds_soluc)
+void mef_ph_set_ph_value(pH_sensor_ph_t nuevo_valor_ph_soluc)
 {
-    mef_ph_soluc_ph = nuevo_valor_tds_soluc;
+    mef_ph_soluc_ph = nuevo_valor_ph_soluc;
 }
 
 
@@ -478,7 +468,7 @@ void mef_tds_set_tds_value(TDS_sensor_ppm_t nuevo_valor_tds_soluc)
  * 
  * @param manual_mode_flag_state    Estado de la bandera.
  */
-void mef_tds_set_manual_mode_flag_value(bool manual_mode_flag_state)
+void mef_ph_set_manual_mode_flag_value(bool manual_mode_flag_state)
 {
     mef_ph_manual_mode_flag = manual_mode_flag_state;
 }
@@ -488,11 +478,11 @@ void mef_tds_set_manual_mode_flag_value(bool manual_mode_flag_state)
 /**
  * @brief   Función para cambiar el estado de la bandera de timeout del timer mediante
  *          el que se controla el tiempo de apertura y cierra de las válvulas de control
- *          de TDS.
+ *          de pH.
  * 
  * @param manual_mode_flag_state    Estado de la bandera.
  */
-void mef_tds_set_timer_flag_value(bool timer_flag_state)
+void mef_ph_set_timer_flag_value(bool timer_flag_state)
 {
     mef_ph_timer_finished_flag = timer_flag_state;
 }
@@ -500,11 +490,11 @@ void mef_tds_set_timer_flag_value(bool timer_flag_state)
 
 
 /**
- * @brief   Función para cambiar el estado de la bandera de error de sensor de TDS.
+ * @brief   Función para cambiar el estado de la bandera de error de sensor de pH.
  * 
  * @param sensor_error_flag_state    Estado de la bandera.
  */
-void mef_tds_set_sensor_error_flag_value(bool sensor_error_flag_state)
+void mef_ph_set_sensor_error_flag_value(bool sensor_error_flag_state)
 {
     mef_ph_sensor_error_flag = sensor_error_flag_state;
 }

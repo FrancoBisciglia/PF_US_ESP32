@@ -24,13 +24,19 @@ extern "C" {
 typedef adc1_channel_t pH_sensor_adc1_ch_t;
 typedef float pH_sensor_ph_t;
 
+/**
+ *  @brief  Puntero a función que será utilizado para ejecutar la función que se pase
+ *          como callback cuando finalice una nueva conversión del sensor.
+ */
+typedef void (*PhSensorCallbackFunction)(void *pvParameters);
+
 /*==================[EXTERNAL DATA DECLARATION]==============================*/
 
 /*==================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
 
 esp_err_t ph_sensor_init(pH_sensor_adc1_ch_t pH_sens_analog_pin);
 esp_err_t pH_getValue(pH_sensor_ph_t *pH_value_buffer);
-void pH_sensor_task_to_notify_on_new_measurment(TaskHandle_t task_to_notify);
+void pH_sensor_callback_function_on_new_measurment(PhSensorCallbackFunction callback_function);
 
 /*==================[END OF FILE]============================================*/
 
