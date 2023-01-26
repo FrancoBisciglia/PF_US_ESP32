@@ -20,6 +20,10 @@ extern "C" {
 
 /*============================[DEFINES AND MACROS]=====================================*/
 
+/* Tiempos estándar de encendido y apagado de la bomba de solución. */
+#define MEF_BOMBEO_TIEMPO_BOMBA_ON  15
+#define MEF_BOMBEO_TIEMPO_BOMBA_OFF  60
+
 /**
  *  Enumeración correspondiente a los actuadores del control de bombeo de solución..
  * 
@@ -34,8 +38,8 @@ typedef enum actuadores_control_bombeo_soluc{
  *  Enumeración correspondiente a los estados de la MEF de control de bombeo de la solución.
  */
 typedef enum {
-    BOMBEO_SOLUCION = 0,
-    ESPERA_BOMBEO,
+    ESPERA_BOMBEO = 0,
+    BOMBEO_SOLUCION,
 } estado_MEF_control_bombeo_soluc_t;
 
 
@@ -47,17 +51,21 @@ typedef enum {
     MODO_MANUAL,
 } estado_MEF_principal_control_bombeo_soluc_t;
 
+
+/**
+ *  Tipo de variable que representa los tiempos de bombeo de solución, en minutos.
+ */
+typedef unsigned int pump_time_t
+
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 
 /*=====================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
 
-ME QUEDE ACA
-
-esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client);
-TaskHandle_t mef_ph_get_task_handle(void);
-void mef_ph_set_ph_control_limits(pH_sensor_ph_t nuevo_limite_inferior_ph_soluc, pH_sensor_ph_t nuevo_limite_superior_ph_soluc);
-void mef_ph_set_manual_mode_flag_value(bool manual_mode_flag_state);
-void mef_ph_set_timer_flag_value(bool timer_flag_state);
+esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client);
+TaskHandle_t mef_bombeo_get_task_handle(void);
+void mef_bombeo_set_pump_on_and_off_times_min(pump_time_t tiempo_bomba_on, pump_time_t tiempo_bomba_off);
+void mef_bombeo_set_manual_mode_flag_value(bool manual_mode_flag_state);
+void mef_bombeo_set_timer_flag_value(bool timer_flag_state);
 
 /*==================[END OF FILE]============================================*/
 #ifdef __cplusplus
