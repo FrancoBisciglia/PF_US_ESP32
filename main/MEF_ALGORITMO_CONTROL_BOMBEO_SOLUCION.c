@@ -70,9 +70,6 @@ void vTaskSolutionPumpControl(void *pvParameters);
  *          
  *          Se tiene un periodo compuesto por un tiempo de encendido y un tiempo de apagado de la bomba.
  */
-
-ME QUEDE ACA
-
 void MEFControlBombeoSoluc(void)
 {
     /**
@@ -127,7 +124,12 @@ void MEFControlBombeoSoluc(void)
         /**
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
          *  se cierra la válvula, y se carga en el timer el tiempo de cierre de la válvula.
+         * 
+         *  NOTA: FALTA INCORPORAR LA VERIFICACIÓN DE SI CIRCULA SOLUCION POR EL SENSOR DE FLUJO.
          */
+
+        FALTA AGREGAR TIMER DE CONTROL DE SENSOR DE FLUJO
+
         if(mef_bombeo_timer_finished_flag)
         {
             mef_bombeo_timer_finished_flag = 0;
@@ -146,12 +148,19 @@ void MEFControlBombeoSoluc(void)
 
 
 
+/**
+ * @brief   Tarea que representa la MEF principal (de mayor jerarquía) del algoritmo de 
+ *          control del bombeo de la solución nutritiva, alternando entre el modo automatico
+ *          o manual de control según se requiera.
+ * 
+ * @param pvParameters  Parámetro que se le pasa a la tarea en su creación.
+ */
 void vTaskSolutionPumpControl(void *pvParameters)
 {
     /**
-     * Variable que representa el estado de la MEF de jerarquía superior del algoritmo de control del TDS de la solución.
+     * Variable que representa el estado de la MEF de jerarquía superior del algoritmo de control de bombeo de la solución.
      */
-    static estado_MEF_principal_control_ph_soluc_t est_MEF_principal = ALGORITMO_CONTROL_PH_SOLUC;
+    static estado_MEF_principal_control_bombeo_soluc_t est_MEF_principal = ALGORITMO_CONTROL_BOMBEO_SOLUC;
 
     while(1)
     {
@@ -159,12 +168,11 @@ void vTaskSolutionPumpControl(void *pvParameters)
          *  Se realiza un Notify Take a la espera de señales que indiquen:
          *  
          *  -Que se debe pasar a modo MANUAL o modo AUTO.
-         *  -Que estando en modo MANUAL, se deba cambiar el estado de alguna de las válvulas de control de pH.
-         *  -Que se cumplió el timeout del timer de control del tiempo de apertura y cierre de las válvulas.
+         *  -Que estando en modo MANUAL, se deba cambiar el estado de la bomba.
+         *  -Que se cumplió el timeout del timer de control del tiempo de encendido o apagado de la bomba.
          * 
          *  Además, se le coloca un timeout para evaluar las transiciones de las MEFs periódicamente, en caso
-         *  de que no llegue ninguna de las señales mencionadas, y para controlar el nivel de pH que llega
-         *  desde el sensor de pH.
+         *  de que no llegue ninguna de las señales mencionadas.
          */
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
 
@@ -172,11 +180,11 @@ void vTaskSolutionPumpControl(void *pvParameters)
         switch(est_MEF_principal)
         {
         
-        case ALGORITMO_CONTROL_PH_SOLUC:
+        case ALGORITMO_CONTROL_BOMBEO_SOLUC:
 
             /**
              *  En caso de que se levante la bandera de modo MANUAL, se debe transicionar a dicho estado,
-             *  en donde el accionamiento de las válvulas de control de pH será manejado por el usuario
+             *  en donde el accionamiento de la bomba de solución será manejado por el usuario
              *  vía mensajes MQTT.
              */
             if(mef_bombeo_manual_mode_flag)
@@ -194,34 +202,25 @@ void vTaskSolutionPumpControl(void *pvParameters)
 
             /**
              *  En caso de que se baje la bandera de modo MANUAL, se debe transicionar nuevamente al estado
-             *  de modo AUTOMATICO, en donde se controla el nivel de pH de la solución a partir de los
-             *  valores del sensor de pH y las válvulas de control de pH.
+             *  de modo AUTOMATICO, en donde se controla el encendido y apagado de la bomba por tiempos.
              */
             if(!mef_bombeo_manual_mode_flag)
             {
-                est_MEF_principal = ALGORITMO_CONTROL_PH_SOLUC;
+                est_MEF_principal = ALGORITMO_CONTROL_BOMBEO_SOLUC;
                 break;
             }
 
             /**
-             *  Se obtiene el nuevo estado en el que deben estar las válvulas de control de pH y se accionan
-             *  los relés correspondientes.
+             *  Se obtiene el nuevo estado en el que debe estar la bomba de solución y se acciona
+             *  el relé correspondiente.
              */
-            float manual_mode_valvula_aum_ph_state = -1;
-            float manual_mode_valvula_dism_ph_state = -1;
-            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_AUM_PH_STATE_MQTT_TOPIC, &manual_mode_valvula_aum_ph_state);
-            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC, &manual_mode_valvula_dism_ph_state);
+            float manual_mode_bomba_state = -1;
+            mqtt_get_float_data_from_topic(MANUAL_MODE_PUMP_STATE_MQTT_TOPIC, &manual_mode_bomba_state);
 
-            if(manual_mode_valvula_aum_ph_state == 0 || manual_mode_valvula_aum_ph_state == 1)
+            if(manual_mode_bomba_state == 0 || manual_mode_bomba_state == 1)
             {
-                set_relay_state(VALVULA_AUMENTO_PH, manual_mode_valvula_aum_ph_state);
-                ESP_LOGW(mef_bombeo_tag, "MANUAL MODE VALVULA AUMENTO pH: %.0f", manual_mode_valvula_aum_ph_state);
-            }
-
-            if(manual_mode_valvula_dism_ph_state == 0 || manual_mode_valvula_dism_ph_state == 1)
-            {
-                set_relay_state(VALVULA_DISMINUCION_PH, manual_mode_valvula_dism_ph_state);
-                ESP_LOGW(mef_bombeo_tag, "MANUAL MODE VALVULA DISMINUCIÓN pH: %.0f", manual_mode_valvula_dism_ph_state);
+                set_relay_state(BOMBA, manual_mode_bomba_state);
+                ESP_LOGW(mef_bombeo_tag, "MANUAL MODE BOMBA: %.0f", manual_mode_bomba_state);
             }
 
             break;
@@ -232,12 +231,12 @@ void vTaskSolutionPumpControl(void *pvParameters)
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Función para inicializar el módulo de MEFs del algoritmo de control de pH. 
+ * @brief   Función para inicializar el módulo de MEFs del algoritmo de control de bombeo de solución. 
  * 
  * @param mqtt_client   Handle del cliente MQTT.
  * @return esp_err_t 
  */
-esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
+esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
 {
     /**
      *  Copiamos el handle del cliente MQTT en la variable interna.
@@ -248,7 +247,7 @@ esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
     
     /**
      *  Se crea la tarea mediante la cual se controlará la transicion de las
-     *  MEFs del algoritmo de control de pH.
+     *  MEFs del algoritmo de control de bombeo de solución.
      */
     if(xMefBombeoAlgoritmoControlTaskHandle == NULL)
     {
@@ -276,11 +275,11 @@ esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
 
 
 /**
- * @brief   Función que devuelve el Task Handle de la tarea principal del algoritmo de control de pH.
+ * @brief   Función que devuelve el Task Handle de la tarea principal del algoritmo de control de bombeo de solución.
  * 
  * @return TaskHandle_t Task Handle de la tarea.
  */
-TaskHandle_t mef_ph_get_task_handle(void)
+TaskHandle_t mef_bombeo_get_task_handle(void)
 {
     return xMefBombeoAlgoritmoControlTaskHandle;
 }
@@ -288,39 +287,15 @@ TaskHandle_t mef_ph_get_task_handle(void)
 
 
 /**
- * @brief   Función que devuelve el valor del delta de pH establecido.
+ * @brief   Función para establecer nuevos tiempos de encendido y apagado de la bomba de solución.
  * 
- * @return pH_sensor_ph_t Delta de pH.
+ * @param nuevo_tiempo_bomba_on   Tiempo de encendido de la bomba.
+ * @param nuevo_tiempo_bomba_off   Tiempo de apagado de la bomba.
  */
-pH_sensor_ph_t mef_ph_get_delta_ph(void)
+void mef_bombeo_set_pump_on_and_off_times_min(pump_time_t tiempo_bomba_on, pump_time_t tiempo_bomba_off)
 {
-    return mef_ph_delta_ph_soluc;
-}
-
-
-
-/**
- * @brief   Función para establecer nuevos límites del rango de pH considerado como correcto para el algoritmo de control de pH.
- * 
- * @param nuevo_limite_inferior_ph_soluc   Límite inferior del rango.
- * @param nuevo_limite_superior_ph_soluc   Límite superior del rango.
- */
-void mef_ph_set_ph_control_limits(pH_sensor_ph_t nuevo_limite_inferior_ph_soluc, pH_sensor_ph_t nuevo_limite_superior_ph_soluc)
-{
-    mef_ph_limite_inferior_ph_soluc = nuevo_limite_inferior_ph_soluc;
-    mef_ph_limite_superior_ph_soluc = nuevo_limite_superior_ph_soluc;
-}
-
-
-
-/**
- * @brief   Función para actualizar el valor de pH de la solución sensado.
- * 
- * @param nuevo_valor_ph_soluc Nuevo valor de TDS de la solución en ppm.
- */
-void mef_ph_set_ph_value(pH_sensor_ph_t nuevo_valor_ph_soluc)
-{
-    mef_ph_soluc_ph = nuevo_valor_ph_soluc;
+    mef_ph_limite_inferior_ph_soluc = nuevo_tiempo_bomba_on;
+    mef_ph_limite_superior_ph_soluc = nuevo_tiempo_bomba_off;
 }
 
 
@@ -331,7 +306,7 @@ void mef_ph_set_ph_value(pH_sensor_ph_t nuevo_valor_ph_soluc)
  * 
  * @param manual_mode_flag_state    Estado de la bandera.
  */
-void mef_ph_set_manual_mode_flag_value(bool manual_mode_flag_state)
+void mef_bombeo_set_manual_mode_flag_value(bool manual_mode_flag_state)
 {
     mef_bombeo_manual_mode_flag = manual_mode_flag_state;
 }
@@ -340,24 +315,11 @@ void mef_ph_set_manual_mode_flag_value(bool manual_mode_flag_state)
 
 /**
  * @brief   Función para cambiar el estado de la bandera de timeout del timer mediante
- *          el que se controla el tiempo de apertura y cierra de las válvulas de control
- *          de pH.
+ *          el que se controla el tiempo de encendido y apagado de la bomba de solución.
  * 
  * @param manual_mode_flag_state    Estado de la bandera.
  */
-void mef_ph_set_timer_flag_value(bool timer_flag_state)
+void mef_bombeo_set_timer_flag_value(bool timer_flag_state)
 {
     mef_bombeo_timer_finished_flag = timer_flag_state;
-}
-
-
-
-/**
- * @brief   Función para cambiar el estado de la bandera de error de sensor de pH.
- * 
- * @param sensor_error_flag_state    Estado de la bandera.
- */
-void mef_ph_set_sensor_error_flag_value(bool sensor_error_flag_state)
-{
-    mef_ph_sensor_error_flag = sensor_error_flag_state;
 }
