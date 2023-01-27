@@ -253,6 +253,26 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
      */
     Cliente_MQTT = mqtt_client;
 
+
+    //=======================| INIT SENSOR TDS |=======================//
+
+    /**
+     *  Se inicializa el sensor de TDS. En caso de detectar error,
+     *  se retorna con error.
+     */
+    if(TDS_sensor_init(ADC1_CH_TDS_SENSOR) != ESP_OK)
+    {
+        ESP_LOGE(aux_control_tds_tag, "FAILED TO INITIALIZE TDS SENSOR.");
+        return ESP_FAIL;
+    }
+
+    /**
+     *  Se asigna la función callback que será llamada al completarse una medición del
+     *  sensor de TDS.
+     */
+    TDS_sensor_callback_function_on_new_measurment(CallbackGetTdsData);
+
+
     //=======================| INIT TIMERS |=======================//
 
     /**
@@ -306,12 +326,6 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
         ESP_LOGE(aux_control_tds_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
         return ESP_FAIL;
     }
-
-    /**
-     *  Se asigna la función callback que será llamada al completarse una medición del
-     *  sensor de TDS.
-     */
-    TDS_sensor_callback_function_on_new_measurment(CallbackGetTdsData);
 
     return ESP_OK;
 }

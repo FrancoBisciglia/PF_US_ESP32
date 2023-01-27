@@ -218,6 +218,24 @@ esp_err_t aux_control_temp_soluc_init(esp_mqtt_client_handle_t mqtt_client)
      */
     Cliente_MQTT = mqtt_client;
 
+    //=======================| INIT SENSOR DS18B20 |=======================//
+
+    /**
+     *  Se inicializa el sensor DS18B20. En caso de detectar error,
+     *  se retorna con error.
+     */
+    if(DS18B20_sensor_init(GPIO_PIN_CO2_SENSOR) != ESP_OK)
+    {
+        ESP_LOGE(aux_control_temp_soluc_tag, "FAILED TO INITIALIZE DS18B20 SENSOR.");
+        return ESP_FAIL;
+    }
+
+    /**
+     *  Se asigna la función callback que será llamada al completarse una medición del
+     *  sensor de temperatura sumergible.
+     */
+    DS18B20_callback_function_on_new_measurment(CallbackGetTempSolucData);
+
     //=======================| TÓPICOS MQTT |=======================//
 
     /**
@@ -244,12 +262,6 @@ esp_err_t aux_control_temp_soluc_init(esp_mqtt_client_handle_t mqtt_client)
         ESP_LOGE(aux_control_temp_soluc_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
         return ESP_FAIL;
     }
-
-    /**
-     *  Se asigna la función callback que será llamada al completarse una medición del
-     *  sensor de temperatura sumergible.
-     */
-    DS18B20_callback_function_on_new_measurment(CallbackGetTempSolucData);
 
     return ESP_OK;
 }

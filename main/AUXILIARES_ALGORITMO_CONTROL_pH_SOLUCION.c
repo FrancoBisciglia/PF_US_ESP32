@@ -259,6 +259,26 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
      */
     Cliente_MQTT = mqtt_client;
 
+
+    //=======================| INIT SENSOR PH |=======================//
+
+    /**
+     *  Se inicializa el sensor de pH. En caso de detectar error,
+     *  se retorna con error.
+     */
+    if(ph_sensor_init(ADC1_CH_PH_SENSOR) != ESP_OK)
+    {
+        ESP_LOGE(aux_control_ph_tag, "FAILED TO INITIALIZE pH SENSOR.");
+        return ESP_FAIL;
+    }
+
+    /**
+     *  Se asigna la función callback que será llamada al completarse una medición del
+     *  sensor de pH.
+     */
+    pH_sensor_callback_function_on_new_measurment(CallbackGetPhData);
+
+
     //=======================| INIT TIMERS |=======================//
 
     /**
@@ -312,12 +332,6 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
         ESP_LOGE(aux_control_ph_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
         return ESP_FAIL;
     }
-
-    /**
-     *  Se asigna la función callback que será llamada al completarse una medición del
-     *  sensor de pH.
-     */
-    pH_sensor_callback_function_on_new_measurment(CallbackGetPhData);
 
     return ESP_OK;
 }

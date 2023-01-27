@@ -29,174 +29,110 @@
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
 
-ME QUEDE ACA
-
 /* Tag para imprimir información en el LOG. */
-static const char *mef_bombeo_tag = "MEF_CONTROL_BOMBEO_SOLUCION";
-
-/* Task Handle de la tarea del algoritmo de control de bombeo de solución. */
-static TaskHandle_t xMefBombeoAlgoritmoControlTaskHandle = NULL;
-
-/* Handle del timer utilizado para temporizar el control de flujo de solución en los canales de cultivo. */
-static TimerHandle_t xTimerSensorFlujo = NULL;
+static const char *app_co2_tag = "APP_CO2";
 
 /* Handle del cliente MQTT. */
-static esp_mqtt_client_handle_t MefBombeoClienteMQTT = NULL;
+static esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-void vTaskSolutionPumpControl(void *pvParameters);
+void CallbackGetCO2Data(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Tarea que representa la MEF principal (de mayor jerarquía) del algoritmo de 
- *          control del bombeo de la solución nutritiva, alternando entre el modo automatico
- *          o manual de control según se requiera.
+ * @brief   Función de callback que se llama cuando finaliza una medición del sensor de CO2.
  * 
- * @param pvParameters  Parámetro que se le pasa a la tarea en su creación.
+ * @param pvParameters
  */
-void vTaskSolutionPumpControl(void *pvParameters)
+void CallbackGetCO2Data(void *pvParameters)
 {
     /**
-     * Variable que representa el estado de la MEF de jerarquía superior del algoritmo de control de bombeo de la solución.
+     *  Variable donde se guarda el retorno de la función de obtención del valor
+     *  del sensor, para verificar si se ejecutó correctamente o no.
      */
-    static estado_MEF_principal_control_bombeo_soluc_t est_MEF_principal = ALGORITMO_CONTROL_BOMBEO_SOLUC;
+    esp_err_t return_status = ESP_FAIL;
 
-    while(1)
+    /**
+     *  Se obtiene el nuevo dato del nivel de CO2 ambiente.
+     */
+    CO2_sensor_ppm_t amb_CO2;
+    return_status = CO2_sensor_get_CO2(&amb_CO2);
+
+    /**
+     *  Se verifica que la función de obtención del valor de CO2 no haya retornado con error, y que el valor de CO2
+     *  retornado este dentro del rango considerado como válido para dicha variable.
+     * 
+     *  En caso de que no se cumplan estas condiciones, se le carga al valor de CO2 un código de error preestablecido, 
+     *  para que así, al leerse dicho valor, se pueda saber que ocurrió un error, y se publica en el tópico de alarmas
+     *  comúnes para informar del error al usuario.
+     */
+    if(return_status == ESP_FAIL || amb_CO2 < LIMITE_INFERIOR_RANGO_VALIDO_CO2 || amb_CO2 > LIMITE_SUPERIOR_RANGO_VALIDO_CO2)
     {
-        /**
-         *  Se realiza un Notify Take a la espera de señales que indiquen:
-         *  
-         *  -Que se debe pasar a modo MANUAL o modo AUTO.
-         *  -Que estando en modo MANUAL, se deba cambiar el estado de la bomba.
-         *  -Que se cumplió el timeout del timer de control del tiempo de encendido o apagado de la bomba.
-         * 
-         *  Además, se le coloca un timeout para evaluar las transiciones de las MEFs periódicamente, en caso
-         *  de que no llegue ninguna de las señales mencionadas.
-         */
-        ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100));
-
-
-        switch(est_MEF_principal)
-        {
+        amb_CO2 = CODIGO_ERROR_SENSOR_CO2;
         
-        case ALGORITMO_CONTROL_BOMBEO_SOLUC:
-
-            /**
-             *  En caso de que se levante la bandera de modo MANUAL, se debe transicionar a dicho estado,
-             *  en donde el accionamiento de la bomba de solución será manejado por el usuario
-             *  vía mensajes MQTT.
-             */
-            if(mef_bombeo_manual_mode_flag)
-            {
-                est_MEF_principal = MODO_MANUAL;
-                mef_bombeo_reset_transition_flag_control_bombeo_solucion = 1;
-            }
-
-            MEFControlBombeoSoluc();
-
-            break;
-
-
-        case MODO_MANUAL:
-
-            /**
-             *  En caso de que se baje la bandera de modo MANUAL, se debe transicionar nuevamente al estado
-             *  de modo AUTOMATICO, en donde se controla el encendido y apagado de la bomba por tiempos.
-             */
-            if(!mef_bombeo_manual_mode_flag)
-            {
-                est_MEF_principal = ALGORITMO_CONTROL_BOMBEO_SOLUC;
-                break;
-            }
-
-            /**
-             *  Se obtiene el nuevo estado en el que debe estar la bomba de solución y se acciona
-             *  el relé correspondiente.
-             */
-            float manual_mode_bomba_state = -1;
-            mqtt_get_float_data_from_topic(MANUAL_MODE_PUMP_STATE_MQTT_TOPIC, &manual_mode_bomba_state);
-
-            if(manual_mode_bomba_state == 0 || manual_mode_bomba_state == 1)
-            {
-                set_relay_state(BOMBA, manual_mode_bomba_state);
-                ESP_LOGW(mef_bombeo_tag, "MANUAL MODE BOMBA: %.0f", manual_mode_bomba_state);
-            }
-
-            break;
+        if(mqtt_check_connection())
+        {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%i", ALARMA_ERROR_SENSOR_CO2);
+            esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
         }
+
+        ESP_LOGE(app_co2_tag, "CO2 SENSOR ERROR DETECTED");
     }
+
+    else
+    {
+        ESP_LOGI(app_co2_tag, "NEW MEASURMENT ARRIVED: %.3f", amb_CO2);
+    }
+
+
+    /**
+     *  Si hay una conexión con el broker MQTT, se publica el valor de CO2 sensado, o
+     *  su codigo de error en tal caso.
+     */
+    if(mqtt_check_connection())
+    {
+        char buffer[10];
+        snprintf(buffer, sizeof(buffer), "%.3f", amb_CO2);
+        esp_mqtt_client_publish(Cliente_MQTT, CO2_AMB_MQTT_TOPIC, buffer, 0, 0, 0);
+    }
+
 }
 
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Función para inicializar el módulo de MEFs del algoritmo de control de bombeo de solución. 
+ * @brief   Función para inicializar el módulo de obtención del nivel de CO2 ambiente. 
  * 
  * @param mqtt_client   Handle del cliente MQTT.
  * @return esp_err_t 
  */
-esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
+esp_err_t APP_CO2_init(esp_mqtt_client_handle_t mqtt_client)
 {
     /**
      *  Copiamos el handle del cliente MQTT en la variable interna.
      */
-    MefBombeoClienteMQTT = mqtt_client;
-
-    //=======================| INIT TIMERS |=======================//
+    Cliente_MQTT = mqtt_client;
 
     /**
-     *  Se inicializa el timer utilizado para la temporización del control de flujo en los
-     *  canales de cultivo.
-     * 
-     *  Se inicializa su período en 1 tick dado que no es relevante en su inicialización, ya que
-     *  el tiempo de apertura y cierre de la válvula se asignará en la MEF cuando corresponda, pero
-     *  no puede ponerse 0.
+     *  Inicializamos el sensor de CO2. En caso de detectar error,
+     *  se retorna con error.
      */
-    xTimerSensorFlujo = xTimerCreate("Timer Sensor Flujo",       // Nombre interno que se le da al timer (no es relevante).
-                              1,                                // Período del timer en ticks.
-                              pdFALSE,                          // pdFALSE -> El timer NO se recarga solo al cumplirse el timeout. pdTRUE -> El timer se recarga solo al cumplirse el timeout.
-                              (void *)20,                        // ID de identificación del timer.
-                              vSensorFlujoTimerCallback                    // Nombre de la función de callback del timer.
-    );
-
-    /**
-     *  Se verifica que se haya creado el timer correctamente.
-     */
-    if(xTimerSensorFlujo == NULL)
+    if(CO2_sensor_init(GPIO_PIN_CO2_SENSOR) != ESP_OK)
     {
-        ESP_LOGE(aux_control_bombeo_tag, "FAILED TO CREATE TIMER.");
+        ESP_LOGE(app_co2_tag, "FAILED TO INITIALIZE CO2 SENSOR.");
         return ESP_FAIL;
     }
 
-    //=======================| CREACION TAREAS |=======================//
-    
     /**
-     *  Se crea la tarea mediante la cual se controlará la transicion de las
-     *  MEFs del algoritmo de control de bombeo de solución.
+     *  Asignamos la función de callback del sensor de CO2 que se
+     *  ejecutará al completarse una medición del sensor.
      */
-    if(xMefBombeoAlgoritmoControlTaskHandle == NULL)
-    {
-        xTaskCreate(
-            vTaskSolutionPumpControl,
-            "vTaskSolutionPumpControl",
-            4096,
-            NULL,
-            2,
-            &xMefBombeoAlgoritmoControlTaskHandle);
-        
-        /**
-         *  En caso de que el handle sea NULL, implica que no se pudo crear la tarea, y se retorna con error.
-         */
-        if(xMefBombeoAlgoritmoControlTaskHandle == NULL)
-        {
-            ESP_LOGE(mef_bombeo_tag, "Failed to create vTaskSolutionPumpControl task.");
-            return ESP_FAIL;
-        }
-    }
+    CO2_sensor_callback_function_on_new_measurment(CallbackGetCO2Data);
     
     return ESP_OK;
 }

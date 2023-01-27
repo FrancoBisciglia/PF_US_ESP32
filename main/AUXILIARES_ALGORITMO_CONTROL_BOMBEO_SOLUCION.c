@@ -201,6 +201,7 @@ esp_err_t aux_control_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
      *  Copiamos el handle del cliente MQTT en la variable interna.
      */
     Cliente_MQTT = mqtt_client;
+    
 
     //=======================| INIT TIMERS |=======================//
 

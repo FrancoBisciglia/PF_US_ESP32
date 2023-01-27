@@ -18,6 +18,7 @@ extern "C" {
 #include "freertos/task.h"
 #include "freertos/timers.h"
 #include "mqtt_client.h"
+#include "driver/adc.h"
 
 /*============================[DEFINES AND MACROS]=====================================*/
 
@@ -36,7 +37,11 @@ extern "C" {
 #define LIMITE_INFERIOR_RANGO_VALIDO_TDS 10
 #define LIMITE_SUPERIOR_RANGO_VALIDO_TDS 2000
 
+/* Código de error que se carga en el valor de TDS al detectar un error de sensado. */
 #define CODIGO_ERROR_SENSOR_TDS -10
+
+/* Canal del ADC1 en el cual está conectado el sensor de TDS. */
+#define ADC1_CH_TDS_SENSOR ADC1_CHANNEL_3
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 

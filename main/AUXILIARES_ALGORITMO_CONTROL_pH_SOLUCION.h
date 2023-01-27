@@ -18,11 +18,12 @@ extern "C" {
 #include "freertos/task.h"
 #include "freertos/timers.h"
 #include "mqtt_client.h"
+#include "driver/adc.h"
 
 /*============================[DEFINES AND MACROS]=====================================*/
 
 /**
- *  Definición de los tópicos MQTT a suscribirse.
+ *  Definición de los tópicos MQTT a suscribirse o publicar.
  */
 #define NEW_PH_SP_MQTT_TOPIC   "/SP/PhSoluc"
 #define PH_SOLUC_MQTT_TOPIC    "Sensores de solucion/pH"
@@ -31,12 +32,16 @@ extern "C" {
 #define MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC   "/PhSoluc/Modo_Manual/Valvula_dism_ph"
 
 /**
- *  Definición del rango de pH de la solución considerado como válido, en ppm.
+ *  Definición del rango de pH de la solución considerado como válido.
  */
 #define LIMITE_INFERIOR_RANGO_VALIDO_PH 4
 #define LIMITE_SUPERIOR_RANGO_VALIDO_PH 10
 
+/* Código de error que se carga en el valor de pH al detectar un error de sensado. */
 #define CODIGO_ERROR_SENSOR_PH -10
+
+/* Canal del ADC1 en el cual está conectado el sensor de pH. */
+#define ADC1_CH_PH_SENSOR ADC1_CHANNEL_0
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 
