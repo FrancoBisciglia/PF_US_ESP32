@@ -48,6 +48,9 @@ static CO2_sensor_pwm_pin_t CO2_SENSOR_PWM_PIN;
 /* Handle de la tarea de obtención de datos del sensor de CO2 */
 static TaskHandle_t xCO2TaskHandle = NULL;
 
+/* Puntero a función que apuntará a la función callback pasada como argumento en la función de configuración de callback. */
+CO2SensorCallbackFunction CO2SensorCallback = NULL;
+
 /* Bandera para verificar si se obtuvo un pulso de PWM desde el sensor de CO2 */
 static bool CO2_interr_flag = 0;
 
@@ -109,14 +112,7 @@ static void vTaskGetCO2ByPWM(void *pvParameters)
 {
     while(1)
     {
-        /**
-         *  Etiqueta que se utiliza como forma de retorno de ejecución parcial de la rutina,
-         *  es decir, para casos en los que, por ejemplo, se cumplió el timeout de espera
-         *  de la respuesta del sensor, y por lo tanto no se debe continuar con la ejecución
-         *  de la rutina, sino que se debe volver a comenzar.
-         */
-        inicio: CO2_interr_flag = 0;
-
+        CO2_interr_flag = 0;
 
         //========================| MEDICIÓN PULSO EN ALTO |===========================//
 
@@ -132,14 +128,17 @@ static void vTaskGetCO2ByPWM(void *pvParameters)
         /**
          *  Se espera a recibir un Task Notify desde la rutina de interrupción. En caso
          *  de que se cumpla el tiempo de timeout, se procede a lanzar un mensaje de
-         *  error de timeout y se comienza el ciclo desde el principio (inicio).
+         *  error de timeout, se saltea el proceso hasta el final (error_tag), donde
+         *  se ejecuta la función de callback, y se le carga al valor de CO2 el código 
+         *  de error definido.
          */
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1060));
         
         if(!CO2_interr_flag)
         {
+            CO2_ppm_pwm = CO2_SENSOR_MEASURE_ERROR;
             ESP_LOGE(TAG, "TIMEOUT ERROR: Didn't get any high pulse PWM signal.");
-            goto inicio;
+            goto error_tag;
         }
 
         CO2_interr_flag = 0;
@@ -162,17 +161,20 @@ static void vTaskGetCO2ByPWM(void *pvParameters)
         gpio_set_intr_type(CO2_SENSOR_PWM_PIN, GPIO_INTR_NEGEDGE);
 
 
-        /**
+       /**
          *  Se espera a recibir un Task Notify desde la rutina de interrupción. En caso
          *  de que se cumpla el tiempo de timeout, se procede a lanzar un mensaje de
-         *  error de timeout y se comienza el ciclo desde el principio (inicio).
+         *  error de timeout, se saltea el proceso hasta el final (error_tag), donde
+         *  se ejecuta la función de callback, y se le carga al valor de CO2 el código 
+         *  de error definido.
          */
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1060));
 
         if(!CO2_interr_flag)
         {
+            CO2_ppm_pwm = CO2_SENSOR_MEASURE_ERROR;
             ESP_LOGE(TAG, "TIMEOUT ERROR: Didn't get any high pulse PWM signal.");
-            goto inicio;
+            goto error_tag;
         }
 
         CO2_interr_flag = 0;
@@ -208,14 +210,17 @@ static void vTaskGetCO2ByPWM(void *pvParameters)
         /**
          *  Se espera a recibir un Task Notify desde la rutina de interrupción. En caso
          *  de que se cumpla el tiempo de timeout, se procede a lanzar un mensaje de
-         *  error de timeout y se comienza el ciclo desde el principio (inicio).
+         *  error de timeout, se saltea el proceso hasta el final (error_tag), donde
+         *  se ejecuta la función de callback, y se le carga al valor de CO2 el código 
+         *  de error definido.
          */
         ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(1060));
 
         if(!CO2_interr_flag)
         {
+            CO2_ppm_pwm = CO2_SENSOR_MEASURE_ERROR;
             ESP_LOGE(TAG, "TIMEOUT ERROR: Didn't get any low pulse PWM signal.");
-            goto inicio;
+            goto error_tag;
         }
 
         CO2_interr_flag = 0;
@@ -237,6 +242,29 @@ static void vTaskGetCO2ByPWM(void *pvParameters)
          *  de CO2 en ppm.
          */
         CO2_ppm_pwm = 5000 * (th - 2) / (th + tl - 4);
+
+        
+        /**
+         *  Etiqueta que se utiliza como forma de retorno de ejecución parcial de la rutina,
+         *  es decir, para casos en los que, por ejemplo, se cumplió el timeout de espera
+         *  de la respuesta del sensor, y por lo tanto no se debe continuar con la ejecución
+         *  de la rutina, sino que se debe volver a comenzar.
+         */
+        error_tag: ;
+
+
+        /**
+         *  Se ejecuta la función callback configurada, verificando anteriormente que ya
+         *  haya pasado el tiempo de calentamiento del sensor.
+         * 
+         *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
+         *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
+         *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
+         */
+        if(CO2SensorCallback != NULL && !CO2_sensor_is_warming_up())
+        {
+            CO2SensorCallback(NULL);
+        }
     }
 }
 
@@ -346,6 +374,15 @@ esp_err_t CO2_sensor_init(CO2_sensor_pwm_pin_t CO2_sens_pwm_pin)
  */
 esp_err_t CO2_sensor_get_CO2(CO2_sensor_ppm_t *CO2_value_buffer)
 {
+    /**
+     *  En caso de que se haya producido un error al sensar, se retorna
+     *  ESP_FAIL para indicar la presencia de dicho error.
+     */
+    if(CO2_ppm_pwm == CO2_SENSOR_MEASURE_ERROR)
+    {
+        return ESP_FAIL;
+    }
+
     *CO2_value_buffer = CO2_ppm_pwm;
 
     return ESP_OK;
@@ -354,6 +391,9 @@ esp_err_t CO2_sensor_get_CO2(CO2_sensor_ppm_t *CO2_value_buffer)
 
 /**
  * @brief   Función para saber si el sensor se está calentando para su funcionamiento.
+ * 
+ * @return  0: Calentamiento terminado, sensor listo.
+ *          1: Calentamiento en curso, el sensor NO esta listo.
  */
 bool CO2_sensor_is_warming_up(void)
 {
@@ -362,4 +402,17 @@ bool CO2_sensor_is_warming_up(void)
      *  (1 min).
      */
     return !warm_up_expired(CO2_warm_up_time_start, 60);
+}
+
+
+
+/**
+ * @brief   Función para configurar que, al finalizarse una nueva medición del sensor,
+ *          se ejecute la función que se pasa como argumento.
+ * 
+ * @param callback_function    Función a ejecutar al finalizar una medición del sensor.
+ */
+void CO2_sensor_callback_function_on_new_measurment(CO2SensorCallbackFunction callback_function)
+{
+    CO2SensorCallback = callback_function;
 }
