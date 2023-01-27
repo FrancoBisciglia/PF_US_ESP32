@@ -46,12 +46,14 @@ static TimerHandle_t xTimerBomba = NULL;
 void vBombaTimerCallback( TimerHandle_t pxTimer );
 void CallbackManualMode(void *pvParameters);
 void CallbackManualModeNewActuatorState(void *pvParameters);
-void CallbackNewPumpTimes(void *pvParameters);
+void CallbackNewPumpOnTime(void *pvParameters);
+void CallbackNewPumpOffTime(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Función de callback del timer de FreeRTOS.
+ * @brief   Función de callback del timer de control de tiempo de encendido y apagado de la bomba
+ *          de solución.
  * 
  * @param pxTimer   Handle del timer para el cual se cumplió el timeout.
  */
@@ -135,59 +137,65 @@ void CallbackManualModeNewActuatorState(void *pvParameters)
 }
 
 
-ME QUEDE ACA
 
 /**
  *  @brief  Función de callback que se ejecuta cuando llega un mensaje al tópico MQTT
- *          correspondiente con un nuevo valor de set point de pH de la solución.
+ *          correspondiente con un nuevo valor de tiempo de encendido de la bomba
+ *          de solución.
  * 
  * @param pvParameters 
  */
-void CallbackNewPumpTimes(void *pvParameters)
+void CallbackNewPumpOnTime(void *pvParameters)
 {
     /**
-     *  Se obtiene el nuevo valor de SP de pH.
+     *  Se obtiene el nuevo valor de tiempo de encendido de la bomba.
      */
-    pH_sensor_ph_t SP_ph_soluc = 0;
-    mqtt_get_float_data_from_topic(NEW_PH_SP_MQTT_TOPIC, &SP_ph_soluc);
+    pump_time_t tiempo_on_bomba = 0;
+    mqtt_get_float_data_from_topic(NEW_PUMP_ON_TIME_MQTT_TOPIC, &tiempo_on_bomba);
 
-    ESP_LOGI(aux_control_bombeo_tag, "NUEVO SP: %.3f", SP_ph_soluc);
+    ESP_LOGI(aux_control_bombeo_tag, "NUEVO TIEMPO ENCENDIDO BOMBA: %.0f", tiempo_on_bomba);
 
     /**
-     *  A partir del valor de SP de pH, se calculan los límites superior e inferior
-     *  utilizados por el algoritmo de control de pH, teniendo en cuenta el valor
-     *  del delta de pH que se estableció.
-     * 
-     *  EJEMPLO:
-     * 
-     *  SP_pH = 6
-     *  DELTA_pH = 1
-     * 
-     *  LIM_SUPERIOR_pH = SP_pH + DELTA_pH = 5
-     *  LIM_INFERIOR_pH = SP_pH - DELTA_pH = 7
+     *  Se actualiza el nuevo tiempo de encendido en la MEF.
      */
-    pH_sensor_ph_t limite_inferior_ph_soluc, limite_superior_ph_soluc;
-    limite_inferior_ph_soluc = SP_ph_soluc - mef_ph_get_delta_ph();
-    limite_superior_ph_soluc = SP_ph_soluc + mef_ph_get_delta_ph();
+    mef_bombeo_set_pump_on_time_min(tiempo_on_bomba);
+}
+
+
+
+/**
+ *  @brief  Función de callback que se ejecuta cuando llega un mensaje al tópico MQTT
+ *          correspondiente con un nuevo valor de tiempo de apagado de la bomba
+ *          de solución.
+ * 
+ * @param pvParameters 
+ */
+void CallbackNewPumpOffTime(void *pvParameters)
+{
+    /**
+     *  Se obtiene el nuevo valor de tiempo de apagado de la bomba.
+     */
+    pump_time_t tiempo_off_bomba = 0;
+    mqtt_get_float_data_from_topic(NEW_PUMP_OFF_TIME_MQTT_TOPIC, &tiempo_off_bomba);
+
+    ESP_LOGI(aux_control_bombeo_tag, "NUEVO TIEMPO APAGADO BOMBA: %.0f", tiempo_off_bomba);
 
     /**
-     *  Se actualizan los límites superior e inferior de pH en la MEF.
+     *  Se actualiza el nuevo tiempo de apagado en la MEF.
      */
-    mef_ph_set_ph_control_limits(limite_inferior_ph_soluc, limite_superior_ph_soluc);
-
-    ESP_LOGI(aux_control_bombeo_tag, "LIMITE INFERIOR: %.3f", limite_inferior_ph_soluc);
-    ESP_LOGI(aux_control_bombeo_tag, "LIMITE SUPERIOR: %.3f", limite_superior_ph_soluc);
+    mef_bombeo_set_pump_off_time_min(tiempo_off_bomba);
 }
 
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Función para inicializar el módulo de funciones auxiliares del algoritmo de control de pH. 
+ * @brief   Función para inicializar el módulo de funciones auxiliares del algoritmo de control de bombeo
+ *          de solución. 
  * 
  * @param mqtt_client   Handle del cliente MQTT.
  * @return esp_err_t 
  */
-esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
+esp_err_t aux_control_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
 {
     /**
      *  Copiamos el handle del cliente MQTT en la variable interna.
@@ -197,17 +205,17 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
     //=======================| INIT TIMERS |=======================//
 
     /**
-     *  Se inicializa el timer utilizado para el control de tiempo de apertura y cierre
-     *  de las válvulas de aumento y disminución del pH de la solución.
+     *  Se inicializa el timer utilizado para el control de tiempo de encendido
+     *  y apagado de la bomba de solución nutritiva.
      * 
      *  Se inicializa su período en 1 tick dado que no es relevante en su inicialización, ya que
      *  el tiempo de apertura y cierre de la válvula se asignará en la MEF cuando corresponda, pero
      *  no puede ponerse 0.
      */
-    xTimerBomba = xTimerCreate("Timer Valvulas pH",       // Nombre interno que se le da al timer (no es relevante).
+    xTimerBomba = xTimerCreate("Timer Bomba Solución",       // Nombre interno que se le da al timer (no es relevante).
                               1,                                // Período del timer en ticks.
                               pdFALSE,                          // pdFALSE -> El timer NO se recarga solo al cumplirse el timeout. pdTRUE -> El timer se recarga solo al cumplirse el timeout.
-                              (void *)1,                        // ID de identificación del timer.
+                              (void *)10,                        // ID de identificación del timer.
                               vBombaTimerCallback                    // Nombre de la función de callback del timer.
     );
 
@@ -229,14 +237,14 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
      *  al llegar un nuevo dato en el tópico.
      */
     mqtt_topic_t list_of_topics[] = {
-        [0].topic_name = NEW_PH_SP_MQTT_TOPIC,
-        [0].topic_function_cb = CallbackNewPumpTimes,
-        [1].topic_name = MANUAL_MODE_MQTT_TOPIC,
-        [1].topic_function_cb = CallbackManualMode,
-        [2].topic_name = MANUAL_MODE_VALVULA_AUM_PH_STATE_MQTT_TOPIC,
-        [2].topic_function_cb = CallbackManualModeNewActuatorState,
-        [3].topic_name = MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC,
-        [3].topic_function_cb = CallbackManualModeNewActuatorState
+        [0].topic_name = NEW_PUMP_ON_TIME_MQTT_TOPIC,
+        [0].topic_function_cb = CallbackNewPumpOnTime,
+        [1].topic_name = NEW_PUMP_OFF_TIME_MQTT_TOPIC,
+        [1].topic_function_cb = CallbackNewPumpOffTime,
+        [2].topic_name = MANUAL_MODE_MQTT_TOPIC,
+        [2].topic_function_cb = CallbackManualMode,
+        [3].topic_name = MANUAL_MODE_PUMP_STATE_MQTT_TOPIC,
+        [3].topic_function_cb = CallbackManualModeNewActuatorState,
     };
 
     /**
@@ -248,24 +256,18 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
         return ESP_FAIL;
     }
 
-    /**
-     *  Se asigna la función callback que será llamada al completarse una medición del
-     *  sensor de pH.
-     */
-    pH_sensor_callback_function_on_new_measurment(CallbackGetPhData);
-
     return ESP_OK;
 }
 
 
 
 /**
- * @brief   Función que retorna el Handle del timer de control de tiempo de apertura
- *          y cierre de las válvulas de control de pH.
+ * @brief   Función que retorna el Handle del timer de control de tiempo de encendido
+ *          y apagado de la bomba de solución.
  * 
  * @return TimerHandle_t    Handle del timer.
  */
-TimerHandle_t aux_control_ph_get_timer_handle(void)
+TimerHandle_t aux_control_bombeo_get_timer_handle(void)
 {
     return xTimerBomba;
 }

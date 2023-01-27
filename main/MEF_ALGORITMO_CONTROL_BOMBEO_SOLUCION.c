@@ -12,6 +12,7 @@
 //==================================| INCLUDES |==================================//
 
 #include <stdio.h>
+#inlcude <string.h>
 
 #include "esp_log.h"
 #include "esp_err.h"
@@ -23,6 +24,7 @@
 #include "MQTT_PUBL_SUSCR.h"
 #include "FLOW_SENSOR.h"
 #include "MCP23008.h"
+#include "ALARMAS_USUARIO.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
 #include "MEF_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
 
@@ -36,6 +38,9 @@ static const char *mef_bombeo_tag = "MEF_CONTROL_BOMBEO_SOLUCION";
 /* Task Handle de la tarea del algoritmo de control de bombeo de solución. */
 static TaskHandle_t xMefBombeoAlgoritmoControlTaskHandle = NULL;
 
+/* Handle del timer utilizado para temporizar el control de flujo de solución en los canales de cultivo. */
+static TimerHandle_t xTimerSensorFlujo = NULL;
+
 /* Handle del cliente MQTT. */
 static esp_mqtt_client_handle_t MefBombeoClienteMQTT = NULL;
 
@@ -43,17 +48,23 @@ static esp_mqtt_client_handle_t MefBombeoClienteMQTT = NULL;
 static pump_time_t mef_bombeo_tiempo_bomba_off = MEF_BOMBEO_TIEMPO_BOMBA_OFF;
 /* Tiempo de encendido de la bomba, en minutos. */
 static pump_time_t mef_bombeo_tiempo_bomba_on = MEF_BOMBEO_TIEMPO_BOMBA_ON;
+/* Periodo de tiempo de control de flujo en los canales */
+unsigned int mef_bombeo_tiempo_control_sensor_flujo = MEF_BOMBEO_TIEMPO_CONTROL_SENSOR_FLUJO;
 
 /* Bandera utilizada para controlar si se está o no en modo manual en el algoritmo de control de bombeo de solución. */
 static bool mef_bombeo_manual_mode_flag = 0;
+/* Banderas utilizadas para controlar las transiciones con reset de las MEFs de control de pH y de control de las válvulas. */
+static bool mef_bombeo_reset_transition_flag_control_bombeo_solucion = 0;
 /**
  *  Bandera utilizada para verificar si se cumplió el timeout del timer utilizado para controlar la apertura y cierre
  *  de las válvulas de control de pH.
  */
 static bool mef_bombeo_timer_finished_flag = 0;
-
-/* Banderas utilizadas para controlar las transiciones con reset de las MEFs de control de pH y de control de las válvulas. */
-static bool mef_bombeo_reset_transition_flag_control_bombeo_solucion = 0;
+/**
+ *  Bandera utilizada para verificar si se cumplió el timeout del timer utilizado para controlar si hay presencia
+ *  de flujo de solución cuando se está en el estado de la MEF de bombeo de solución.
+ */
+static bool mef_bombeo_timer_flow_control_flag = 0;
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
@@ -63,6 +74,37 @@ void MEFControlBombeoSoluc(void);
 void vTaskSolutionPumpControl(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
+
+/**
+ * @brief   Función de callback del timer de control de presencia de flujo en el canal de cultivo.
+ * 
+ * @param pxTimer   Handle del timer para el cual se cumplió el timeout.
+ */
+static void vSensorFlujoTimerCallback( TimerHandle_t pxTimer )
+{
+    /**
+     *  Esta variable sirve para que, en el caso de que un llamado a "xTaskNotifyFromISR()" desbloquee
+     *  una tarea de mayor prioridad que la que estaba corriendo justo antes de entrar en la rutina
+     *  de interrupción, al retornar se haga un context switch a dicha tarea de mayor prioridad en vez
+     *  de a la de menor prioridad (xHigherPriorityTaskWoken = pdTRUE)
+     */
+    BaseType_t xHigherPriorityTaskWoken;
+    xHigherPriorityTaskWoken = pdFALSE;
+
+    /**
+     *  Se setea la bandera del timer para señalizarle a la MEF "MEFControlBombeoSoluc"
+     *  que se debe volver a controlar si hay flujo de solución en los canales.
+     */
+    mef_bombeo_timer_flow_control_flag = 1;
+
+    /**
+     *  Se le envía un Task Notify a la tarea de la MEF de control de bombeo de solución.
+     */
+    vTaskNotifyGiveFromISR(xMefBombeoAlgoritmoControlTaskHandle, &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+
 
 /**
  * @brief   Función de la MEF de control del bombeo de solución nutritiva desde el tanque principal de
@@ -79,7 +121,7 @@ void MEFControlBombeoSoluc(void)
 
     /**
      *  Se controla si se debe hacer una transición con reset, caso en el cual se vuelve al estado
-     *  de bomba apagada y se para el timer correspondiente.
+     *  de bomba apagada y se paran los timers correspondiente.
      */
     if(mef_bombeo_reset_transition_flag_control_bombeo_solucion)
     {
@@ -89,6 +131,9 @@ void MEFControlBombeoSoluc(void)
 
         xTimerStop(aux_control_bombeo_get_timer_handle(), 0);
         mef_bombeo_timer_finished_flag = 0;
+
+        xTimerStop(xTimerSensorFlujo, 0);
+        mef_bombeo_timer_flow_control_flag = 0;
 
         set_relay_state(BOMBA, OFF);
         ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
@@ -102,13 +147,17 @@ void MEFControlBombeoSoluc(void)
 
         /**
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
-         *  se enciende la bomba, y se carga en el timer el tiempo de encendido de la bomba.
+         *  se enciende la bomba, y se carga en el timer el tiempo de encendido de la bomba y el periodo con el que
+         *  se va a controlar si hay efectivamente flujo de solución en los canales.
          */
         if(mef_bombeo_timer_finished_flag)
         {
             mef_bombeo_timer_finished_flag = 0;
             xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(mef_bombeo_tiempo_bomba_on), 0);
             xTimerReset(aux_control_bombeo_get_timer_handle(), 0);
+
+            xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
+            xTimerReset(xTimerSensorFlujo, 0);
 
             set_relay_state(BOMBA, ON);
             ESP_LOGW(mef_bombeo_tag, "BOMBA ENCENDIDA");
@@ -122,19 +171,45 @@ void MEFControlBombeoSoluc(void)
     case BOMBEO_SOLUCION:
 
         /**
-         *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
-         *  se cierra la válvula, y se carga en el timer el tiempo de cierre de la válvula.
+         *  Cuando se cumple el timeout del timer, se verifica si circula solución por el sensor de flujo ubicado
+         *  en la entrada de los canales de cultivo.
          * 
-         *  NOTA: FALTA INCORPORAR LA VERIFICACIÓN DE SI CIRCULA SOLUCION POR EL SENSOR DE FLUJO.
+         *  En caso de que no se detecte solución, se procede a publicar en el tópico común de alarmas el 
+         *  código de alarma correspondiente a falla en la bomba de solución.
+         * 
          */
+        if(mef_bombeo_timer_flow_control_flag)
+        {
+            mef_bombeo_timer_flow_control_flag = 0;
+            xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
+            xTimerReset(xTimerSensorFlujo, 0);
 
-        FALTA AGREGAR TIMER DE CONTROL DE SENSOR DE FLUJO
+            if(!flow_sensor_flow_detected())
+            {
+                if(mqtt_check_connection())
+                {
+                    char buffer[10];
+                    snprintf(buffer, sizeof(buffer), "%i", ALARMA_FALLA_BOMBA);
+                    esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
+                }
 
+                ESP_LOGE(mef_bombeo_tag, "ALARMA, NO CIRCULA SOLUCIÓN POR LOS CANALES.");
+            }
+        }
+
+        /**
+         *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
+         *  se cierra la válvula, y se carga en el timer el tiempo de cierre de la válvula, además de parar el timer
+         *  de control de flujo de solución.
+         */
         if(mef_bombeo_timer_finished_flag)
         {
             mef_bombeo_timer_finished_flag = 0;
             xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(mef_bombeo_tiempo_bomba_off), 0);
             xTimerReset(aux_control_bombeo_get_timer_handle(), 0);
+
+            xTimerStop(xTimerSensorFlujo, 0);
+            mef_bombeo_timer_flow_control_flag = 0;
 
             set_relay_state(BOMBA, OFF);
             ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
@@ -243,6 +318,32 @@ esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
      */
     MefBombeoClienteMQTT = mqtt_client;
 
+    //=======================| INIT TIMERS |=======================//
+
+    /**
+     *  Se inicializa el timer utilizado para la temporización del control de flujo en los
+     *  canales de cultivo.
+     * 
+     *  Se inicializa su período en 1 tick dado que no es relevante en su inicialización, ya que
+     *  el tiempo de apertura y cierre de la válvula se asignará en la MEF cuando corresponda, pero
+     *  no puede ponerse 0.
+     */
+    xTimerSensorFlujo = xTimerCreate("Timer Sensor Flujo",       // Nombre interno que se le da al timer (no es relevante).
+                              1,                                // Período del timer en ticks.
+                              pdFALSE,                          // pdFALSE -> El timer NO se recarga solo al cumplirse el timeout. pdTRUE -> El timer se recarga solo al cumplirse el timeout.
+                              (void *)20,                        // ID de identificación del timer.
+                              vSensorFlujoTimerCallback                    // Nombre de la función de callback del timer.
+    );
+
+    /**
+     *  Se verifica que se haya creado el timer correctamente.
+     */
+    if(xTimerSensorFlujo == NULL)
+    {
+        ESP_LOGE(aux_control_bombeo_tag, "FAILED TO CREATE TIMER.");
+        return ESP_FAIL;
+    }
+
     //=======================| CREACION TAREAS |=======================//
     
     /**
@@ -287,15 +388,25 @@ TaskHandle_t mef_bombeo_get_task_handle(void)
 
 
 /**
- * @brief   Función para establecer nuevos tiempos de encendido y apagado de la bomba de solución.
+ * @brief   Función para establecer un nuevo tiempo de encendido de la bomba de solución.
  * 
  * @param nuevo_tiempo_bomba_on   Tiempo de encendido de la bomba.
+ */
+void mef_bombeo_set_pump_on_time_min(pump_time_t nuevo_tiempo_bomba_on)
+{
+    mef_bombeo_tiempo_bomba_on = nuevo_tiempo_bomba_on;
+}
+
+
+
+/**
+ * @brief   Función para establecer un nuevo tiempo de apagado de la bomba de solución.
+ * 
  * @param nuevo_tiempo_bomba_off   Tiempo de apagado de la bomba.
  */
-void mef_bombeo_set_pump_on_and_off_times_min(pump_time_t tiempo_bomba_on, pump_time_t tiempo_bomba_off)
+void mef_bombeo_set_pump_off_time_min(pump_time_t nuevo_tiempo_bomba_off)
 {
-    mef_ph_limite_inferior_ph_soluc = nuevo_tiempo_bomba_on;
-    mef_ph_limite_superior_ph_soluc = nuevo_tiempo_bomba_off;
+    mef_bombeo_tiempo_bomba_off = nuevo_tiempo_bomba_off;
 }
 
 
