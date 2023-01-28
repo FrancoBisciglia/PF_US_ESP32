@@ -38,7 +38,7 @@ extern "C" {
 #define HUM_AMB_MQTT_TOPIC "Sensores ambientales/Humedad"
 
 /* Definición del pin GPIO al cual está conectado el sensor DHT11. */
-#define GPIO_PIN_CO2_SENSOR 4
+#define GPIO_PIN_DHT11_SENSOR 4
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 

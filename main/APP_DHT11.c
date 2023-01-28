@@ -40,14 +40,13 @@ static esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-static void CallbackGetCO2Data(void *pvParameters);
+static void CallbackGetTempHumData(void *pvParameters)
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
-ME QUEDE ACA
-
 /**
- * @brief   Función de callback que se llama cuando finaliza una medición del sensor de CO2.
+ * @brief   Función de callback que se llama cuando finaliza una medición del sensor DHT11 de temperatura
+ *          y humedad relativa ambiente.
  * 
  * @param pvParameters
  */
@@ -57,51 +56,73 @@ static void CallbackGetTempHumData(void *pvParameters)
      *  Variable donde se guarda el retorno de la función de obtención del valor
      *  del sensor, para verificar si se ejecutó correctamente o no.
      */
-    esp_err_t return_status = ESP_FAIL;
+    esp_err_t return_status_temp = ESP_FAIL;
+    esp_err_t return_status_hum = ESP_FAIL;
 
     /**
-     *  Se obtiene el nuevo dato del nivel de CO2 ambiente.
+     *  Se obtiene el nuevo dato de temperatura y humedad relativa ambiente.
      */
-    CO2_sensor_ppm_t amb_CO2;
-    return_status = CO2_sensor_get_CO2(&amb_CO2);
+    DHT11_sensor_temp_t amb_temp; 
+    DHT11_sensor_hum_t amb_hum;
+    return_status_temp = DHT11_getTemp(&amb_temp);
+    return_status_hum = DHT11_getHum(&amb_hum);
 
     /**
-     *  Se verifica que la función de obtención del valor de CO2 no haya retornado con error, y que el valor de CO2
-     *  retornado este dentro del rango considerado como válido para dicha variable.
+     *  Se verifica que las funciones de obtención del valor de temperatura y humedad relativa no haya retornado con 
+     *  error, y que los valores de temperatura y humedad retornados esten dentro del rango considerado como válido 
+     *  para dichas variables.
      * 
-     *  En caso de que no se cumplan estas condiciones, se le carga al valor de CO2 un código de error preestablecido, 
-     *  para que así, al leerse dicho valor, se pueda saber que ocurrió un error, y se publica en el tópico de alarmas
-     *  comúnes para informar del error al usuario.
+     *  En caso de que no se cumplan estas condiciones, se le carga al valor de temperatura o humedad un código de error 
+     *  preestablecido, para que así, al leerse dicho valor, se pueda saber que ocurrió un error, y se publica en el 
+     *  tópico de alarmas comúnes para informar del error al usuario.
      */
-    if(return_status == ESP_FAIL || amb_CO2 < LIMITE_INFERIOR_RANGO_VALIDO_CO2 || amb_CO2 > LIMITE_SUPERIOR_RANGO_VALIDO_CO2)
+    if(return_status_temp == ESP_FAIL || amb_temp < LIMITE_INFERIOR_RANGO_VALIDO_TEMP_AMB || amb_temp > LIMITE_SUPERIOR_RANGO_VALIDO_TEMP_AMB)
     {
-        amb_CO2 = CODIGO_ERROR_SENSOR_CO2;
+        amb_temp = CODIGO_ERROR_SENSOR_DHT11_TEMP_AMB;
         
         if(mqtt_check_connection())
         {
             char buffer[10];
-            snprintf(buffer, sizeof(buffer), "%i", ALARMA_ERROR_SENSOR_CO2);
+            snprintf(buffer, sizeof(buffer), "%i", ALARMA_ERROR_SENSOR_DTH11_TEMP);
             esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
         }
 
-        ESP_LOGE(app_dht11_tag, "CO2 SENSOR ERROR DETECTED");
+        ESP_LOGE(app_dht11_tag, "DHT11 SENSOR TEMP ERROR DETECTED");
+    }
+
+    if(return_status_hum == ESP_FAIL || amb_hum < LIMITE_INFERIOR_RANGO_VALIDO_HUM_AMB || amb_hum > LIMITE_SUPERIOR_RANGO_VALIDO_HUM_AMB)
+    {
+        amb_hum = ALARMA_ERROR_SENSOR_DTH11_HUM;
+        
+        if(mqtt_check_connection())
+        {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%i", ALARMA_ERROR_SENSOR_DTH11_HUM);
+            esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
+        }
+
+        ESP_LOGE(app_dht11_tag, "DHT11 SENSOR HUM ERROR DETECTED");
     }
 
     else
     {
-        ESP_LOGI(app_dht11_tag, "NEW MEASURMENT ARRIVED: %.3f", amb_CO2);
+        ESP_LOGI(app_dht11_tag, "NEW MEASURMENT ARRIVED, TEMP: %.3f", amb_temp);
+        ESP_LOGI(app_dht11_tag, "NEW MEASURMENT ARRIVED, HUM: %.3f", amb_hum);
     }
 
 
     /**
-     *  Si hay una conexión con el broker MQTT, se publica el valor de CO2 sensado, o
-     *  su codigo de error en tal caso.
+     *  Si hay una conexión con el broker MQTT, se publican los valores de temperatura y
+     *  humedad relativa sensados, o su codigo de error en tal caso.
      */
     if(mqtt_check_connection())
     {
         char buffer[10];
-        snprintf(buffer, sizeof(buffer), "%.3f", amb_CO2);
-        esp_mqtt_client_publish(Cliente_MQTT, CO2_AMB_MQTT_TOPIC, buffer, 0, 0, 0);
+        snprintf(buffer, sizeof(buffer), "%.3f", amb_temp);
+        esp_mqtt_client_publish(Cliente_MQTT, TEMP_AMB_MQTT_TOPIC, buffer, 0, 0, 0);
+
+        snprintf(buffer, sizeof(buffer), "%.3f", amb_hum);
+        esp_mqtt_client_publish(Cliente_MQTT, HUM_AMB_MQTT_TOPIC, buffer, 0, 0, 0);
     }
 
 }
@@ -109,12 +130,12 @@ static void CallbackGetTempHumData(void *pvParameters)
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Función para inicializar el módulo de obtención del nivel de CO2 ambiente. 
+ * @brief   Función para inicializar el módulo de obtención de la temperatura y humedad relativa ambiente. 
  * 
  * @param mqtt_client   Handle del cliente MQTT.
  * @return esp_err_t 
  */
-esp_err_t APP_CO2_init(esp_mqtt_client_handle_t mqtt_client)
+esp_err_t APP_DHT11_init(esp_mqtt_client_handle_t mqtt_client)
 {
     /**
      *  Copiamos el handle del cliente MQTT en la variable interna.
@@ -125,17 +146,17 @@ esp_err_t APP_CO2_init(esp_mqtt_client_handle_t mqtt_client)
      *  Inicializamos el sensor de CO2. En caso de detectar error,
      *  se retorna con error.
      */
-    if(CO2_sensor_init(GPIO_PIN_CO2_SENSOR) != ESP_OK)
+    if(DTH11_sensor_init(GPIO_PIN_DHT11_SENSOR) != ESP_OK)
     {
-        ESP_LOGE(app_dht11_tag, "FAILED TO INITIALIZE CO2 SENSOR.");
+        ESP_LOGE(app_dht11_tag, "FAILED TO INITIALIZE DHT11 SENSOR.");
         return ESP_FAIL;
     }
 
     /**
-     *  Asignamos la función de callback del sensor de CO2 que se
+     *  Asignamos la función de callback del sensor DHT11 que se
      *  ejecutará al completarse una medición del sensor.
      */
-    CO2_sensor_callback_function_on_new_measurment(CallbackGetCO2Data);
+    DHT11_callback_function_on_new_measurment(CallbackGetTempHumData);
     
     return ESP_OK;
 }
