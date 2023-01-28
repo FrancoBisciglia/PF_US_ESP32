@@ -41,6 +41,9 @@ static const char *TAG = "DHT11_SENSOR_LIBRARY";
 /* Handle de la tarea de obtención de datos del sensor DHT11. */
 static TaskHandle_t xDHT11TaskHandle = NULL;
 
+/* Puntero a función que apuntará a la función callback pasada como argumento en la función de configuración de callback. */
+DHT11SensorCallbackFunction DHT11Callback = NULL;
+
 /* Variable donde se guarda el valor de temperatura medido. */
 static DHT11_sensor_temp_t DHT11_temp_value = 0;
 
@@ -79,6 +82,19 @@ static void vTaskGetTempAndHum(void *pvParameters)
             DHT11_hum_value = DHT11_MEASURE_ERROR;
             DHT11_temp_value = DHT11_MEASURE_ERROR;
             ESP_LOGE(TAG, "Failed to get temp and hum.");
+        }
+
+
+        /**
+         *  Se ejecuta la función callback configurada.
+         * 
+         *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
+         *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
+         *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
+         */
+        if(DHT11Callback != NULL)
+        {
+            DHT11Callback(NULL);
         }
         
         vTaskDelay(pdMS_TO_TICKS(3000));
@@ -170,6 +186,15 @@ esp_err_t DTH11_sensor_init(DHT11_sensor_data_pin_t DHT11_sens_data_pin)
  */
 esp_err_t DHT11_getTemp(DHT11_sensor_temp_t *DHT11_temp_value_buffer)
 {
+    /**
+     *  En caso de que se haya producido un error al sensar, se retorna
+     *  ESP_FAIL para indicar la presencia de dicho error.
+     */
+    if(DHT11_temp_value == DHT11_MEASURE_ERROR)
+    {
+        return ESP_FAIL;
+    }
+
     *DHT11_temp_value_buffer = DHT11_temp_value;
 
     return ESP_OK;
@@ -186,7 +211,29 @@ esp_err_t DHT11_getTemp(DHT11_sensor_temp_t *DHT11_temp_value_buffer)
  */
 esp_err_t DHT11_getHum(DHT11_sensor_hum_t *DHT11_hum_value_buffer)
 {
+    /**
+     *  En caso de que se haya producido un error al sensar, se retorna
+     *  ESP_FAIL para indicar la presencia de dicho error.
+     */
+    if(DHT11_hum_value == DHT11_MEASURE_ERROR)
+    {
+        return ESP_FAIL;
+    }
+
     *DHT11_hum_value_buffer = DHT11_hum_value;
 
     return ESP_OK;
+}
+
+
+
+/**
+ * @brief   Función para configurar que, al finalizarse una nueva medición del sensor,
+ *          se ejecute la función que se pasa como argumento.
+ * 
+ * @param callback_function    Función a ejecutar al finalizar una medición del sensor.
+ */
+void DHT11_callback_function_on_new_measurment(DHT11SensorCallbackFunction callback_function)
+{
+    DHT11Callback = callback_function;
 }
