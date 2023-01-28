@@ -38,11 +38,14 @@ static const char *app_light_sensor_tag = "APP_LIGHT_SENSOR";
 /* Handle del cliente MQTT. */
 static esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 
+/* Handle del timer utilizado para control del estado de las luces. */
+static TimerHandle_t xTimerControlLuces = NULL;
+
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-static void CallbackGetTempHumData(void *pvParameters)
+static void CallbackNewLightState(void *pvParameters)
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -52,80 +55,15 @@ static void CallbackGetTempHumData(void *pvParameters)
  * 
  * @param pvParameters
  */
-static void CallbackGetTempHumData(void *pvParameters)
+static void CallbackNewLightState(void *pvParameters)
 {
     /**
-     *  Variable donde se guarda el retorno de la función de obtención del valor
-     *  del sensor, para verificar si se ejecutó correctamente o no.
+     *  Se obtiene el nuevo estado de las luces desde el tópico MQTT.
      */
-    esp_err_t return_status_temp = ESP_FAIL;
-    esp_err_t return_status_hum = ESP_FAIL;
-
-    /**
-     *  Se obtiene el nuevo dato de temperatura y humedad relativa ambiente.
-     */
-    DHT11_sensor_temp_t amb_temp; 
-    DHT11_sensor_hum_t amb_hum;
-    return_status_temp = DHT11_getTemp(&amb_temp);
-    return_status_hum = DHT11_getHum(&amb_hum);
-
-    /**
-     *  Se verifica que las funciones de obtención del valor de temperatura y humedad relativa no haya retornado con 
-     *  error, y que los valores de temperatura y humedad retornados esten dentro del rango considerado como válido 
-     *  para dichas variables.
-     * 
-     *  En caso de que no se cumplan estas condiciones, se le carga al valor de temperatura o humedad un código de error 
-     *  preestablecido, para que así, al leerse dicho valor, se pueda saber que ocurrió un error, y se publica en el 
-     *  tópico de alarmas comúnes para informar del error al usuario.
-     */
-    if(return_status_temp == ESP_FAIL || amb_temp < LIMITE_INFERIOR_RANGO_VALIDO_TEMP_AMB || amb_temp > LIMITE_SUPERIOR_RANGO_VALIDO_TEMP_AMB)
-    {
-        amb_temp = CODIGO_ERROR_SENSOR_DHT11_TEMP_AMB;
-        
-        if(mqtt_check_connection())
-        {
-            char buffer[10];
-            snprintf(buffer, sizeof(buffer), "%i", ALARMA_ERROR_SENSOR_DTH11_TEMP);
-            esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
-        }
-
-        ESP_LOGE(app_light_sensor_tag, "DHT11 SENSOR TEMP ERROR DETECTED");
-    }
-
-    if(return_status_hum == ESP_FAIL || amb_hum < LIMITE_INFERIOR_RANGO_VALIDO_HUM_AMB || amb_hum > LIMITE_SUPERIOR_RANGO_VALIDO_HUM_AMB)
-    {
-        amb_hum = ALARMA_ERROR_SENSOR_DTH11_HUM;
-        
-        if(mqtt_check_connection())
-        {
-            char buffer[10];
-            snprintf(buffer, sizeof(buffer), "%i", ALARMA_ERROR_SENSOR_DTH11_HUM);
-            esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
-        }
-
-        ESP_LOGE(app_light_sensor_tag, "DHT11 SENSOR HUM ERROR DETECTED");
-    }
-
-    else
-    {
-        ESP_LOGI(app_light_sensor_tag, "NEW MEASURMENT ARRIVED, TEMP: %.3f", amb_temp);
-        ESP_LOGI(app_light_sensor_tag, "NEW MEASURMENT ARRIVED, HUM: %.3f", amb_hum);
-    }
+    char buffer[50];
+    mqtt_get_char_data_from_topic(LUZ_AMB_STATE_MQTT_TOPIC, buffer);
 
 
-    /**
-     *  Si hay una conexión con el broker MQTT, se publican los valores de temperatura y
-     *  humedad relativa sensados, o su codigo de error en tal caso.
-     */
-    if(mqtt_check_connection())
-    {
-        char buffer[10];
-        snprintf(buffer, sizeof(buffer), "%.3f", amb_temp);
-        esp_mqtt_client_publish(Cliente_MQTT, TEMP_AMB_MQTT_TOPIC, buffer, 0, 0, 0);
-
-        snprintf(buffer, sizeof(buffer), "%.3f", amb_hum);
-        esp_mqtt_client_publish(Cliente_MQTT, HUM_AMB_MQTT_TOPIC, buffer, 0, 0, 0);
-    }
 
 }
 

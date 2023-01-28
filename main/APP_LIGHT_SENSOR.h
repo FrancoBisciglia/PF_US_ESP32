@@ -19,6 +19,7 @@ extern "C" {
  *  Definición de los tópicos MQTT a suscribirse o publicar.
  */
 #define LUZ_AMB_MQTT_TOPIC "Sensores ambientales/Luminosidad"
+#define LUZ_AMB_STATE_MQTT_TOPIC "Actuadores/Luces"
 
 /* Definición del pin GPIO al cual está conectado el sensor DHT11. */
 #define GPIO_PIN_LIGHT_SENSOR 2
