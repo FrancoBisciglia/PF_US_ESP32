@@ -21,7 +21,7 @@ extern "C" {
 /**
  *  Definición de los códigos de alarmas a enviar al usuario.
  */
-typedef enum ALARMAS{
+typedef enum{
     ALARMA_ERROR_SENSOR_DS18B20 = 1,
     ALARMA_ERROR_SENSOR_PH,
     ALARMA_ERROR_SENSOR_TDS,
@@ -35,7 +35,12 @@ typedef enum ALARMAS{
     ALARMA_ERROR_SENSOR_NIVEL_TANQUE_NUTRIENTES,
     ALARMA_FALLA_ILUMINACION,
     ALARMA_FALLA_BOMBA,
-};
+    ALARMA_NIVEL_TANQUE_PRINCIPAL_BAJO,
+    ALARMA_NIVEL_TANQUE_ACIDO_BAJO,
+    ALARMA_NIVEL_TANQUE_ALCALINO_BAJO,
+    ALARMA_NIVEL_TANQUE_AGUA_BAJO,
+    ALARMA_NIVEL_TANQUE_SUSTRATO_BAJO,
+} alarms_t;
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 

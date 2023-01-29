@@ -27,6 +27,7 @@
 #include "MQTT_PUBL_SUSCR.h"
 #include "LIGHT_SENSOR.h"
 #include "ALARMAS_USUARIO.h"
+#include "APP_LIGHT_SENSOR.h"
 
 //==================================| MACROS AND TYPDEF |==================================//
 

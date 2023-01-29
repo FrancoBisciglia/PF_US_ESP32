@@ -24,6 +24,7 @@
 #include "MQTT_PUBL_SUSCR.h"
 #include "CO2_SENSOR.h"
 #include "ALARMAS_USUARIO.h"
+#include "APP_CO2.h"
 
 //==================================| MACROS AND TYPDEF |==================================//
 

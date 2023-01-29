@@ -25,6 +25,7 @@
 #include "MQTT_PUBL_SUSCR.h"
 #include "DHT11_SENSOR.h"
 #include "ALARMAS_USUARIO.h"
+#include "APP_DHT11.h"
 
 //==================================| MACROS AND TYPDEF |==================================//
 
