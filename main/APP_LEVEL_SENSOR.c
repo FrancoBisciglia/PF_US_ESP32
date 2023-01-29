@@ -142,9 +142,9 @@ static void vTaskLevelSensors(void *pvParameters)
  *          considerado como válido), se publica la alarma en el tópico MQTT común de alarmas, y se setea
  *          la bandera de nivel debajo del límite.
  * 
- * @param level_sensor  Estructura que representa el pin del sensor de nivel.
- * @param tank  Estructura que representa las dimensiones del tanque.
- * @param mqtt_publ_topic   Tópico en donde se publica el nivel de líquido del tanque sensado.
+ * @param level_sensor              Estructura que representa el pin del sensor de nivel.
+ * @param tank                      Estructura que representa las dimensiones del tanque.
+ * @param mqtt_publ_topic           Tópico en donde se publica el nivel de líquido del tanque sensado.
  * @param mqtt_sensor_error_alarm   Alarma correspondiente a error de sensado del sensor de nivel del tanque (ver ALARMAS_USUARIO.h).
  * @param mqtt_below_limit_alarm    Alarma correspondiente a nivel del tanque menor que el límite establecido (ver ALARMAS_USUARIO.h).
  * @param below_limit_tank_flag     Bandera que determina si el nivel del tanque está por debajo del límite establecido o no.
@@ -387,7 +387,7 @@ bool app_level_sensor_level_below_limit(int tanque)
  * @return true     El sensor de nivel presenta errores.
  * @return false    El sensor de nivel NO presenta errores.
  */
-bool app_level_sensor_error_sensor_detected(int tanque)
+bool app_level_sensor_error_sensor_detected(tanques_unidad_sec_t tanque)
 {
     bool state;
 

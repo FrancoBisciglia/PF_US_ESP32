@@ -42,13 +42,13 @@ extern "C" {
 #define LIMITE_INFERIOR_ALARMA_NIVEL_TANQUE 0.1
 
 /* Enumeración para diferenciar los tanques de la unidad secundaria. */
-typedef enum tanques_unidad_sec{
+typedef enum{
     TANQUE_PRINCIPAL = 0,
     TANQUE_ACIDO,
     TANQUE_ALCALINO,
     TANQUE_AGUA,
     TANQUE_SUSTRATO,
-};
+} tanques_unidad_sec_t;
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 
