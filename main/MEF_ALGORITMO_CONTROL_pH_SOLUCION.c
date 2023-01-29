@@ -203,12 +203,20 @@ void MEFControlPhSoluc(void)
         /**
          *  En caso de que el nivel de pH de la solución caiga por debajo del límite inferior de la ventana de histeresis
          *  centrada en el límite inferior de nivel de pH establecido, se cambia al estado en el cual se realizará la
-         *  apertura por tramos de la válvula de aumento de pH. Además, esto debe hacerse sólo cuando se esté bombeando
-         *  solución a los cultivos, ya que el sensor de pH está ubicado en el tramo final del canal de cultivos, por lo
-         *  que solo sensa el valor de pH cuando circula solución por el mismo. También, no debe estar levantada la bandera
-         *  de error de sensor.
+         *  apertura por tramos de la válvula de aumento de pH. 
+         * 
+         *  Además, esto debe hacerse sólo cuando se esté bombeando solución a los cultivos, ya que el sensor de pH está 
+         *  ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de pH cuando circula solución 
+         *  por el mismo. 
+         * 
+         *  También, no debe estar levantada la bandera de error de sensor.
+         * 
+         *  Además, el nivel del tanque alcalino no debe estar por debajo de un cierto límite establecido.
          */
-        if(mef_ph_soluc_ph < (mef_ph_limite_inferior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_ph_sensor_error_flag)
+        if( mef_ph_soluc_ph < (mef_ph_limite_inferior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) 
+            && get_relay_state(BOMBA) 
+            && !mef_ph_sensor_error_flag
+            && !app_level_sensor_level_below_limit(TANQUE_ALCALINO))
         {
             /**
              *  Se setea la bandera de timeout del timer para que en la sub-MEF de control de las válvulas, cuyo
@@ -222,12 +230,20 @@ void MEFControlPhSoluc(void)
         /**
          *  En caso de que el nivel de pH de la solución suba por encima del límite superior de la ventana de histeresis
          *  centrada en el límite superior de nivel de pH establecido, se cambia al estado en el cual se realizará la
-         *  apertura por tramos de la válvula de disminución de pH. Además, esto debe hacerse sólo cuando se esté bombeando
-         *  solución a los cultivos, ya que el sensor de pH está ubicado en el tramo final del canal de cultivos, por lo
-         *  que solo sensa el valor de pH cuando circula solución por el mismo. También, no debe estar levantada la bandera
-         *  de error de sensor.
+         *  apertura por tramos de la válvula de disminución de pH. 
+         * 
+         *  Además, esto debe hacerse sólo cuando se esté bombeando solución a los cultivos, ya que el sensor de pH está 
+         *  ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de pH cuando circula solución 
+         *  por el mismo. 
+         * 
+         *  También, no debe estar levantada la bandera de error de sensor.
+         * 
+         *  Además, el nivel del tanque acido no debe estar por debajo de un cierto límite establecido.
          */
-        if(mef_ph_soluc_ph > (mef_ph_limite_superior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_ph_sensor_error_flag)
+        if( mef_ph_soluc_ph > (mef_ph_limite_superior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) 
+            && get_relay_state(BOMBA) 
+            && !mef_ph_sensor_error_flag
+            && !app_level_sensor_level_below_limit(TANQUE_ACIDO))
         {
             /**
              *  Se setea la bandera de timeout del timer para que en la sub-MEF de control de las válvulas, cuyo
@@ -245,12 +261,21 @@ void MEFControlPhSoluc(void)
 
         /**
          *  Cuando el nivel de pH sobrepase el límite superior de la ventana de histeresis centrada en el límite inferior
-         *  del rango de pH correcto, se transiciona al estado con las válvulas cerrada. Además, si en algún momento se
-         *  apaga la bomba, también se transiciona a dicho estado, ya que el sensor de pH está ubicado en el tramo final
-         *  del canal de cultivos, por lo que solo sensa el valor de pH cuando circula solución por el mismo. También, si
-         *  se levanta la bandera de error de sensor, se transiciona a dicho estado.
+         *  del rango de pH correcto, se transiciona al estado con las válvulas cerrada. 
+         * 
+         *  Además, si en algún momento se apaga la bomba, también se transiciona a dicho estado, ya que el sensor de pH 
+         *  está ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de pH cuando circula 
+         *  solución por el mismo. 
+         * 
+         *  También, si se levanta la bandera de error de sensor, se transiciona a dicho estado.
+         * 
+         *  Además, si el nivel del tanque alcalino baja por debajo del límite establecido, también se transiciona
+         *  al estado con las valvulas apagadas.
          */
-        if(mef_ph_soluc_ph > (mef_ph_limite_inferior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) || !get_relay_state(BOMBA) || mef_ph_sensor_error_flag)
+        if( mef_ph_soluc_ph > (mef_ph_limite_inferior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) 
+            || !get_relay_state(BOMBA) 
+            || mef_ph_sensor_error_flag
+            || app_level_sensor_level_below_limit(TANQUE_ALCALINO))
         {
             mef_ph_reset_transition_flag_valvula_ph = 1;
             est_MEF_control_ph_soluc = PH_SOLUCION_CORRECTO;
@@ -265,12 +290,21 @@ void MEFControlPhSoluc(void)
 
         /**
          *  Cuando el nivel de pH caiga por debajo del límite inferior de la ventana de histeresis centrada en el límite 
-         *  superior del rango de pH correcto, se transiciona al estado con las válvulas cerrada. Además, si en algún momento se
-         *  apaga la bomba, también se transiciona a dicho estado, ya que el sensor de pH está ubicado en el tramo final
-         *  del canal de cultivos, por lo que solo sensa el valor de pH cuando circula solución por el mismo. También, si
-         *  se levanta la bandera de error de sensor, se transiciona a dicho estado.
+         *  superior del rango de pH correcto, se transiciona al estado con las válvulas cerrada. 
+         * 
+         *  Además, si en algún momento se apaga la bomba, también se transiciona a dicho estado, ya que el sensor de pH 
+         *  está ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de pH cuando circula 
+         *  solución por el mismo. 
+         * 
+         *  También, si se levanta la bandera de error de sensor, se transiciona a dicho estado.
+         * 
+         *  Además, si el nivel del tanque acido baja por debajo del límite establecido, también se transiciona
+         *  al estado con las valvulas apagadas.
          */
-        if(mef_ph_soluc_ph < (mef_ph_limite_superior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) || get_relay_state(BOMBA) || mef_ph_sensor_error_flag)
+        if( mef_ph_soluc_ph < (mef_ph_limite_superior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) 
+            || get_relay_state(BOMBA) 
+            || mef_ph_sensor_error_flag
+            || app_level_sensor_level_below_limit(TANQUE_ACIDO))
         {
             mef_ph_reset_transition_flag_valvula_ph = 1;
             est_MEF_control_ph_soluc = PH_SOLUCION_CORRECTO;

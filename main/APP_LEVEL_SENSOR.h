@@ -55,8 +55,8 @@ typedef enum{
 /*=====================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
 
 esp_err_t app_level_sensor_init(esp_mqtt_client_handle_t mqtt_client);
-bool app_level_sensor_level_below_limit(int tanque);
-bool app_level_sensor_error_sensor_detected(int tanque);
+bool app_level_sensor_level_below_limit(tanques_unidad_sec_t tanque);
+bool app_level_sensor_error_sensor_detected(tanques_unidad_sec_t tanque);
 
 /*==================[END OF FILE]============================================*/
 #ifdef __cplusplus

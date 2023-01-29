@@ -25,6 +25,7 @@
 #include "FLOW_SENSOR.h"
 #include "MCP23008.h"
 #include "ALARMAS_USUARIO.h"
+#include "APP_LEVEL_SENSOR.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
 #include "MEF_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
 
@@ -136,6 +137,16 @@ void MEFControlBombeoSoluc(void)
         mef_bombeo_timer_flow_control_flag = 0;
 
         set_relay_state(BOMBA, OFF);
+        /**
+         *  Se publica el nuevo estado de la bomba en el tópico MQTT correspondiente.
+         */
+        if(mqtt_check_connection())
+        {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%s", "OFF");
+            esp_mqtt_client_publish(Cliente_MQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+        }
+
         ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
     }
 
@@ -146,11 +157,12 @@ void MEFControlBombeoSoluc(void)
     case ESPERA_BOMBEO:
 
         /**
-         *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
+         *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, y si el nivel del tanque
+         *  principal esta por encima del límite de reposición de líquido establecido, se cambia al estado donde
          *  se enciende la bomba, y se carga en el timer el tiempo de encendido de la bomba y el periodo con el que
          *  se va a controlar si hay efectivamente flujo de solución en los canales.
          */
-        if(mef_bombeo_timer_finished_flag)
+        if(mef_bombeo_timer_finished_flag && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
         {
             mef_bombeo_timer_finished_flag = 0;
             xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(mef_bombeo_tiempo_bomba_on), 0);
@@ -160,6 +172,16 @@ void MEFControlBombeoSoluc(void)
             xTimerReset(xTimerSensorFlujo, 0);
 
             set_relay_state(BOMBA, ON);
+            /**
+             *  Se publica el nuevo estado de la bomba en el tópico MQTT correspondiente.
+             */
+            if(mqtt_check_connection())
+            {
+                char buffer[10];
+                snprintf(buffer, sizeof(buffer), "%s", "ON");
+                esp_mqtt_client_publish(Cliente_MQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            }
+
             ESP_LOGW(mef_bombeo_tag, "BOMBA ENCENDIDA");
 
             est_MEF_control_bombeo_soluc = BOMBEO_SOLUCION;
@@ -177,8 +199,11 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que no se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          * 
+         *  Además, si se detecta que el nivel del tanque principal está por debajo de un cierto límite, que
+         *  implica que debe reponerse el líquido del tanque, se transiciona al estado con la bomba apagada,
+         *  a la espera de la reposición.
          */
-        if(mef_bombeo_timer_flow_control_flag)
+        if(mef_bombeo_timer_flow_control_flag || app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -212,6 +237,16 @@ void MEFControlBombeoSoluc(void)
             mef_bombeo_timer_flow_control_flag = 0;
 
             set_relay_state(BOMBA, OFF);
+            /**
+             *  Se publica el nuevo estado de la bomba en el tópico MQTT correspondiente.
+             */
+            if(mqtt_check_connection())
+            {
+                char buffer[10];
+                snprintf(buffer, sizeof(buffer), "%s", "OFF");
+                esp_mqtt_client_publish(Cliente_MQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            }
+
             ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
 
             est_MEF_control_bombeo_soluc = ESPERA_BOMBEO;

@@ -202,14 +202,20 @@ void MEFControlTdsSoluc(void)
         /**
          *  En caso de que el nivel de TDS de la solución caiga por debajo del límite inferior de la ventana de histeresis
          *  centrada en el límite inferior de nivel de TDS establecido, se cambia al estado en el cual se realizará la
-         *  apertura por tramos de la válvula de aumento de TDS. Además, esto debe hacerse sólo cuando se esté bombeando
-         *  solución a los cultivos, ya que el sensor de TDS está ubicado en el tramo final del canal de cultivos, por lo
-         *  que solo sensa el valor de TDS cuando circula solución por el mismo. También, no debe estar levantada la bandera
-         *  de error de sensor.
+         *  apertura por tramos de la válvula de aumento de TDS. 
          * 
-         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE ENCENDIDA
+         *  Además, esto debe hacerse sólo cuando se esté bombeando solución a los cultivos, ya que el sensor de TDS está 
+         *  ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula solución 
+         *  por el mismo. 
+         * 
+         *  También, no debe estar levantada la bandera de error de sensor.
+         * 
+         *  Además, el nivel del tanque de aumento de TDS no debe estar por debajo de un cierto límite establecido.
          */
-        if(mef_tds_soluc_tds < (mef_tds_limite_inferior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_tds_sensor_error_flag)
+        if( mef_tds_soluc_tds < (mef_tds_limite_inferior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) 
+            && get_relay_state(BOMBA) 
+            && !mef_tds_sensor_error_flag
+            && !app_level_sensor_level_below_limit(TANQUE_SUSTRATO))
         {
             /**
              *  Se setea la bandera de timeout del timer para que en la sub-MEF de control de las válvulas, cuyo
@@ -223,14 +229,20 @@ void MEFControlTdsSoluc(void)
         /**
          *  En caso de que el nivel de TDS de la solución suba por encima del límite superior de la ventana de histeresis
          *  centrada en el límite superior de nivel de TDS establecido, se cambia al estado en el cual se realizará la
-         *  apertura por tramos de la válvula de disminución de TDS. Además, esto debe hacerse sólo cuando se esté bombeando
-         *  solución a los cultivos, ya que el sensor de TDS está ubicado en el tramo final del canal de cultivos, por lo
-         *  que solo sensa el valor de TDS cuando circula solución por el mismo. También, no debe estar levantada la bandera
-         *  de error de sensor.
+         *  apertura por tramos de la válvula de disminución de TDS. 
          * 
-         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE ENCENDIDA
+         *  Además, esto debe hacerse sólo cuando se esté bombeando solución a los cultivos, ya que el sensor de TDS está 
+         *  ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula solución 
+         *  por el mismo.
+         * 
+         *  También, no debe estar levantada la bandera de error de sensor.
+         * 
+         *  Además, el nivel del tanque de disminución de TDS no debe estar por debajo de un cierto límite establecido.
          */
-        if(mef_tds_soluc_tds > (mef_tds_limite_superior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) && get_relay_state(BOMBA) && !mef_tds_sensor_error_flag)
+        if( mef_tds_soluc_tds > (mef_tds_limite_superior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) 
+            && get_relay_state(BOMBA) 
+            && !mef_tds_sensor_error_flag
+            && !app_level_sensor_level_below_limit(TANQUE_AGUA))
         {
             /**
              *  Se setea la bandera de timeout del timer para que en la sub-MEF de control de las válvulas, cuyo
@@ -248,14 +260,21 @@ void MEFControlTdsSoluc(void)
 
         /**
          *  Cuando el nivel de TDS sobrepase el límite superior de la ventana de histeresis centrada en el límite inferior
-         *  del rango de TDS correcto, se transiciona al estado con las válvulas cerrada. Además, si en algún momento se
-         *  apaga la bomba, también se transiciona a dicho estado, ya que el sensor de TDS está ubicado en el tramo final
-         *  del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula solución por el mismo. También, si
-         *  se levanta la bandera de error de sensor, se transiciona a dicho estado.
+         *  del rango de TDS correcto, se transiciona al estado con las válvulas cerrada. 
          * 
-         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE APAGADA
+         *  Además, si en algún momento se apaga la bomba, también se transiciona a dicho estado, ya que el sensor de TDS 
+         *  está ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula 
+         *  solución por el mismo.
+         * 
+         *  También, si se levanta la bandera de error de sensor, se transiciona a dicho estado.
+         * 
+         *  Además, si el nivel del tanque de aumento de TDS baja por debajo del límite establecido, también se transiciona
+         *  al estado con las valvulas apagadas.
          */
-        if(mef_tds_soluc_tds > (mef_tds_limite_inferior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) || !get_relay_state(BOMBA) || mef_tds_sensor_error_flag)
+        if( mef_tds_soluc_tds > (mef_tds_limite_inferior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) 
+            || !get_relay_state(BOMBA)
+            || mef_tds_sensor_error_flag
+            || app_level_sensor_level_below_limit(TANQUE_SUSTRATO))
         {
             mef_tds_reset_transition_flag_valvula_tds = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;
@@ -270,14 +289,21 @@ void MEFControlTdsSoluc(void)
 
         /**
          *  Cuando el nivel de TDS caiga por debajo del límite inferior de la ventana de histeresis centrada en el límite 
-         *  superior del rango de TDS correcto, se transiciona al estado con las válvulas cerrada. Además, si en algún momento se
-         *  apaga la bomba, también se transiciona a dicho estado, ya que el sensor de TDS está ubicado en el tramo final
-         *  del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula solución por el mismo. También, si
-         *  se levanta la bandera de error de sensor, se transiciona a dicho estado.
+         *  superior del rango de TDS correcto, se transiciona al estado con las válvulas cerrada. 
          * 
-         *  NOTA: YA ESTA AGREGADA LA CONDICIÓN DE QUE LA BOMBA ESTE APAGADA
+         *  Además, si en algún momento se apaga la bomba, también se transiciona a dicho estado, ya que el sensor de TDS 
+         *  está ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula 
+         *  solución por el mismo.
+         *  
+         *  También, si se levanta la bandera de error de sensor, se transiciona a dicho estado.
+         * 
+         *  Además, si el nivel del tanque de disminución de TDS baja por debajo del límite establecido, también se transiciona
+         *  al estado con las valvulas apagadas.
          */
-        if(mef_tds_soluc_tds < (mef_tds_limite_superior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) || get_relay_state(BOMBA) || mef_tds_sensor_error_flag)
+        if( mef_tds_soluc_tds < (mef_tds_limite_superior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) 
+            || get_relay_state(BOMBA) 
+            || mef_tds_sensor_error_flag
+            || app_level_sensor_level_below_limit(TANQUE_AGUA))
         {
             mef_tds_reset_transition_flag_valvula_tds = 1;
             est_MEF_control_tds_soluc = TDS_SOLUCION_CORRECTO;

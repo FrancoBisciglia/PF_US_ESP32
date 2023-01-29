@@ -334,7 +334,7 @@ esp_err_t app_level_sensor_init(esp_mqtt_client_handle_t mqtt_client)
  * @return true     El nivel del tanque está por debajo del límite establecido.
  * @return false    El nivel del tanque NO está por debajo del límite establecido.
  */
-bool app_level_sensor_level_below_limit(int tanque)
+bool app_level_sensor_level_below_limit(tanques_unidad_sec_t tanque)
 {
     bool state;
 
