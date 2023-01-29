@@ -4,8 +4,8 @@
 
 */
 
-#ifndef APP_DHT11_H_
-#define APP_DHT11_H_
+#ifndef APP_LIGHT_SENSOR_H_
+#define APP_LIGHT_SENSOR_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,4 +35,4 @@ esp_err_t app_light_sensor_init(esp_mqtt_client_handle_t mqtt_client);
 }
 #endif
 
-#endif // APP_DHT11_H_
+#endif // APP_LIGHT_SENSOR_H_

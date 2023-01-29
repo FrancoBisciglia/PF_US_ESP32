@@ -41,13 +41,60 @@ static esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 /* Handle del timer utilizado para control del estado de las luces. */
 static TimerHandle_t xTimerControlLuces = NULL;
 
+/**
+ *  Estado en el que deberían estar las luces, informado por la unidad principal
+ *  y obtenido del tópico MQTT correspondiente, que es quien controla el accionamiento 
+ *  de las luces.
+ */
+static app_light_lights_state = 0;
+
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-static void CallbackNewLightState(void *pvParameters)
+static void vLightsTimerCallback( TimerHandle_t pxTimer );
+static void CallbackNewLightState(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
+
+/**
+ * @brief   Función de callback del timer de control del estado de las luces ubicadas en la unidad secundaria.
+ * 
+ * @param pxTimer   Handle del timer para el cual se cumplió el timeout.
+ */
+static void vLightsTimerCallback( TimerHandle_t pxTimer )
+{
+    /**
+     *  Se controla si el estado informado de las luces es el mismo que el sensado por el sensor de luz.
+     */
+    if(light_trigger() != app_light_lights_state)
+    {
+        /**
+         *  Dado que difieren el estado de las luces informado por la unidad principal y el sensado por
+         *  el sensor de luz ubicado en la unidad secundaria, se publica una alarma en el tópico común
+         *  de alarmas via MQTT.
+         */
+        if(mqtt_check_connection())
+        {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%i", ALARMA_FALLA_ILUMINACION);
+            esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
+        }
+    }
+
+
+    /**
+     *  Se publica en el tópico correspondiente el valor sensado por el sensor de luz.
+     */
+    if(mqtt_check_connection())
+    {
+        char buffer[10];
+        snprintf(buffer, sizeof(buffer), "%i", light_trigger());
+        esp_mqtt_client_publish(Cliente_MQTT, LUZ_AMB_MQTT_TOPIC, buffer, 0, 0, 0);
+    }
+}
+
+
 
 /**
  * @brief   Función de callback que se llama cuando finaliza una medición del sensor DHT11 de temperatura
@@ -64,39 +111,95 @@ static void CallbackNewLightState(void *pvParameters)
     mqtt_get_char_data_from_topic(LUZ_AMB_STATE_MQTT_TOPIC, buffer);
 
 
+    /**
+     *  A partir del dato obtenido del tópico MQTT, que puede ser "ON" si las luces deberían 
+     *  estar encendidas u "OFF" si deberían estar apagadas, se modifica el estado de la variable 
+     *  interna que será luego comparado con el valor entregado por el sensor de luz.
+     */
+    if(!strcmp("ON", buffer))
+    {
+        app_light_lights_state = 1;
+    }
 
+    else if(!strcmp("OFF", buffer))
+    {
+        app_light_lights_state = 0;
+    }
 }
+
+
 
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Función para inicializar el módulo de obtención de la temperatura y humedad relativa ambiente. 
+ * @brief   Función para inicializar el módulo de control del estado de las luces en la unidad secundaria 
+ *          mediante el sensor de luz. 
  * 
  * @param mqtt_client   Handle del cliente MQTT.
  * @return esp_err_t 
  */
-esp_err_t APP_DHT11_init(esp_mqtt_client_handle_t mqtt_client)
+esp_err_t app_light_sensor_init(esp_mqtt_client_handle_t mqtt_client)
 {
     /**
      *  Copiamos el handle del cliente MQTT en la variable interna.
      */
     Cliente_MQTT = mqtt_client;
 
+
+    //=======================| INIT SENSOR LUZ |=======================//
+
     /**
-     *  Inicializamos el sensor de CO2. En caso de detectar error,
-     *  se retorna con error.
+     *  Se inicializa el sensor de luz.
      */
-    if(DTH11_sensor_init(GPIO_PIN_DHT11_SENSOR) != ESP_OK)
+    light_sensor_init(GPIO_PIN_LIGHT_SENSOR);
+
+
+    //=======================| INIT TIMERS |=======================//
+
+    /**
+     *  Se inicializa el timer utilizado para el control del estado de las luces de la
+     *  unidad secundaria.
+     * 
+     *  Se lo configura con un período de 1 min (60 seg) y para que se recargue automaticamente
+     *  al cumplirse el timeout.
+     */
+    xTimerControlLuces = xTimerCreate("Timer Estado Luces",       // Nombre interno que se le da al timer (no es relevante).
+                              pdMS_TO_TICKS(60000),            // Período del timer en ticks (60 seg).
+                              pdTRUE,                          // pdFALSE -> El timer NO se recarga solo al cumplirse el timeout. pdTRUE -> El timer se recarga solo al cumplirse el timeout.
+                              (void *)50,                        // ID de identificación del timer.
+                              vLightsTimerCallback                    // Nombre de la función de callback del timer.
+    );
+
+    /**
+     *  Se verifica que se haya creado el timer correctamente.
+     */
+    if(xTimerControlLuces == NULL)
     {
-        ESP_LOGE(app_light_sensor_tag, "FAILED TO INITIALIZE DHT11 SENSOR.");
+        ESP_LOGE(app_light_sensor_tag, "FAILED TO CREATE TIMER.");
         return ESP_FAIL;
     }
 
+
+    //=======================| TÓPICOS MQTT |=======================//
+
     /**
-     *  Asignamos la función de callback del sensor DHT11 que se
-     *  ejecutará al completarse una medición del sensor.
+     *  Se inicializa el array con los tópicos MQTT a suscribirse, junto
+     *  con las funciones callback correspondientes que serán ejecutadas
+     *  al llegar un nuevo dato en el tópico.
      */
-    DHT11_callback_function_on_new_measurment(CallbackGetTempHumData);
+    mqtt_topic_t list_of_topics[] = {
+        [0].topic_name = LUZ_AMB_STATE_MQTT_TOPIC,
+        [0].topic_function_cb = CallbackNewLightState,
+    };
+
+    /**
+     *  Se realiza la suscripción a los tópicos MQTT y la asignación de callbacks correspondientes.
+     */
+    if(mqtt_suscribe_to_topics(list_of_topics, 1, Cliente_MQTT, 0) != ESP_OK)
+    {
+        ESP_LOGE(app_light_sensor_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
+        return ESP_FAIL;
+    }
     
     return ESP_OK;
 }
