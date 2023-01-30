@@ -83,6 +83,9 @@ void MEFControlTempSoluc(void)
      */
     if (mef_temp_soluc_reset_transition_flag_control_temp)
     {
+        set_relay_state(CALEFACTOR_SOLUC, OFF);
+        set_relay_state(REFRIGERADOR_SOLUC, OFF);
+        
         est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
         mef_temp_soluc_reset_transition_flag_control_temp = 0;
     }
