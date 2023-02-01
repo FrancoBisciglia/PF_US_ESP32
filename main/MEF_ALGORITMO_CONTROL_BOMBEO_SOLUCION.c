@@ -330,6 +330,27 @@ void vTaskSolutionPumpControl(void *pvParameters)
             if(manual_mode_bomba_state == 0 || manual_mode_bomba_state == 1)
             {
                 set_relay_state(BOMBA, manual_mode_bomba_state);
+
+                /**
+                 *  Se publica el nuevo estado de la bomba en el tópico MQTT correspondiente.
+                 */
+                if(mqtt_check_connection())
+                {
+                    char buffer[10];
+
+                    if(manual_mode_bomba_state == 0)
+                    {
+                        snprintf(buffer, sizeof(buffer), "%s", "OFF");    
+                    }
+
+                    else if(manual_mode_bomba_state == 1)
+                    {
+                        snprintf(buffer, sizeof(buffer), "%s", "ON");
+                    }
+
+                    esp_mqtt_client_publish(Cliente_MQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                }
+
                 ESP_LOGW(mef_bombeo_tag, "MANUAL MODE BOMBA: %.0f", manual_mode_bomba_state);
             }
 
