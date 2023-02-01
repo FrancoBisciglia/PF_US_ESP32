@@ -140,7 +140,7 @@ void CallbackGetTempSolucData(void *pvParameters)
 
     else
     {
-        mef_tds_set_sensor_error_flag_value(0);
+        mef_temp_soluc_set_sensor_error_flag_value(0);
         ESP_LOGW(aux_control_temp_soluc_tag, "NEW MEASURMENT ARRIVED: %.3f", temp_soluc);
     }
 

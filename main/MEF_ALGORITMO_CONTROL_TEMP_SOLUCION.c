@@ -211,8 +211,8 @@ void vTaskSolutionTempControl(void *pvParameters)
              */
             float manual_mode_refrigerador_state = -1;
             float manual_mode_calefactor_state = -1;
-            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_AUM_TDS_STATE_MQTT_TOPIC, &manual_mode_refrigerador_state);
-            mqtt_get_float_data_from_topic(MANUAL_MODE_VALVULA_DISM_TDS_STATE_MQTT_TOPIC, &manual_mode_calefactor_state);
+            mqtt_get_float_data_from_topic(MANUAL_MODE_REFRIGERADOR_STATE_MQTT_TOPIC, &manual_mode_refrigerador_state);
+            mqtt_get_float_data_from_topic(MANUAL_MODE_CALEFACTOR_STATE_MQTT_TOPIC, &manual_mode_calefactor_state);
 
             if (manual_mode_refrigerador_state == 0 || manual_mode_refrigerador_state == 1)
             {

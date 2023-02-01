@@ -58,7 +58,7 @@ typedef enum {
 /**
  *  Tipo de variable que representa los tiempos de bombeo de solución, en minutos.
  */
-typedef unsigned int pump_time_t
+typedef float pump_time_t;
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 

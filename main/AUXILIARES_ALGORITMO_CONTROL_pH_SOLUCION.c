@@ -43,11 +43,11 @@ static TimerHandle_t xTimerValvulaPh = NULL;
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-void vPhTimerCallback( TimerHandle_t pxTimer );
-void CallbackManualMode(void *pvParameters);
-void CallbackManualModeNewActuatorState(void *pvParameters);
-void CallbackGetPhData(void *pvParameters);
-void CallbackNewPhSP(void *pvParameters);
+static void vPhTimerCallback( TimerHandle_t pxTimer );
+static void CallbackManualMode(void *pvParameters);
+static void CallbackManualModeNewActuatorState(void *pvParameters);
+static void CallbackGetPhData(void *pvParameters);
+static void CallbackNewPhSP(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -90,7 +90,7 @@ static void vPhTimerCallback( TimerHandle_t pxTimer )
  * 
  * @param pvParameters 
  */
-void CallbackManualMode(void *pvParameters)
+static void CallbackManualMode(void *pvParameters)
 {
     /**
      *  Se obtiene el mensaje del tópico de modo MANUAL o AUTO.
@@ -129,7 +129,7 @@ void CallbackManualMode(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void CallbackManualModeNewActuatorState(void *pvParameters)
+static void CallbackManualModeNewActuatorState(void *pvParameters)
 {
     /**
      * Se le envía un Task Notify a la tarea de la MEF de control de pH.
@@ -145,7 +145,7 @@ void CallbackManualModeNewActuatorState(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void CallbackGetPhData(void *pvParameters)
+static void CallbackGetPhData(void *pvParameters)
 {
     /**
      *  Variable donde se guarda el retorno de la función de obtención del valor
@@ -208,7 +208,7 @@ void CallbackGetPhData(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void CallbackNewPhSP(void *pvParameters)
+static void CallbackNewPhSP(void *pvParameters)
 {
     /**
      *  Se obtiene el nuevo valor de SP de pH.

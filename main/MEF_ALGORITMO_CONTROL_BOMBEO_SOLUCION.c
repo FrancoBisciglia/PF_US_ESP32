@@ -144,7 +144,7 @@ void MEFControlBombeoSoluc(void)
         {
             char buffer[10];
             snprintf(buffer, sizeof(buffer), "%s", "OFF");
-            esp_mqtt_client_publish(Cliente_MQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            esp_mqtt_client_publish(MefBombeoClienteMQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
         }
 
         ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
@@ -179,7 +179,7 @@ void MEFControlBombeoSoluc(void)
             {
                 char buffer[10];
                 snprintf(buffer, sizeof(buffer), "%s", "ON");
-                esp_mqtt_client_publish(Cliente_MQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                esp_mqtt_client_publish(MefBombeoClienteMQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
 
             ESP_LOGW(mef_bombeo_tag, "BOMBA ENCENDIDA");
@@ -215,7 +215,7 @@ void MEFControlBombeoSoluc(void)
                 {
                     char buffer[10];
                     snprintf(buffer, sizeof(buffer), "%i", ALARMA_FALLA_BOMBA);
-                    esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
+                    esp_mqtt_client_publish(MefBombeoClienteMQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
                 }
 
                 ESP_LOGE(mef_bombeo_tag, "ALARMA, NO CIRCULA SOLUCIÓN POR LOS CANALES.");
@@ -244,7 +244,7 @@ void MEFControlBombeoSoluc(void)
             {
                 char buffer[10];
                 snprintf(buffer, sizeof(buffer), "%s", "OFF");
-                esp_mqtt_client_publish(Cliente_MQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                esp_mqtt_client_publish(MefBombeoClienteMQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
 
             ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
@@ -348,7 +348,7 @@ void vTaskSolutionPumpControl(void *pvParameters)
                         snprintf(buffer, sizeof(buffer), "%s", "ON");
                     }
 
-                    esp_mqtt_client_publish(Cliente_MQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                    esp_mqtt_client_publish(MefBombeoClienteMQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
                 }
 
                 ESP_LOGW(mef_bombeo_tag, "MANUAL MODE BOMBA: %.0f", manual_mode_bomba_state);
@@ -396,7 +396,7 @@ esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
      */
     if(xTimerSensorFlujo == NULL)
     {
-        ESP_LOGE(aux_control_bombeo_tag, "FAILED TO CREATE TIMER.");
+        ESP_LOGE(mef_bombeo_tag, "FAILED TO CREATE TIMER.");
         return ESP_FAIL;
     }
 

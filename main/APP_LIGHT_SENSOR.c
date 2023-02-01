@@ -47,7 +47,7 @@ static TimerHandle_t xTimerControlLuces = NULL;
  *  y obtenido del tópico MQTT correspondiente, que es quien controla el accionamiento 
  *  de las luces.
  */
-static app_light_lights_state = 0;
+static bool app_light_lights_state = 0;
 
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 

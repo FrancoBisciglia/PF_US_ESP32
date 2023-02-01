@@ -43,11 +43,11 @@ static TimerHandle_t xTimerBomba = NULL;
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-void vBombaTimerCallback( TimerHandle_t pxTimer );
-void CallbackManualMode(void *pvParameters);
-void CallbackManualModeNewActuatorState(void *pvParameters);
-void CallbackNewPumpOnTime(void *pvParameters);
-void CallbackNewPumpOffTime(void *pvParameters);
+static void vBombaTimerCallback( TimerHandle_t pxTimer );
+static void CallbackManualMode(void *pvParameters);
+static void CallbackManualModeNewActuatorState(void *pvParameters);
+static void CallbackNewPumpOnTime(void *pvParameters);
+static void CallbackNewPumpOffTime(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -90,7 +90,7 @@ static void vBombaTimerCallback( TimerHandle_t pxTimer )
  * 
  * @param pvParameters 
  */
-void CallbackManualMode(void *pvParameters)
+static void CallbackManualMode(void *pvParameters)
 {
     /**
      *  Se obtiene el mensaje del tópico de modo MANUAL o AUTO.
@@ -128,7 +128,7 @@ void CallbackManualMode(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void CallbackManualModeNewActuatorState(void *pvParameters)
+static void CallbackManualModeNewActuatorState(void *pvParameters)
 {
     /**
      * Se le envía un Task Notify a la tarea de la MEF de control de bombeo de solución.
@@ -145,7 +145,7 @@ void CallbackManualModeNewActuatorState(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void CallbackNewPumpOnTime(void *pvParameters)
+static void CallbackNewPumpOnTime(void *pvParameters)
 {
     /**
      *  Se obtiene el nuevo valor de tiempo de encendido de la bomba.
@@ -170,7 +170,7 @@ void CallbackNewPumpOnTime(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void CallbackNewPumpOffTime(void *pvParameters)
+static void CallbackNewPumpOffTime(void *pvParameters)
 {
     /**
      *  Se obtiene el nuevo valor de tiempo de apagado de la bomba.

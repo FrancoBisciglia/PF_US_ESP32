@@ -41,7 +41,7 @@ static esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-static void CallbackGetTempHumData(void *pvParameters)
+static void CallbackGetTempHumData(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 

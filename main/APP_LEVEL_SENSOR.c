@@ -42,18 +42,18 @@ static esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 static TaskHandle_t xAppLevelTaskHandle = NULL;
 
 /* Variables que representan los diferentes sensores de nivel ubicados en los 5 tanques. */
-static ultrasonic_sens_t sensor_nivel_tanque_principal = NULL;
-static ultrasonic_sens_t sensor_nivel_tanque_acido = NULL;
-static ultrasonic_sens_t sensor_nivel_tanque_alcalino = NULL;
-static ultrasonic_sens_t sensor_nivel_tanque_agua = NULL;
-static ultrasonic_sens_t sensor_nivel_tanque_sustrato = NULL;
+static ultrasonic_sens_t sensor_nivel_tanque_principal = {0};
+static ultrasonic_sens_t sensor_nivel_tanque_acido = {0};
+static ultrasonic_sens_t sensor_nivel_tanque_alcalino = {0};
+static ultrasonic_sens_t sensor_nivel_tanque_agua = {0};
+static ultrasonic_sens_t sensor_nivel_tanque_sustrato = {0};
 
 /* Variables que representan las dimensiones de los 5 tanques. */
-static storage_tank_t tanque_principal = NULL;
-static storage_tank_t tanque_acido = NULL;
-static storage_tank_t tanque_alcalino = NULL;
-static storage_tank_t tanque_agua = NULL;
-static storage_tank_t tanque_sustrato = NULL;
+static storage_tank_t tanque_principal = {0};
+static storage_tank_t tanque_acido = {0};
+static storage_tank_t tanque_alcalino = {0};
+static storage_tank_t tanque_agua = {0};
+static storage_tank_t tanque_sustrato = {0};
 
 /* Banderas que determinan si el nivel del tanque correspondiente está por debajo del límite establecido. */
 static bool tanque_principal_below_limit_flag = 0;
@@ -156,8 +156,8 @@ static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t t
                                 alarms_t mqtt_sensor_error_alarm, alarms_t mqtt_below_limit_alarm,
                                 bool *below_limit_tank_flag, bool *sensor_error_flag)
 {
-    sensor_error_flag = 0;
-    below_limit_tank_flag = 0;
+    *sensor_error_flag = 0;
+    *below_limit_tank_flag = 0;
 
     float tank_level = 0;
 
@@ -181,7 +181,7 @@ static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t t
             esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
         }
 
-        sensor_error_flag = 1;
+        *sensor_error_flag = 1;
 
         ESP_LOGE(app_level_sensor_tag, "LEVEL SENSOR ERROR DETECTED");
 
@@ -217,7 +217,7 @@ static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t t
             esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
         }
 
-        below_limit_tank_flag = 1;
+        *below_limit_tank_flag = 1;
 
         ESP_LOGW(app_level_sensor_tag, "LEVEL IN TANK BELOW LIMIT");
 
@@ -261,25 +261,15 @@ esp_err_t app_level_sensor_init(esp_mqtt_client_handle_t mqtt_client)
     /**
      *  Se inicializan los sensores de nivel de los 5 tanques de la unidad secundaria.
      */
-    sensor_nivel_tanque_principal = {
-        .trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_PRINCIPAL
-    };
+    sensor_nivel_tanque_principal.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_PRINCIPAL;
 
-    sensor_nivel_tanque_acido = {
-        .trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_ACIDO
-    };
+    sensor_nivel_tanque_acido.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_ACIDO;
 
-    sensor_nivel_tanque_alcalino = {
-        .trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_ALCALINO
-    };
+    sensor_nivel_tanque_alcalino.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_ALCALINO;
 
-    sensor_nivel_tanque_agua = {
-        .trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_AGUA
-    };
+    sensor_nivel_tanque_agua.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_AGUA;
 
-    sensor_nivel_tanque_sustrato = {
-        .trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_SUSTRATO
-    };
+    sensor_nivel_tanque_sustrato.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_SUSTRATO;
 
     ultrasonic_sensor_init(&sensor_nivel_tanque_principal);
     ultrasonic_sensor_init(&sensor_nivel_tanque_acido);
@@ -336,7 +326,7 @@ esp_err_t app_level_sensor_init(esp_mqtt_client_handle_t mqtt_client)
  */
 bool app_level_sensor_level_below_limit(tanques_unidad_sec_t tanque)
 {
-    bool state;
+    bool state = 0;
 
     /**
      *  Dependiendo del tanque, se carga en la variable a retornar la bandera correspondiente
@@ -389,7 +379,7 @@ bool app_level_sensor_level_below_limit(tanques_unidad_sec_t tanque)
  */
 bool app_level_sensor_error_sensor_detected(tanques_unidad_sec_t tanque)
 {
-    bool state;
+    bool state = 0;
 
     /**
      *  Dependiendo del tanque, se carga en la variable a retornar la bandera correspondiente
