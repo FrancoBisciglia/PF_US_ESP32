@@ -144,7 +144,7 @@ esp_err_t APP_DHT11_init(esp_mqtt_client_handle_t mqtt_client)
     Cliente_MQTT = mqtt_client;
 
     /**
-     *  Inicializamos el sensor de CO2. En caso de detectar error,
+     *  Inicializamos el sensor DHT11. En caso de detectar error,
      *  se retorna con error.
      */
     if(DTH11_sensor_init(GPIO_PIN_DHT11_SENSOR) != ESP_OK)

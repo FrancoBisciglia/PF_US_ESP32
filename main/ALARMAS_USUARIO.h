@@ -1,6 +1,7 @@
 /*
 
-    Funcionalidades del algoritmo de control de bombeo de la solución nutritiva.
+    Definiciones de tópico común de alarmas de diferentes tipos, como error de sensor o nivel de tanque
+    de almacenamiento bajo, y los códigos de error relacionado con cada tipo de alarma.
 
 */
 

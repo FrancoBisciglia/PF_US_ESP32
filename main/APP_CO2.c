@@ -40,7 +40,7 @@ static esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-void CallbackGetCO2Data(void *pvParameters);
+static void CallbackGetCO2Data(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -49,7 +49,7 @@ void CallbackGetCO2Data(void *pvParameters);
  * 
  * @param pvParameters
  */
-void CallbackGetCO2Data(void *pvParameters)
+static void CallbackGetCO2Data(void *pvParameters)
 {
     /**
      *  Variable donde se guarda el retorno de la función de obtención del valor
