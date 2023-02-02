@@ -23,6 +23,7 @@
 
 #include "MQTT_PUBL_SUSCR.h"
 #include "pH_SENSOR.h"
+#include "ALARMAS_USUARIO.h"
 #include "MEF_ALGORITMO_CONTROL_pH_SOLUCION.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_pH_SOLUCION.h"
 
@@ -166,12 +167,18 @@ static void CallbackGetPhData(void *pvParameters)
      *  En caso de que no se cumplan estas condiciones, se setea la bandera de error de sensor, utilizada por la MEF
      *  de control de pH, y se le carga al valor de pH un código de error preestablecido, para que así, al
      *  leerse dicho valor, se pueda saber que ocurrió un error.
+     * 
+     *  Además, se publica una alarma en el tópico MQTT común de alarmas.
      */
     if(return_status == ESP_FAIL || soluc_pH < LIMITE_INFERIOR_RANGO_VALIDO_PH || soluc_pH > LIMITE_SUPERIOR_RANGO_VALIDO_PH)
     {
-        /**
-         *  NOTA: FALTA IMPLEMENTAR QUE SE PUBLIQUE EN UN TOPICO COMUN DE ALARMAS QUE HAY UNA ALARMA DE ERROR DE SENSADO.
-         */
+        if(mqtt_check_connection())
+        {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%i", ALARMA_ERROR_SENSOR_PH);
+            esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
+        }
+
         soluc_pH = CODIGO_ERROR_SENSOR_PH;
         mef_ph_set_sensor_error_flag_value(1);
         ESP_LOGE(aux_control_ph_tag, "pH SENSOR ERROR DETECTED");
@@ -179,9 +186,6 @@ static void CallbackGetPhData(void *pvParameters)
 
     else
     {
-        /**
-         *  NOTA: FALTA IMPLEMENTAR QUE SE PUBLIQUE EN UN TOPICO COMUN DE ALARMAS QUE HAY UNA ALARMA DE ERROR DE SENSADO.
-         */
         mef_ph_set_sensor_error_flag_value(0);
         ESP_LOGW(aux_control_ph_tag, "NEW MEASURMENT ARRIVED: %.3f", soluc_pH);
     }

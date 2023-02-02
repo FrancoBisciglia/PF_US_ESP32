@@ -23,6 +23,7 @@
 
 #include "MQTT_PUBL_SUSCR.h"
 #include "TDS_SENSOR.h"
+#include "ALARMAS_USUARIO.h"
 #include "MEF_ALGORITMO_CONTROL_TDS_SOLUCION.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_TDS_SOLUCION.h"
 
@@ -166,9 +167,18 @@ void CallbackGetTdsData(void *pvParameters)
      *  En caso de que no se cumplan estas condiciones, se setea la bandera de error de sensor, utilizada por la MEF
      *  de control de TDS, y se le carga al valor de TDS un código de error preestablecido (-10), para que así, al
      *  leerse dicho valor, se pueda saber que ocurrió un error.
+     * 
+     *  Además, se publica una alarma en el tópico MQTT común de alarmas.
      */
     if(return_status == ESP_FAIL || soluc_tds < LIMITE_INFERIOR_RANGO_VALIDO_TDS || soluc_tds > LIMITE_SUPERIOR_RANGO_VALIDO_TDS)
     {
+        if(mqtt_check_connection())
+        {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%i", ALARMA_ERROR_SENSOR_TDS);
+            esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
+        }
+
         soluc_tds = CODIGO_ERROR_SENSOR_TDS;
         mef_tds_set_sensor_error_flag_value(1);
         ESP_LOGE(aux_control_tds_tag, "TDS SENSOR ERROR DETECTED");

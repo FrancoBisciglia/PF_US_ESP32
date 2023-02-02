@@ -3,8 +3,8 @@
  * @author Franco Bisciglia, David Kündinger
  * @brief   Algoritmo mediante el cual, cuando la unidad principal enciende o apaga las luces ubicadas en las
  *          unidades secundarias, se controla que efectivamente se encuentren en ese estado correspondiente
- *          dichas luces mediante el sensor de luz, y en caso de que difiera el estado, se publica en el tópico
- *          común de alarmas de MQTT.
+ *          dichas luces mediante el sensor de luz, y en caso de que difiera el estado, se publica  una alarma
+ *          en el tópico común de alarmas de MQTT.
  * @version 0.1
  * @date 2023-01-16
  * 
@@ -98,8 +98,8 @@ static void vLightsTimerCallback( TimerHandle_t pxTimer )
 
 
 /**
- * @brief   Función de callback que se llama cuando finaliza una medición del sensor DHT11 de temperatura
- *          y humedad relativa ambiente.
+ * @brief   Función de callback que se llama cuando la unidad principal informa vía mensaje MQTT
+ *          que las luces cambiaron de estado.
  * 
  * @param pvParameters
  */

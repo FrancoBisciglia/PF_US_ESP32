@@ -163,6 +163,10 @@ static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t t
 
     esp_err_t return_status = ESP_FAIL;
 
+    /**
+     *  Se obtiene el nivel del tanque correspondiente, como un valor entre 0 (tanque vacio)
+     *  y 1 (tanque lleno).
+     */
     return_status = ultrasonic_measure_level(&level_sensor, &tank, &tank_level);
 
     /**
@@ -191,7 +195,7 @@ static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t t
 
     /**
      *  En caso de que no se haya detectado error de sensado, se publica el valor obtenido en el tópico MQTT
-     *  correspondiente y se baja la bandera de error de sensado.
+     *  correspondiente.
      */
     if(mqtt_check_connection())
     {
