@@ -115,7 +115,6 @@ esp_err_t DS18B20_sensor_init(DS18B20_sensor_data_pin_t DS18B20_sens_data_pin)
     DS18B20_SENSOR_DATA_PIN = DS18B20_sens_data_pin;
 
 
-
     //========================| CONFIGURACIÓN DE GPIO |===========================//
 
     /* Variable donde se definen las configuraciones para el GPIO */

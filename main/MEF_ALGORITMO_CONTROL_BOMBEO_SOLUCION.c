@@ -50,15 +50,15 @@ static pump_time_t mef_bombeo_tiempo_bomba_off = MEF_BOMBEO_TIEMPO_BOMBA_OFF;
 /* Tiempo de encendido de la bomba, en minutos. */
 static pump_time_t mef_bombeo_tiempo_bomba_on = MEF_BOMBEO_TIEMPO_BOMBA_ON;
 /* Periodo de tiempo de control de flujo en los canales */
-unsigned int mef_bombeo_tiempo_control_sensor_flujo = MEF_BOMBEO_TIEMPO_CONTROL_SENSOR_FLUJO;
+static unsigned int mef_bombeo_tiempo_control_sensor_flujo = MEF_BOMBEO_TIEMPO_CONTROL_SENSOR_FLUJO;
 
 /* Bandera utilizada para controlar si se está o no en modo manual en el algoritmo de control de bombeo de solución. */
 static bool mef_bombeo_manual_mode_flag = 0;
-/* Banderas utilizadas para controlar las transiciones con reset de las MEFs de control de pH y de control de las válvulas. */
+/* Bandera utilizada para controlar las transiciones con reset de la MEFs de control bombeo de solución. */
 static bool mef_bombeo_reset_transition_flag_control_bombeo_solucion = 0;
 /**
- *  Bandera utilizada para verificar si se cumplió el timeout del timer utilizado para controlar la apertura y cierre
- *  de las válvulas de control de pH.
+ *  Bandera utilizada para verificar si se cumplió el timeout del timer utilizado para controlar el encendido y apagado
+ *  de la bomba.
  */
 static bool mef_bombeo_timer_finished_flag = 0;
 /**
@@ -198,12 +198,8 @@ void MEFControlBombeoSoluc(void)
          * 
          *  En caso de que no se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
-         * 
-         *  Además, si se detecta que el nivel del tanque principal está por debajo de un cierto límite, que
-         *  implica que debe reponerse el líquido del tanque, se transiciona al estado con la bomba apagada,
-         *  a la espera de la reposición.
          */
-        if(mef_bombeo_timer_flow_control_flag || app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
+        if(mef_bombeo_timer_flow_control_flag)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -226,8 +222,12 @@ void MEFControlBombeoSoluc(void)
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
          *  se cierra la válvula, y se carga en el timer el tiempo de cierre de la válvula, además de parar el timer
          *  de control de flujo de solución.
+         * 
+         *  Además, si se detecta que el nivel del tanque principal está por debajo de un cierto límite, que
+         *  implica que debe reponerse el líquido del tanque, se transiciona al estado con la bomba apagada,
+         *  a la espera de la reposición.
          */
-        if(mef_bombeo_timer_finished_flag)
+        if(mef_bombeo_timer_finished_flag || app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
         {
             mef_bombeo_timer_finished_flag = 0;
             xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(mef_bombeo_tiempo_bomba_off), 0);
@@ -280,6 +280,7 @@ void vTaskSolutionPumpControl(void *pvParameters)
          *  -Que se debe pasar a modo MANUAL o modo AUTO.
          *  -Que estando en modo MANUAL, se deba cambiar el estado de la bomba.
          *  -Que se cumplió el timeout del timer de control del tiempo de encendido o apagado de la bomba.
+         *  -Que se cumplió el timeout del timer de control de flujo en los canales de cultivo.
          * 
          *  Además, se le coloca un timeout para evaluar las transiciones de las MEFs periódicamente, en caso
          *  de que no llegue ninguna de las señales mencionadas.
@@ -413,7 +414,7 @@ esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
             "vTaskSolutionPumpControl",
             4096,
             NULL,
-            2,
+            4,
             &xMefBombeoAlgoritmoControlTaskHandle);
         
         /**

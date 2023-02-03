@@ -29,7 +29,7 @@
  *  3)  SE PASA UN ÚLTIMO BYTE, ESTA VEZ CON LA INFORMACIÓN A ESCRIBIR EN EL REGISTRO SELECCIONADO
  * 
  *      PARA LEER DEL MCP23008 SERÍA UNA SECUENCIA SIMILAR, DEBE ESCRIBIRSE EL PRIMER BYTE CON LA DIRECCIÓN, EL SEGUNDO BYTE CON EL 
- *  REGISTRO A LEER, EN ESTE CASO EL GPIO QUE ES 0x09, Y LUEGO LEER EL TERCER BYTE QUE TENDRA EL DATO DEL ESTADO DE LOS GPIO.
+ *      REGISTRO A LEER, EN ESTE CASO EL GPIO QUE ES 0x09, Y LUEGO LEER EL TERCER BYTE QUE TENDRA EL DATO DEL ESTADO DE LOS GPIO.
  */
 
 
@@ -58,16 +58,12 @@
 /* Tag para imprimir información en el LOG. */
 static const char *TAG = "MCP23008_I2C_LIBRARY";
 
-
-
 //==================================| EXTERNAL DATA DEFINITION |==================================//
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
 static esp_err_t MCP23008_register_read(uint8_t reg_addr, uint8_t *data, size_t len);
 static esp_err_t MCP23008_register_write_byte(uint8_t reg_addr, uint8_t data);
-
-
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 

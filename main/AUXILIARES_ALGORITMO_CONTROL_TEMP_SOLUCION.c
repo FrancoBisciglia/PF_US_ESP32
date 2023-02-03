@@ -1,7 +1,8 @@
 /**
  * @file AUXILIARES_ALGORITMO_CONTROL_TEMP_SOLUCION.c
  * @author Franco Bisciglia, David Kündinger
- * @brief   Funcionalidades del algoritmo de control de la temperatura de la solución nutritiva, como funciones callback o de inicialización.
+ * @brief   Funcionalidades del algoritmo de control de la temperatura de la solución nutritiva, como funciones callback o 
+ *          de inicialización.
  * @version 0.1
  * @date 2023-01-16
  * 
@@ -22,6 +23,7 @@
 
 #include "MQTT_PUBL_SUSCR.h"
 #include "DS18B20_SENSOR.h"
+#include "ALARMAS_USUARIO.h"
 #include "MEF_ALGORITMO_CONTROL_TEMP_SOLUCION.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_TEMP_SOLUCION.h"
 
@@ -130,9 +132,18 @@ void CallbackGetTempSolucData(void *pvParameters)
      *  En caso de que no se cumplan estas condiciones, se setea la bandera de error de sensor, utilizada por la MEF
      *  de control de temperatura de solución, y se le carga al valor de temperatura un código de error preestablecido 
      *  (-10), para que así, al leerse dicho valor, se pueda saber que ocurrió un error.
+     * 
+     *  Además, se publica una alarma en el tópico MQTT común de alarmas.
      */
     if(return_status == ESP_FAIL || temp_soluc < LIMITE_INFERIOR_RANGO_VALIDO_TEMPERATURA_SOLUC || temp_soluc > LIMITE_SUPERIOR_RANGO_VALIDO_TEMPERATURA_SOLUC)
     {
+        if(mqtt_check_connection())
+        {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%i", ALARMA_ERROR_SENSOR_DS18B20);
+            esp_mqtt_client_publish(Cliente_MQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
+        }
+
         temp_soluc = CODIGO_ERROR_SENSOR_TEMPERATURA_SOLUC;
         mef_temp_soluc_set_sensor_error_flag_value(1);
         ESP_LOGE(aux_control_temp_soluc_tag, "SOLUTION TEMPERATURE SENSOR ERROR DETECTED");
