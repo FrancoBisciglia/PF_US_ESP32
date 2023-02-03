@@ -28,6 +28,8 @@ extern "C" {
 #define MANUAL_MODE_MQTT_TOPIC  "/TempSoluc/Modo"
 #define MANUAL_MODE_REFRIGERADOR_STATE_MQTT_TOPIC    "/TempSoluc/Modo_Manual/Refrigerador"
 #define MANUAL_MODE_CALEFACTOR_STATE_MQTT_TOPIC   "/TempSoluc/Modo_Manual/Calefactor"
+#define REFRIGERADOR_STATE_MQTT_TOPIC   "Actuadores/Refrigerador"
+#define CALEFACTOR_STATE_MQTT_TOPIC   "Actuadores/Calefactor"
 
 /**
  *  Definición del rango de temperatura de la solución considerado como válido, en °C.

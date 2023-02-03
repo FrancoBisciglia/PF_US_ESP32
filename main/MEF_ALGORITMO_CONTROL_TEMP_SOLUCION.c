@@ -85,6 +85,17 @@ void MEFControlTempSoluc(void)
     {
         set_relay_state(CALEFACTOR_SOLUC, OFF);
         set_relay_state(REFRIGERADOR_SOLUC, OFF);
+
+        /**
+         *  Se publica el nuevo estado del refrigerador y calefactor en el tópico MQTT correspondiente.
+         */
+        if(mqtt_check_connection())
+        {
+            char buffer[10];
+            snprintf(buffer, sizeof(buffer), "%s", "OFF");
+            esp_mqtt_client_publish(MefBombeoClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            esp_mqtt_client_publish(MefBombeoClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+        }
         
         est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
         mef_temp_soluc_reset_transition_flag_control_temp = 0;
@@ -103,6 +114,16 @@ void MEFControlTempSoluc(void)
         if (mef_temp_soluc_temp < (mef_temp_soluc_limite_inferior_temp_soluc - (mef_temp_soluc_ancho_ventana_hist / 2)) && !mef_temp_soluc_sensor_error_flag)
         {
             set_relay_state(CALEFACTOR_SOLUC, ON);
+            /**
+             *  Se publica el nuevo estado del refrigerador y calefactor en el tópico MQTT correspondiente.
+             */
+            if(mqtt_check_connection())
+            {
+                char buffer[10];
+                snprintf(buffer, sizeof(buffer), "%s", "ON");
+                esp_mqtt_client_publish(MefBombeoClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            }
+
             est_MEF_control_temp_soluc = TEMP_SOLUCION_BAJA;
         }
 
@@ -114,6 +135,16 @@ void MEFControlTempSoluc(void)
         if (mef_temp_soluc_temp > (mef_temp_soluc_limite_superior_temp_soluc + (mef_temp_soluc_ancho_ventana_hist / 2)) && !mef_temp_soluc_sensor_error_flag)
         {
             set_relay_state(REFRIGERADOR_SOLUC, ON);
+            /**
+             *  Se publica el nuevo estado del refrigerador y calefactor en el tópico MQTT correspondiente.
+             */
+            if(mqtt_check_connection())
+            {
+                char buffer[10];
+                snprintf(buffer, sizeof(buffer), "%s", "ON");
+                esp_mqtt_client_publish(MefBombeoClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            }
+
             est_MEF_control_temp_soluc = TEMP_SOLUCION_ELEVADA;
         }
 
@@ -129,6 +160,16 @@ void MEFControlTempSoluc(void)
         if (mef_temp_soluc_temp > (mef_temp_soluc_limite_inferior_temp_soluc + (mef_temp_soluc_ancho_ventana_hist / 2)) || mef_temp_soluc_sensor_error_flag)
         {
             set_relay_state(CALEFACTOR_SOLUC, OFF);
+            /**
+             *  Se publica el nuevo estado del refrigerador y calefactor en el tópico MQTT correspondiente.
+             */
+            if(mqtt_check_connection())
+            {
+                char buffer[10];
+                snprintf(buffer, sizeof(buffer), "%s", "OFF");
+                esp_mqtt_client_publish(MefBombeoClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            }
+
             est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
         }
 
@@ -144,6 +185,16 @@ void MEFControlTempSoluc(void)
         if (mef_temp_soluc_temp < (mef_temp_soluc_limite_superior_temp_soluc - (mef_temp_soluc_ancho_ventana_hist / 2)) || mef_temp_soluc_sensor_error_flag)
         {
             set_relay_state(REFRIGERADOR_SOLUC, OFF);
+            /**
+             *  Se publica el nuevo estado del refrigerador y calefactor en el tópico MQTT correspondiente.
+             */
+            if(mqtt_check_connection())
+            {
+                char buffer[10];
+                snprintf(buffer, sizeof(buffer), "%s", "OFF");
+                esp_mqtt_client_publish(MefBombeoClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            }
+
             est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
         }
 
@@ -151,6 +202,15 @@ void MEFControlTempSoluc(void)
     }
 }
 
+
+
+/**
+ * @brief   Tarea que representa la MEF principal (de mayor jerarquía) del algoritmo de 
+ *          control de la temperatura de la solución nutritiva, alternando entre el modo automatico
+ *          o manual de control según se requiera.
+ * 
+ * @param pvParameters  Parámetro que se le pasa a la tarea en su creación.
+ */
 void vTaskSolutionTempControl(void *pvParameters)
 {
     /**
@@ -217,12 +277,52 @@ void vTaskSolutionTempControl(void *pvParameters)
             if (manual_mode_refrigerador_state == 0 || manual_mode_refrigerador_state == 1)
             {
                 set_relay_state(REFRIGERADOR_SOLUC, manual_mode_refrigerador_state);
+                /**
+                 *  Se publica el nuevo estado del refrigerador y calefactor en el tópico MQTT correspondiente.
+                 */
+                if(mqtt_check_connection())
+                {
+                    char buffer[10];
+
+                    if(manual_mode_refrigerador_state == 0)
+                    {
+                        snprintf(buffer, sizeof(buffer), "%s", "OFF");    
+                    }
+
+                    else if(manual_mode_refrigerador_state == 1)
+                    {
+                        snprintf(buffer, sizeof(buffer), "%s", "ON");
+                    }
+
+                    esp_mqtt_client_publish(MefBombeoClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                }
+
                 ESP_LOGW(mef_temp_soluc_tag, "MANUAL MODE REFRIGERADOR: %.0f", manual_mode_refrigerador_state);
             }
 
             if (manual_mode_calefactor_state == 0 || manual_mode_calefactor_state == 1)
             {
                 set_relay_state(CALEFACTOR_SOLUC, manual_mode_calefactor_state);
+                /**
+                 *  Se publica el nuevo estado del refrigerador y calefactor en el tópico MQTT correspondiente.
+                 */
+                if(mqtt_check_connection())
+                {
+                    char buffer[10];
+
+                    if(manual_mode_calefactor_state == 0)
+                    {
+                        snprintf(buffer, sizeof(buffer), "%s", "OFF");    
+                    }
+
+                    else if(manual_mode_calefactor_state == 1)
+                    {
+                        snprintf(buffer, sizeof(buffer), "%s", "ON");
+                    }
+
+                    esp_mqtt_client_publish(MefBombeoClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                }
+
                 ESP_LOGW(mef_temp_soluc_tag, "MANUAL MODE CALEFACTOR: %.0f", manual_mode_calefactor_state);
             }
 

@@ -87,10 +87,6 @@ static void vTaskGetTempAndHum(void *pvParameters)
 
         /**
          *  Se ejecuta la función callback configurada.
-         * 
-         *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
-         *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
-         *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
          */
         if(DHT11Callback != NULL)
         {
@@ -159,7 +155,7 @@ esp_err_t DTH11_sensor_init(DHT11_sensor_data_pin_t DHT11_sens_data_pin)
             "vTaskGetTempAndHum",
             2048,
             NULL,
-            2,
+            5,
             &xDHT11TaskHandle);
         
         /**

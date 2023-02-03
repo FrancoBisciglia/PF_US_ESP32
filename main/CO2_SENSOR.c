@@ -348,7 +348,7 @@ esp_err_t CO2_sensor_init(CO2_sensor_pwm_pin_t CO2_sens_pwm_pin)
             "vTaskGetCO2ByPWM",
             4096,
             NULL,
-            4,
+            5,
             &xCO2TaskHandle);
     
         /**

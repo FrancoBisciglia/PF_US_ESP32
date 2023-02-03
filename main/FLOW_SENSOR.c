@@ -182,7 +182,6 @@ esp_err_t flow_sensor_init(flux_sensor_data_pin_t flow_sens_data_pin)
         }
     }
 
-
     return ESP_OK;
 }
 

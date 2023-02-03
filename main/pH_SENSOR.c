@@ -203,7 +203,7 @@ esp_err_t ph_sensor_init(pH_sensor_adc1_ch_t pH_sens_analog_pin)
             "vTaskGetpH",
             2048,
             NULL,
-            2,
+            6,
             &xpHTaskHandle);
         
         /**

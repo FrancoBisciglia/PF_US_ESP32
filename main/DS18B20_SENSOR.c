@@ -155,7 +155,7 @@ esp_err_t DS18B20_sensor_init(DS18B20_sensor_data_pin_t DS18B20_sens_data_pin)
             "vTaskGetTemp",
             2048,
             NULL,
-            2,
+            5,
             &xDS18B20TaskHandle);
         
         /**

@@ -145,10 +145,6 @@ static void vTaskGetTdsInPpm(void *pvParameters)
 
         /**
          *  Se ejecuta la función callback configurada.
-         * 
-         *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
-         *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
-         *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
          */
         if(TdsSensorCallback != NULL)
         {
@@ -206,7 +202,7 @@ esp_err_t TDS_sensor_init(TDS_sensor_adc1_ch_t TDS_sens_analog_pin)
             "vTaskGetTdsInPpm",
             2048,
             NULL,
-            2,
+            6,
             &xTdsTaskHandle);
         
         /**
