@@ -93,8 +93,8 @@ void MEFControlTempSoluc(void)
         {
             char buffer[10];
             snprintf(buffer, sizeof(buffer), "%s", "OFF");
-            esp_mqtt_client_publish(MefBombeoClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
-            esp_mqtt_client_publish(MefBombeoClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            esp_mqtt_client_publish(MefTempSolucClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+            esp_mqtt_client_publish(MefTempSolucClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
         }
         
         est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
@@ -121,7 +121,7 @@ void MEFControlTempSoluc(void)
             {
                 char buffer[10];
                 snprintf(buffer, sizeof(buffer), "%s", "ON");
-                esp_mqtt_client_publish(MefBombeoClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                esp_mqtt_client_publish(MefTempSolucClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
 
             est_MEF_control_temp_soluc = TEMP_SOLUCION_BAJA;
@@ -142,7 +142,7 @@ void MEFControlTempSoluc(void)
             {
                 char buffer[10];
                 snprintf(buffer, sizeof(buffer), "%s", "ON");
-                esp_mqtt_client_publish(MefBombeoClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                esp_mqtt_client_publish(MefTempSolucClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
 
             est_MEF_control_temp_soluc = TEMP_SOLUCION_ELEVADA;
@@ -167,7 +167,7 @@ void MEFControlTempSoluc(void)
             {
                 char buffer[10];
                 snprintf(buffer, sizeof(buffer), "%s", "OFF");
-                esp_mqtt_client_publish(MefBombeoClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                esp_mqtt_client_publish(MefTempSolucClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
 
             est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
@@ -192,7 +192,7 @@ void MEFControlTempSoluc(void)
             {
                 char buffer[10];
                 snprintf(buffer, sizeof(buffer), "%s", "OFF");
-                esp_mqtt_client_publish(MefBombeoClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                esp_mqtt_client_publish(MefTempSolucClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
 
             est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
@@ -294,7 +294,7 @@ void vTaskSolutionTempControl(void *pvParameters)
                         snprintf(buffer, sizeof(buffer), "%s", "ON");
                     }
 
-                    esp_mqtt_client_publish(MefBombeoClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                    esp_mqtt_client_publish(MefTempSolucClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
                 }
 
                 ESP_LOGW(mef_temp_soluc_tag, "MANUAL MODE REFRIGERADOR: %.0f", manual_mode_refrigerador_state);
@@ -320,7 +320,7 @@ void vTaskSolutionTempControl(void *pvParameters)
                         snprintf(buffer, sizeof(buffer), "%s", "ON");
                     }
 
-                    esp_mqtt_client_publish(MefBombeoClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+                    esp_mqtt_client_publish(MefTempSolucClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
                 }
 
                 ESP_LOGW(mef_temp_soluc_tag, "MANUAL MODE CALEFACTOR: %.0f", manual_mode_calefactor_state);
