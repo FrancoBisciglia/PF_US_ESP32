@@ -11,6 +11,7 @@
 #include "pH_SENSOR.h"
 #include "TDS_SENSOR.h"
 #include "DS18B20_SENSOR.h"
+#include "CO2_SENSOR.h"
 
 
 const char *TAG = "MAIN";
@@ -39,7 +40,7 @@ void CallbackSensorDHT11()
 
     DHT11_getTemp(&data);
 
-    ESP_LOGI(TAG, "DHT11 TEMP DATA: %.0f", data);
+    ESP_LOGI(TAG, "DHT11 TEMP DATA: %.3f", data);
 }
 
 void CallbackSensorDS18B20()
@@ -48,32 +49,47 @@ void CallbackSensorDS18B20()
 
     DS18B20_getTemp(&data);
 
-    ESP_LOGI(TAG, "DS18B20 TEMP DATA: %.0f", data);
+    ESP_LOGI(TAG, "DS18B20 TEMP DATA: %.3f", data);
+}
+
+void CallbackSensorCO2()
+{
+    CO2_sensor_ppm_t data;
+
+    CO2_sensor_get_CO2(&data);
+
+    ESP_LOGI(TAG, "CO2 DATA: %.3f", data);
 }
 
 
 void app_main(void)
 {
     ESP_ERROR_CHECK_WITHOUT_ABORT(MCP23008_init());
+    // CO2_sensor_init(GPIO_NUM_33);
+    // CO2_sensor_callback_function_on_new_measurment(CallbackSensorCO2);
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(ph_sensor_init(ADC1_CHANNEL_0));
-    pH_sensor_callback_function_on_new_measurment(CallbackSensorpH);
+    // ESP_ERROR_CHECK_WITHOUT_ABORT(ph_sensor_init(ADC1_CHANNEL_0));
+    // pH_sensor_callback_function_on_new_measurment(CallbackSensorpH);
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(TDS_sensor_init(ADC1_CHANNEL_3));
-    TDS_sensor_callback_function_on_new_measurment(CallbackSensorTDS);
+    // ESP_ERROR_CHECK_WITHOUT_ABORT(TDS_sensor_init(ADC1_CHANNEL_3));
+    // TDS_sensor_callback_function_on_new_measurment(CallbackSensorTDS);
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(DTH11_sensor_init(GPIO_NUM_4));
-    DHT11_callback_function_on_new_measurment(CallbackSensorDHT11);
+    // ESP_ERROR_CHECK_WITHOUT_ABORT(DTH11_sensor_init(GPIO_NUM_4));
+    // DHT11_callback_function_on_new_measurment(CallbackSensorDHT11);
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(DS18B20_sensor_init(GPIO_NUM_18));
-    DS18B20_callback_function_on_new_measurment(CallbackSensorDS18B20);
+    // ESP_ERROR_CHECK_WITHOUT_ABORT(DS18B20_sensor_init(GPIO_NUM_18));
+    // DS18B20_callback_function_on_new_measurment(CallbackSensorDS18B20);
 
     while(1)
     {
-        set_relay_state(RELE_1, OFF);
+        set_relay_state(RELE_3, OFF);
+        set_relay_state(RELE_4, OFF);
+        set_relay_state(RELE_5, OFF);
         vTaskDelay(pdMS_TO_TICKS(2000));
 
-        set_relay_state(RELE_1, ON);
+        set_relay_state(RELE_3, ON);
+        set_relay_state(RELE_4, ON);
+        set_relay_state(RELE_5, ON);
         vTaskDelay(pdMS_TO_TICKS(2000));
     }
 }
