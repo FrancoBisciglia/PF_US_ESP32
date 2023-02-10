@@ -13,6 +13,11 @@
 #include "DS18B20_SENSOR.h"
 #include "CO2_SENSOR.h"
 
+#include "driver/gpio.h"
+#include "driver/i2c.h"
+
+#define RESET_PIN 23
+
 
 const char *TAG = "MAIN";
 
@@ -82,15 +87,54 @@ void app_main(void)
 
     while(1)
     {
+        set_relay_state(RELE_1, OFF);
+        set_relay_state(RELE_2, OFF);
         set_relay_state(RELE_3, OFF);
         set_relay_state(RELE_4, OFF);
         set_relay_state(RELE_5, OFF);
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        set_relay_state(RELE_6, OFF);
+        set_relay_state(RELE_7, OFF);
 
+        // vTaskDelay(pdMS_TO_TICKS(100));
+
+        // while(get_relay_state(RELE_4) != OFF)
+        // {
+        //     i2c_driver_delete(0);
+        //     gpio_set_level(RESET_PIN, 0);
+        //     vTaskDelay(pdMS_TO_TICKS(1));
+        //     gpio_set_level(RESET_PIN, 1);
+        //     vTaskDelay(pdMS_TO_TICKS(25));
+        //     MCP23008_init();
+
+        //     set_relay_state(RELE_4, OFF);
+        //     vTaskDelay(pdMS_TO_TICKS(25));
+        // }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+
+        set_relay_state(RELE_1, ON);
+        set_relay_state(RELE_2, ON);
         set_relay_state(RELE_3, ON);
         set_relay_state(RELE_4, ON);
         set_relay_state(RELE_5, ON);
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        set_relay_state(RELE_6, ON);
+        set_relay_state(RELE_7, ON);
+        
+        // vTaskDelay(pdMS_TO_TICKS(100));
+
+        // while(get_relay_state(RELE_4) != ON)
+        // {
+        //     i2c_driver_delete(0);
+        //     gpio_set_level(RESET_PIN, 0);
+        //     vTaskDelay(pdMS_TO_TICKS(1));
+        //     gpio_set_level(RESET_PIN, 1);
+        //     vTaskDelay(pdMS_TO_TICKS(25));
+        //     MCP23008_init();
+
+        //     set_relay_state(RELE_4, ON);
+        //     vTaskDelay(pdMS_TO_TICKS(25));
+        // }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
-
