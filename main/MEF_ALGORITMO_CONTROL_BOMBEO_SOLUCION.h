@@ -18,6 +18,8 @@ extern "C" {
 #include "freertos/task.h"
 #include "mqtt_client.h"
 
+#include "MCP23008.h"
+
 /*============================[DEFINES AND MACROS]=====================================*/
 
 /* Tiempos estándar de encendido y apagado de la bomba de solución, en min. */
@@ -33,7 +35,7 @@ extern "C" {
  *  NOTA: CUANDO SE SEPA BIEN QUÉ RELÉ SE ASOCIA A QUÉ ACTUADOR, MODIFICAR LOS NÚMEROS.
  */
 typedef enum actuadores_control_bombeo_soluc{
-    BOMBA = 6,
+    BOMBA = RELE_7,
 };
 
 

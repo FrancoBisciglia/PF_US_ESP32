@@ -19,6 +19,7 @@ extern "C" {
 #include "mqtt_client.h"
 
 #include "TDS_SENSOR.h"
+#include "MCP23008.h"
 
 /*============================[DEFINES AND MACROS]=====================================*/
 
@@ -28,9 +29,9 @@ extern "C" {
  *  NOTA: CUANDO SE SEPA BIEN QUÉ RELÉ SE ASOCIA A QUÉ ACTUADOR, MODIFICAR LOS NÚMEROS.
  */
 typedef enum actuadores_control_tds_soluc{
-    VALVULA_AUMENTO_TDS = 0,
-    VALVULA_DISMINUCION_TDS,
-    BOMBA = 6,
+    VALVULA_AUMENTO_TDS = RELE_1,
+    VALVULA_DISMINUCION_TDS = RELE_2,
+    BOMBA = RELE_7,
 };
 
 

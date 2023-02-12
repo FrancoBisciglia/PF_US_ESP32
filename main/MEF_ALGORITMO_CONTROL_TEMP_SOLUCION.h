@@ -19,6 +19,7 @@ extern "C" {
 #include "mqtt_client.h"
 
 #include "DS18B20_SENSOR.h"
+#include "MCP23008.h"
 
 /*============================[DEFINES AND MACROS]=====================================*/
 
@@ -29,8 +30,8 @@ extern "C" {
  *  NOTA: CUANDO SE SEPA BIEN QUÉ RELÉ SE ASOCIA A QUÉ ACTUADOR, MODIFICAR LOS NÚMEROS.
  */
 typedef enum actuadores_control_temp_soluc{
-    CALEFACTOR_SOLUC = 3,
-    REFRIGERADOR_SOLUC,
+    CALEFACTOR_SOLUC = RELE_5,
+    REFRIGERADOR_SOLUC = RELE_6,
 };
 
 

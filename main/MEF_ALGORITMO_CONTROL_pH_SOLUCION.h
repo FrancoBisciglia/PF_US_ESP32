@@ -19,6 +19,7 @@ extern "C" {
 #include "mqtt_client.h"
 
 #include "pH_SENSOR.h"
+#include "MCP23008.h"
 
 /*============================[DEFINES AND MACROS]=====================================*/
 
@@ -28,9 +29,9 @@ extern "C" {
  *  NOTA: CUANDO SE SEPA BIEN QUÉ RELÉ SE ASOCIA A QUÉ ACTUADOR, MODIFICAR LOS NÚMEROS.
  */
 typedef enum actuadores_control_ph_soluc{
-    VALVULA_AUMENTO_PH = 2,
-    VALVULA_DISMINUCION_PH,
-    BOMBA = 6,
+    VALVULA_AUMENTO_PH = RELE_3,
+    VALVULA_DISMINUCION_PH = RELE_4,
+    BOMBA = RELE_7,
 };
 
 
