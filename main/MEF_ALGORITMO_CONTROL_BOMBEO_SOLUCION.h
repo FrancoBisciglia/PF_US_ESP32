@@ -29,6 +29,10 @@ extern "C" {
 /* Periodo de tiempo de control de flujo de solución en los canales, en ms. */
 #define MEF_BOMBEO_TIEMPO_CONTROL_SENSOR_FLUJO 5000
 
+/* Definición del pin GPIO del sensor de flujo */
+/* NOTA: LUEGO VERIFICAR SI LOS PINES ESTAN ASIGNADOS CORRECTAMENTE. */
+#define GPIO_PIN_FLOW_SENSOR 32
+
 /**
  *  Enumeración correspondiente a los actuadores del control de bombeo de solución..
  * 

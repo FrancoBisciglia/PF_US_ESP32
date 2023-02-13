@@ -42,6 +42,19 @@ static TaskHandle_t xMefBombeoAlgoritmoControlTaskHandle = NULL;
 /* Handle del timer utilizado para temporizar el control de flujo de solución en los canales de cultivo. */
 static TimerHandle_t xTimerSensorFlujo = NULL;
 
+/**
+ *  Tiempo de encendido o apagado que le quedaba por cumplir al timer de control de la bomba
+ *  justo antes de hacer una transición con historia a otro estado de la MEF de mayor
+ *  jerarquia.
+ * 
+ *  Por ejemplo, si se tiene un tiempo de encendido de 15 min, transcurrieron 8 minutos, y se 
+ *  pasa a modo MANUAL (transición con historia), se guarda el tiempo de 7 minutos restantes,
+ *  que luego se cargara al timer al volver al modo AUTO.
+ */
+static TickType_t timeLeft;
+/* Estado en el que estaban las luces antes de realizarse una transición con historia. */
+static bool mef_bombeo_pump_state_history_transition = 0;
+
 /* Handle del cliente MQTT. */
 static esp_mqtt_client_handle_t MefBombeoClienteMQTT = NULL;
 
@@ -54,8 +67,8 @@ static unsigned int mef_bombeo_tiempo_control_sensor_flujo = MEF_BOMBEO_TIEMPO_C
 
 /* Bandera utilizada para controlar si se está o no en modo manual en el algoritmo de control de bombeo de solución. */
 static bool mef_bombeo_manual_mode_flag = 0;
-/* Bandera utilizada para controlar las transiciones con reset de la MEFs de control bombeo de solución. */
-static bool mef_bombeo_reset_transition_flag_control_bombeo_solucion = 0;
+/* Bandera utilizada para controlar las transiciones con historia de la MEFs de control bombeo de solución. */
+static bool mef_bombeo_history_transition_flag_control_bombeo_solucion = 0;
 /**
  *  Bandera utilizada para verificar si se cumplió el timeout del timer utilizado para controlar el encendido y apagado
  *  de la bomba.
@@ -124,30 +137,44 @@ void MEFControlBombeoSoluc(void)
      *  Se controla si se debe hacer una transición con reset, caso en el cual se vuelve al estado
      *  de bomba apagada y se paran los timers correspondiente.
      */
-    if(mef_bombeo_reset_transition_flag_control_bombeo_solucion)
+    if(mef_bombeo_history_transition_flag_control_bombeo_solucion)
     {
-        est_MEF_control_bombeo_soluc = ESPERA_BOMBEO;
+        mef_bombeo_history_transition_flag_control_bombeo_solucion = 0;
 
-        mef_bombeo_reset_transition_flag_control_bombeo_solucion = 0;
+        /**
+         *  Se restaura el tiempo que quedó pendiente de encendido o apagado de la bomba
+         *  y se resetea el tiempo de control de flujo.
+         */
+        xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), timeLeft, 0);
+        xTimerReset(xTimerSensorFlujo, 0);
 
-        xTimerStop(aux_control_bombeo_get_timer_handle(), 0);
-        mef_bombeo_timer_finished_flag = 0;
+        /**
+         *  Se reestablece el estado en el que estaba la bomba antes de la transición
+         *  con historia.
+         */
+        set_relay_state(BOMBA, mef_bombeo_pump_state_history_transition);
 
-        xTimerStop(xTimerSensorFlujo, 0);
-        mef_bombeo_timer_flow_control_flag = 0;
-
-        set_relay_state(BOMBA, OFF);
         /**
          *  Se publica el nuevo estado de la bomba en el tópico MQTT correspondiente.
          */
         if(mqtt_check_connection())
         {
             char buffer[10];
-            snprintf(buffer, sizeof(buffer), "%s", "OFF");
+
+            if(mef_bombeo_pump_state_history_transition == ON)
+            {
+                snprintf(buffer, sizeof(buffer), "%s", "ON");
+                ESP_LOGW(mef_luces_tag, "BOMBA ENCENDIDA");
+            }
+            
+            else if(mef_bombeo_pump_state_history_transition == OFF)
+            {
+                snprintf(buffer, sizeof(buffer), "%s", "OFF");
+                ESP_LOGW(mef_luces_tag, "BOMBA APAGADA");
+            }
+            
             esp_mqtt_client_publish(MefBombeoClienteMQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
         }
-
-        ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
     }
 
 
@@ -159,17 +186,12 @@ void MEFControlBombeoSoluc(void)
         /**
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, y si el nivel del tanque
          *  principal esta por encima del límite de reposición de líquido establecido, se cambia al estado donde
-         *  se enciende la bomba, y se carga en el timer el tiempo de encendido de la bomba y el periodo con el que
-         *  se va a controlar si hay efectivamente flujo de solución en los canales.
+         *  se enciende la bomba, y se carga en el timer el tiempo de encendido de la bomba.
          */
         if(mef_bombeo_timer_finished_flag && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
         {
             mef_bombeo_timer_finished_flag = 0;
             xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(mef_bombeo_tiempo_bomba_on), 0);
-            xTimerReset(aux_control_bombeo_get_timer_handle(), 0);
-
-            xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
-            xTimerReset(xTimerSensorFlujo, 0);
 
             set_relay_state(BOMBA, ON);
             /**
@@ -185,6 +207,31 @@ void MEFControlBombeoSoluc(void)
             ESP_LOGW(mef_bombeo_tag, "BOMBA ENCENDIDA");
 
             est_MEF_control_bombeo_soluc = BOMBEO_SOLUCION;
+        }
+
+        /**
+         *  Cuando se cumple el timeout del timer, se verifica si no circula solución por el sensor de flujo ubicado
+         *  en la entrada de los canales de cultivo.
+         * 
+         *  En caso de que se detecte solución, se procede a publicar en el tópico común de alarmas el 
+         *  código de alarma correspondiente a falla en la bomba de solución.
+         */
+        if(mef_bombeo_timer_flow_control_flag)
+        {
+            mef_bombeo_timer_flow_control_flag = 0;
+            xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
+
+            if(flow_sensor_flow_detected())
+            {
+                if(mqtt_check_connection())
+                {
+                    char buffer[10];
+                    snprintf(buffer, sizeof(buffer), "%i", ALARMA_FALLA_BOMBA);
+                    esp_mqtt_client_publish(MefBombeoClienteMQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
+                }
+
+                ESP_LOGE(mef_bombeo_tag, "ALARMA, CIRCULA SOLUCIÓN POR LOS CANALES CUANDO NO DEBERÍA.");
+            }
         }
 
         break;
@@ -203,7 +250,6 @@ void MEFControlBombeoSoluc(void)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
-            xTimerReset(xTimerSensorFlujo, 0);
 
             if(!flow_sensor_flow_detected())
             {
@@ -231,10 +277,6 @@ void MEFControlBombeoSoluc(void)
         {
             mef_bombeo_timer_finished_flag = 0;
             xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(mef_bombeo_tiempo_bomba_off), 0);
-            xTimerReset(aux_control_bombeo_get_timer_handle(), 0);
-
-            xTimerStop(xTimerSensorFlujo, 0);
-            mef_bombeo_timer_flow_control_flag = 0;
 
             set_relay_state(BOMBA, OFF);
             /**
@@ -272,6 +314,24 @@ void vTaskSolutionPumpControl(void *pvParameters)
      */
     static estado_MEF_principal_control_bombeo_soluc_t est_MEF_principal = ALGORITMO_CONTROL_BOMBEO_SOLUC;
 
+
+    /**
+     *  Se establece el estado inicial de la bomba, que es apagada.
+     */
+    set_relay_state(BOMBA, OFF);
+    /**
+     *  Se publica el nuevo estado de la bomba en el tópico MQTT correspondiente.
+     */
+    if(mqtt_check_connection())
+    {
+        char buffer[10];
+        snprintf(buffer, sizeof(buffer), "%s", "OFF");
+        esp_mqtt_client_publish(MefBombeoClienteMQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+    }
+
+    ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
+
+
     while(1)
     {
         /**
@@ -301,7 +361,12 @@ void vTaskSolutionPumpControl(void *pvParameters)
             if(mef_bombeo_manual_mode_flag)
             {
                 est_MEF_principal = MODO_MANUAL;
-                mef_bombeo_reset_transition_flag_control_bombeo_solucion = 1;
+
+                timeLeft = xTimerGetExpiryTime(aux_control_bombeo_get_timer_handle()) - xTaskGetTickCount();
+                xTimerStop(aux_control_luces_get_timer_handle(), 0);
+                xTimerStop(xTimerSensorFlujo, 0);
+
+                break;
             }
 
             MEFControlBombeoSoluc();
@@ -313,11 +378,15 @@ void vTaskSolutionPumpControl(void *pvParameters)
 
             /**
              *  En caso de que se baje la bandera de modo MANUAL, se debe transicionar nuevamente al estado
-             *  de modo AUTOMATICO, en donde se controla el encendido y apagado de la bomba por tiempos.
+             *  de modo AUTOMATICO, en donde se controla el encendido y apagado de la bomba por tiempos,
+             *  mediante una transición con historia, por lo que se setea la bandera correspondiente.
              */
             if(!mef_bombeo_manual_mode_flag)
             {
                 est_MEF_principal = ALGORITMO_CONTROL_BOMBEO_SOLUC;
+
+                mef_bombeo_history_transition_flag_control_bombeo_solucion;
+
                 break;
             }
 
@@ -386,7 +455,7 @@ esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
      *  no puede ponerse 0.
      */
     xTimerSensorFlujo = xTimerCreate("Timer Sensor Flujo",       // Nombre interno que se le da al timer (no es relevante).
-                              1,                                // Período del timer en ticks.
+                              pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo),    // Período del timer en ticks.
                               pdFALSE,                          // pdFALSE -> El timer NO se recarga solo al cumplirse el timeout. pdTRUE -> El timer se recarga solo al cumplirse el timeout.
                               (void *)20,                        // ID de identificación del timer.
                               vSensorFlujoTimerCallback                    // Nombre de la función de callback del timer.
@@ -400,6 +469,18 @@ esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
         ESP_LOGE(mef_bombeo_tag, "FAILED TO CREATE TIMER.");
         return ESP_FAIL;
     }
+
+    /**
+     *  Se inicia el timer de control de flujo en los canales.
+     */
+    xTimerStart(xTimerSensorFlujo, 0);
+
+    //=======================| INIT SENSOR FLUJO |=======================//
+
+    /**
+     *  Se inicializa el sensor de flujo ubicado en los canales de cultivo.
+     */
+    flow_sensor_init(GPIO_PIN_FLOW_SENSOR);
 
     //=======================| CREACION TAREAS |=======================//
     
