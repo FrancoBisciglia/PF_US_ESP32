@@ -23,8 +23,8 @@ extern "C" {
 /*============================[DEFINES AND MACROS]=====================================*/
 
 /* Tiempos estándar de encendido y apagado de la bomba de solución, en min. */
-#define MEF_BOMBEO_TIEMPO_BOMBA_ON  15
-#define MEF_BOMBEO_TIEMPO_BOMBA_OFF  60
+#define MEF_BOMBEO_TIEMPO_BOMBA_ON  2
+#define MEF_BOMBEO_TIEMPO_BOMBA_OFF  3
 
 /* Periodo de tiempo de control de flujo de solución en los canales, en ms. */
 #define MEF_BOMBEO_TIEMPO_CONTROL_SENSOR_FLUJO 5000

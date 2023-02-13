@@ -30,6 +30,18 @@ extern "C" {
 #define MANUAL_MODE_PUMP_STATE_MQTT_TOPIC    "/BombeoSoluc/Modo_Manual/Bomba"
 #define PUMP_STATE_MQTT_TOPIC   "Actuadores/Bomba"
 
+/**
+ *  Constante de conversión de min a ms:
+ * 
+ *  -1 min = 60 seg
+ *  -1 seg = 1000 ms
+ * 
+ *  => 1 min = 60*1000 = 60000 ms
+ * 
+ */
+//#define MIN_TO_MS 3600000
+#define MIN_TO_MS 1000
+
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 
 /*=====================[EXTERNAL FUNCTIONS DECLARATION]=========================*/

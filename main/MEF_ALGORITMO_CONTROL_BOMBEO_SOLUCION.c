@@ -164,13 +164,13 @@ void MEFControlBombeoSoluc(void)
             if(mef_bombeo_pump_state_history_transition == ON)
             {
                 snprintf(buffer, sizeof(buffer), "%s", "ON");
-                ESP_LOGW(mef_luces_tag, "BOMBA ENCENDIDA");
+                ESP_LOGW(mef_bombeo_tag, "BOMBA ENCENDIDA");
             }
             
             else if(mef_bombeo_pump_state_history_transition == OFF)
             {
                 snprintf(buffer, sizeof(buffer), "%s", "OFF");
-                ESP_LOGW(mef_luces_tag, "BOMBA APAGADA");
+                ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
             }
             
             esp_mqtt_client_publish(MefBombeoClienteMQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
@@ -188,10 +188,11 @@ void MEFControlBombeoSoluc(void)
          *  principal esta por encima del límite de reposición de líquido establecido, se cambia al estado donde
          *  se enciende la bomba, y se carga en el timer el tiempo de encendido de la bomba.
          */
-        if(mef_bombeo_timer_finished_flag && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
+        // if(mef_bombeo_timer_finished_flag && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
+        if(mef_bombeo_timer_finished_flag)
         {
             mef_bombeo_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(mef_bombeo_tiempo_bomba_on), 0);
+            xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(MIN_TO_MS * mef_bombeo_tiempo_bomba_on), 0);
 
             set_relay_state(BOMBA, ON);
             /**
@@ -216,7 +217,8 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          */
-        if(mef_bombeo_timer_flow_control_flag)
+        // if(mef_bombeo_timer_flow_control_flag)
+        if(0)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -246,7 +248,8 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que no se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          */
-        if(mef_bombeo_timer_flow_control_flag)
+        // if(mef_bombeo_timer_flow_control_flag)
+        if(0)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -276,7 +279,7 @@ void MEFControlBombeoSoluc(void)
         if(mef_bombeo_timer_finished_flag || app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
         {
             mef_bombeo_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(mef_bombeo_tiempo_bomba_off), 0);
+            xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(MIN_TO_MS * mef_bombeo_tiempo_bomba_off), 0);
 
             set_relay_state(BOMBA, OFF);
             /**
@@ -363,7 +366,7 @@ void vTaskSolutionPumpControl(void *pvParameters)
                 est_MEF_principal = MODO_MANUAL;
 
                 timeLeft = xTimerGetExpiryTime(aux_control_bombeo_get_timer_handle()) - xTaskGetTickCount();
-                xTimerStop(aux_control_luces_get_timer_handle(), 0);
+                xTimerStop(aux_control_bombeo_get_timer_handle(), 0);
                 xTimerStop(xTimerSensorFlujo, 0);
 
                 break;
@@ -385,7 +388,7 @@ void vTaskSolutionPumpControl(void *pvParameters)
             {
                 est_MEF_principal = ALGORITMO_CONTROL_BOMBEO_SOLUC;
 
-                mef_bombeo_history_transition_flag_control_bombeo_solucion;
+                mef_bombeo_history_transition_flag_control_bombeo_solucion = 1;
 
                 break;
             }
