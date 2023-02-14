@@ -188,11 +188,16 @@ void MEFControlBombeoSoluc(void)
          *  principal esta por encima del límite de reposición de líquido establecido, se cambia al estado donde
          *  se enciende la bomba, y se carga en el timer el tiempo de encendido de la bomba.
          */
-        // if(mef_bombeo_timer_finished_flag && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
-        if(mef_bombeo_timer_finished_flag)
+        if(mef_bombeo_timer_finished_flag && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
+        // if(mef_bombeo_timer_finished_flag)
         {
             mef_bombeo_timer_finished_flag = 0;
             xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(MIN_TO_MS * mef_bombeo_tiempo_bomba_on), 0);
+
+            /**
+             *  Se actualiza el nuevo estado de la bomba para las transiciones con historia.
+             */
+            mef_bombeo_pump_state_history_transition = ON;
 
             set_relay_state(BOMBA, ON);
             /**
@@ -217,8 +222,8 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          */
-        // if(mef_bombeo_timer_flow_control_flag)
-        if(0)
+        if(mef_bombeo_timer_flow_control_flag)
+        // if(0)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -248,8 +253,8 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que no se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          */
-        // if(mef_bombeo_timer_flow_control_flag)
-        if(0)
+        if(mef_bombeo_timer_flow_control_flag)
+        // if(0)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -277,9 +282,15 @@ void MEFControlBombeoSoluc(void)
          *  a la espera de la reposición.
          */
         if(mef_bombeo_timer_finished_flag || app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
+        // if(mef_bombeo_timer_finished_flag)
         {
             mef_bombeo_timer_finished_flag = 0;
             xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(MIN_TO_MS * mef_bombeo_tiempo_bomba_off), 0);
+
+            /**
+             *  Se actualiza el nuevo estado de la bomba para las transiciones con historia.
+             */
+            mef_bombeo_pump_state_history_transition = OFF;
 
             set_relay_state(BOMBA, OFF);
             /**
@@ -447,37 +458,6 @@ esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
      */
     MefBombeoClienteMQTT = mqtt_client;
 
-    //=======================| INIT TIMERS |=======================//
-
-    /**
-     *  Se inicializa el timer utilizado para la temporización del control de flujo en los
-     *  canales de cultivo.
-     * 
-     *  Se inicializa su período en 1 tick dado que no es relevante en su inicialización, ya que
-     *  el tiempo de apertura y cierre de la válvula se asignará en la MEF cuando corresponda, pero
-     *  no puede ponerse 0.
-     */
-    xTimerSensorFlujo = xTimerCreate("Timer Sensor Flujo",       // Nombre interno que se le da al timer (no es relevante).
-                              pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo),    // Período del timer en ticks.
-                              pdFALSE,                          // pdFALSE -> El timer NO se recarga solo al cumplirse el timeout. pdTRUE -> El timer se recarga solo al cumplirse el timeout.
-                              (void *)20,                        // ID de identificación del timer.
-                              vSensorFlujoTimerCallback                    // Nombre de la función de callback del timer.
-    );
-
-    /**
-     *  Se verifica que se haya creado el timer correctamente.
-     */
-    if(xTimerSensorFlujo == NULL)
-    {
-        ESP_LOGE(mef_bombeo_tag, "FAILED TO CREATE TIMER.");
-        return ESP_FAIL;
-    }
-
-    /**
-     *  Se inicia el timer de control de flujo en los canales.
-     */
-    xTimerStart(xTimerSensorFlujo, 0);
-
     //=======================| INIT SENSOR FLUJO |=======================//
 
     /**
@@ -510,6 +490,42 @@ esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
             return ESP_FAIL;
         }
     }
+
+    //=======================| INIT TIMERS |=======================//
+
+    /**
+     *  Se inicializa el timer utilizado para la temporización del control de flujo en los
+     *  canales de cultivo.
+     * 
+     *  Se inicializa su período en 1 tick dado que no es relevante en su inicialización, ya que
+     *  el tiempo de apertura y cierre de la válvula se asignará en la MEF cuando corresponda, pero
+     *  no puede ponerse 0.
+     */
+    xTimerSensorFlujo = xTimerCreate("Timer Sensor Flujo",       // Nombre interno que se le da al timer (no es relevante).
+                              pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo),    // Período del timer en ticks.
+                              pdFALSE,                          // pdFALSE -> El timer NO se recarga solo al cumplirse el timeout. pdTRUE -> El timer se recarga solo al cumplirse el timeout.
+                              (void *)20,                        // ID de identificación del timer.
+                              vSensorFlujoTimerCallback                    // Nombre de la función de callback del timer.
+    );
+
+    /**
+     *  Se verifica que se haya creado el timer correctamente.
+     */
+    if(xTimerSensorFlujo == NULL)
+    {
+        ESP_LOGE(mef_bombeo_tag, "FAILED TO CREATE TIMER.");
+        return ESP_FAIL;
+    }
+
+    /**
+     *  Se inicia el timer de control de flujo en los canales.
+     */
+    xTimerStart(xTimerSensorFlujo, 0);
+
+    /**
+     *  Se inicia el timer de control de la bomba.
+     */
+    xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(MIN_TO_MS * mef_bombeo_tiempo_bomba_off), 0);
     
     return ESP_OK;
 }

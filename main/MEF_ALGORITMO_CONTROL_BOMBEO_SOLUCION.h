@@ -23,8 +23,8 @@ extern "C" {
 /*============================[DEFINES AND MACROS]=====================================*/
 
 /* Tiempos estándar de encendido y apagado de la bomba de solución, en min. */
-#define MEF_BOMBEO_TIEMPO_BOMBA_ON  2
-#define MEF_BOMBEO_TIEMPO_BOMBA_OFF  3
+#define MEF_BOMBEO_TIEMPO_BOMBA_ON  7
+#define MEF_BOMBEO_TIEMPO_BOMBA_OFF  7
 
 /* Periodo de tiempo de control de flujo de solución en los canales, en ms. */
 #define MEF_BOMBEO_TIEMPO_CONTROL_SENSOR_FLUJO 5000
@@ -39,7 +39,7 @@ extern "C" {
  *  NOTA: CUANDO SE SEPA BIEN QUÉ RELÉ SE ASOCIA A QUÉ ACTUADOR, MODIFICAR LOS NÚMEROS.
  */
 typedef enum actuadores_control_bombeo_soluc{
-    BOMBA = RELE_7,
+    BOMBA = RELE_5,
 };
 
 
