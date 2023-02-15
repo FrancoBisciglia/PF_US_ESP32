@@ -185,10 +185,13 @@ void MEFControlBombeoSoluc(void)
 
         /**
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, y si el nivel del tanque
-         *  principal esta por encima del límite de reposición de líquido establecido, se cambia al estado donde
-         *  se enciende la bomba, y se carga en el timer el tiempo de encendido de la bomba.
+         *  principal esta por encima del límite de reposición de líquido establecido, y si no hay error de sensado
+         *  del sensor de nivel se cambia al estado donde se enciende la bomba, y se carga en el timer el tiempo de 
+         *  encendido de la bomba.
          */
-        if(mef_bombeo_timer_finished_flag && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
+        if( mef_bombeo_timer_finished_flag 
+            && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL)
+            && !app_level_sensor_error_sensor_detected(TANQUE_PRINCIPAL))
         // if(mef_bombeo_timer_finished_flag)
         {
             mef_bombeo_timer_finished_flag = 0;
@@ -222,8 +225,8 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          */
-        if(mef_bombeo_timer_flow_control_flag)
-        // if(0)
+        // if(mef_bombeo_timer_flow_control_flag)
+        if(0)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -247,41 +250,18 @@ void MEFControlBombeoSoluc(void)
     case BOMBEO_SOLUCION:
 
         /**
-         *  Cuando se cumple el timeout del timer, se verifica si circula solución por el sensor de flujo ubicado
-         *  en la entrada de los canales de cultivo.
-         * 
-         *  En caso de que no se detecte solución, se procede a publicar en el tópico común de alarmas el 
-         *  código de alarma correspondiente a falla en la bomba de solución.
-         */
-        if(mef_bombeo_timer_flow_control_flag)
-        // if(0)
-        {
-            mef_bombeo_timer_flow_control_flag = 0;
-            xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
-
-            if(!flow_sensor_flow_detected())
-            {
-                if(mqtt_check_connection())
-                {
-                    char buffer[10];
-                    snprintf(buffer, sizeof(buffer), "%i", ALARMA_FALLA_BOMBA);
-                    esp_mqtt_client_publish(MefBombeoClienteMQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
-                }
-
-                ESP_LOGE(mef_bombeo_tag, "ALARMA, NO CIRCULA SOLUCIÓN POR LOS CANALES.");
-            }
-        }
-
-        /**
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
          *  se cierra la válvula, y se carga en el timer el tiempo de cierre de la válvula, además de parar el timer
          *  de control de flujo de solución.
          * 
          *  Además, si se detecta que el nivel del tanque principal está por debajo de un cierto límite, que
          *  implica que debe reponerse el líquido del tanque, se transiciona al estado con la bomba apagada,
-         *  a la espera de la reposición.
+         *  a la espera de la reposición. Lo mismo si se detecta error de sensado en el sensor de nivel del
+         *  tanque principal.
          */
-        if(mef_bombeo_timer_finished_flag || app_level_sensor_level_below_limit(TANQUE_PRINCIPAL))
+        if( mef_bombeo_timer_finished_flag
+            || app_level_sensor_level_below_limit(TANQUE_PRINCIPAL)
+            || app_level_sensor_error_sensor_detected(TANQUE_PRINCIPAL))
         // if(mef_bombeo_timer_finished_flag)
         {
             mef_bombeo_timer_finished_flag = 0;
@@ -306,6 +286,33 @@ void MEFControlBombeoSoluc(void)
             ESP_LOGW(mef_bombeo_tag, "BOMBA APAGADA");
 
             est_MEF_control_bombeo_soluc = ESPERA_BOMBEO;
+        }
+
+
+        /**
+         *  Cuando se cumple el timeout del timer, se verifica si circula solución por el sensor de flujo ubicado
+         *  en la entrada de los canales de cultivo.
+         * 
+         *  En caso de que no se detecte solución, se procede a publicar en el tópico común de alarmas el 
+         *  código de alarma correspondiente a falla en la bomba de solución.
+         */
+        // if(mef_bombeo_timer_flow_control_flag)
+        if(0)
+        {
+            mef_bombeo_timer_flow_control_flag = 0;
+            xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
+
+            if(!flow_sensor_flow_detected())
+            {
+                if(mqtt_check_connection())
+                {
+                    char buffer[10];
+                    snprintf(buffer, sizeof(buffer), "%i", ALARMA_FALLA_BOMBA);
+                    esp_mqtt_client_publish(MefBombeoClienteMQTT, ALARMS_MQTT_TOPIC, buffer, 0, 0, 0);
+                }
+
+                ESP_LOGE(mef_bombeo_tag, "ALARMA, NO CIRCULA SOLUCIÓN POR LOS CANALES.");
+            }
         }
 
         break;

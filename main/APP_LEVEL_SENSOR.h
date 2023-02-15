@@ -41,7 +41,7 @@ extern "C" {
 #define LIMITE_SUPERIOR_RANGO_VALIDO_NIVEL_TANQUE 1
 
 /* Definición del valor límite en el cual si se está por debajo del mismo, se considera que debe rellenarse el tanque. */
-#define LIMITE_INFERIOR_ALARMA_NIVEL_TANQUE 0.1
+#define LIMITE_INFERIOR_ALARMA_NIVEL_TANQUE 0.3
 
 /* Enumeración para diferenciar los tanques de la unidad secundaria. */
 typedef enum{

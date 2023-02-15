@@ -49,6 +49,13 @@ void app_main(void)
     //=======================| INIT ALGORITMO CONTROL LUCES |=======================//
 
     app_level_sensor_init(Cliente_MQTT);
-    //aux_control_bombeo_init(Cliente_MQTT);
-    //mef_bombeo_init(Cliente_MQTT);
+    aux_control_bombeo_init(Cliente_MQTT);
+    mef_bombeo_init(Cliente_MQTT);
+
+    while(1)
+    {
+        ESP_LOGW(TAG, "TANK BELOW LIMIT: %i", app_level_sensor_level_below_limit(TANQUE_PRINCIPAL));
+        ESP_LOGW(TAG, "LEVEL SENSOR ERROR FLAG: %i", app_level_sensor_error_sensor_detected(TANQUE_PRINCIPAL));
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
 }
