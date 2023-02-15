@@ -53,7 +53,8 @@ static void CallbackNewPhSP(void *pvParameters);
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Función de callback del timer de FreeRTOS.
+ * @brief   Función de callback del timer de control de apertura y cierre de las válvulas de aumento
+ *          y disminución de pH.
  * 
  * @param pxTimer   Handle del timer para el cual se cumplió el timeout.
  */
@@ -151,14 +152,21 @@ static void CallbackGetPhData(void *pvParameters)
     /**
      *  Variable donde se guarda el retorno de la función de obtención del valor
      *  del sensor, para verificar si se ejecutó correctamente o no.
+     * 
+     *  NOTA: CON EL PROPOSITO DE DEBUG, SE PONE EL RETORNO EN ESP_OK
      */
-    esp_err_t return_status = ESP_FAIL;
+    // esp_err_t return_status = ESP_FAIL;
+    esp_err_t return_status = ESP_OK;
 
     /**
      *  Se obtiene el nuevo dato de pH de la solución nutritiva.
+     * 
+     *  NOTA: CON EL PROPOSITO DE DEBUG, SE OBTIENE EL DATO DE UN TOPICO
+     *  CREADO PARA PASARLE EL VALOR DE pH MANUALMENTE.
      */
     pH_sensor_ph_t soluc_pH;
-    return_status = pH_getValue(&soluc_pH);
+    mqtt_get_float_data_from_topic(DEBUG_PH_VALUE_TOPIC, &soluc_pH);
+    // return_status = pH_getValue(&soluc_pH);
 
     /**
      *  Se verifica que la función de obtención del valor de pH no haya retornado con error, y que el valor de pH
@@ -279,8 +287,12 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
     /**
      *  Se asigna la función callback que será llamada al completarse una medición del
      *  sensor de pH.
+     * 
+     *  NOTA: ACA SE SACA LA CONFIG DEL CALLBACK SOLO PARA EL PROPOSITO DE DEBUG,
+     *  ASI ES MAS FACIL FORZAR EL VALOR DE pH MANUALMENTE, EN VEZ DE QUE DEPENDA
+     *  DEL SENSOR.
      */
-    pH_sensor_callback_function_on_new_measurment(CallbackGetPhData);
+    // pH_sensor_callback_function_on_new_measurment(CallbackGetPhData);
 
 
     //=======================| INIT TIMERS |=======================//
@@ -316,6 +328,9 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
      *  Se inicializa el array con los tópicos MQTT a suscribirse, junto
      *  con las funciones callback correspondientes que serán ejecutadas
      *  al llegar un nuevo dato en el tópico.
+     * 
+     *  NOTA: ACA SE AGREGA UN TOPICO ADICIONAL PARA INGRESAR EL VALOR
+     *  DE pH MANUALMENTE, SOLO CON EL PROPOSITO DE DEBUG.
      */
     mqtt_topic_t list_of_topics[] = {
         [0].topic_name = NEW_PH_SP_MQTT_TOPIC,
@@ -325,13 +340,15 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
         [2].topic_name = MANUAL_MODE_VALVULA_AUM_PH_STATE_MQTT_TOPIC,
         [2].topic_function_cb = CallbackManualModeNewActuatorState,
         [3].topic_name = MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC,
-        [3].topic_function_cb = CallbackManualModeNewActuatorState
+        [3].topic_function_cb = CallbackManualModeNewActuatorState,
+        [4].topic_name = DEBUG_PH_VALUE_TOPIC,
+        [4].topic_function_cb = CallbackGetPhData
     };
 
     /**
      *  Se realiza la suscripción a los tópicos MQTT y la asignación de callbacks correspondientes.
      */
-    if(mqtt_suscribe_to_topics(list_of_topics, 4, Cliente_MQTT, 0) != ESP_OK)
+    if(mqtt_suscribe_to_topics(list_of_topics, 5, Cliente_MQTT, 0) != ESP_OK)
     {
         ESP_LOGE(aux_control_ph_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
         return ESP_FAIL;

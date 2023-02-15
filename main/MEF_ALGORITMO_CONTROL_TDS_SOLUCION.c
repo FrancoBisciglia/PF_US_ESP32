@@ -41,7 +41,7 @@ static TaskHandle_t xMefTdsAlgoritmoControlTaskHandle = NULL;
 static esp_mqtt_client_handle_t MefTdsClienteMQTT = NULL;
 
 /* Variable donde se guarda el valor de TDS de la solución sensado en ppm. */
-static TDS_sensor_ppm_t mef_tds_soluc_tds = 0;
+static TDS_sensor_ppm_t mef_tds_soluc_tds = 500;
 /* Límite inferior del rango considerado como correcto en el algoritmo de control de TDS en ppm. */
 static TDS_sensor_ppm_t mef_tds_limite_inferior_tds_soluc = 200;
 /* Límite superior del rango considerado como correcto en el algoritmo de control de TDS en ppm. */
@@ -302,7 +302,7 @@ void MEFControlTdsSoluc(void)
          *  al estado con las valvulas apagadas.
          */
         if( mef_tds_soluc_tds < (mef_tds_limite_superior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) 
-            || get_relay_state(BOMBA) 
+            || !get_relay_state(BOMBA) 
             || mef_tds_sensor_error_flag
             || app_level_sensor_level_below_limit(TANQUE_AGUA))
         {
@@ -371,6 +371,13 @@ void vTaskSolutionTdsControl(void *pvParameters)
             if(!mef_tds_manual_mode_flag)
             {
                 est_MEF_principal = ALGORITMO_CONTROL_TDS_SOLUC;
+
+                /**
+                 *  Se setea la bandera de reset de la MEF del algoritmo de control
+                 *  de TDS para resetear el estado de las valvulas y que no queden
+                 *  en el mismo en el que estaban en modo MANUAL.
+                 */
+                mef_tds_reset_transition_flag_control_tds = 1;
                 break;
             }
 
@@ -440,6 +447,12 @@ esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client)
             return ESP_FAIL;
         }
     }
+
+
+    /**
+     *  NOTA: Se deja el estado de la bomba en 1 con el proposito de debug.
+     */
+    set_relay_state(BOMBA, 1);
     
     return ESP_OK;
 }

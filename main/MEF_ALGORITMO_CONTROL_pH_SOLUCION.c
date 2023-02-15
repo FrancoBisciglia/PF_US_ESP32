@@ -41,7 +41,7 @@ static TaskHandle_t xMefPhAlgoritmoControlTaskHandle = NULL;
 static esp_mqtt_client_handle_t MefPhClienteMQTT = NULL;
 
 /* Variable donde se guarda el valor de pH de la solución sensado. */
-static pH_sensor_ph_t mef_ph_soluc_ph = 0;
+static pH_sensor_ph_t mef_ph_soluc_ph = 6;
 /* Límite inferior del rango considerado como correcto en el algoritmo de control de pH. */
 static pH_sensor_ph_t mef_ph_limite_inferior_ph_soluc = 5;
 /* Límite superior del rango considerado como correcto en el algoritmo de control de pH. */
@@ -303,7 +303,7 @@ void MEFControlPhSoluc(void)
          *  al estado con las valvulas apagadas.
          */
         if( mef_ph_soluc_ph < (mef_ph_limite_superior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) 
-            || get_relay_state(BOMBA) 
+            || !get_relay_state(BOMBA) 
             || mef_ph_sensor_error_flag
             || app_level_sensor_level_below_limit(TANQUE_ACIDO))
         {
@@ -372,6 +372,13 @@ void vTaskSolutionPhControl(void *pvParameters)
             if(!mef_ph_manual_mode_flag)
             {
                 est_MEF_principal = ALGORITMO_CONTROL_PH_SOLUC;
+
+                /**
+                 *  Se setea la bandera de reset de la MEF del algoritmo de control
+                 *  de pH para resetear el estado de las valvulas y que no queden
+                 *  en el mismo en el que estaban en modo MANUAL.
+                 */
+                mef_ph_reset_transition_flag_control_ph = 1;
                 break;
             }
 
@@ -442,6 +449,12 @@ esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
         }
     }
     
+
+    /**
+     *  NOTA: Se deja el estado de la bomba en 1 con el proposito de debug.
+     */
+    set_relay_state(BOMBA, 1);
+
     return ESP_OK;
 }
 

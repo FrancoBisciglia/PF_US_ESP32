@@ -11,9 +11,8 @@
 #include "MCP23008.h"
 #include "MQTT_PUBL_SUSCR.h"
 #include "WiFi_STA.h"
-#include "AUXILIARES_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
-#include "MEF_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
-#include "APP_LEVEL_SENSOR.h"
+#include "AUXILIARES_ALGORITMO_CONTROL_pH_SOLUCION.h"
+#include "MEF_ALGORITMO_CONTROL_pH_SOLUCION.h"
 
 
 
@@ -46,16 +45,8 @@ void app_main(void)
 
     ESP_ERROR_CHECK_WITHOUT_ABORT(MCP23008_init());
 
-    //=======================| INIT ALGORITMO CONTROL LUCES |=======================//
+    //=======================| INIT ALGORITMO CONTROL TEMP SOLUC |=======================//
 
-    app_level_sensor_init(Cliente_MQTT);
-    aux_control_bombeo_init(Cliente_MQTT);
-    mef_bombeo_init(Cliente_MQTT);
-
-    while(1)
-    {
-        ESP_LOGW(TAG, "TANK BELOW LIMIT: %i", app_level_sensor_level_below_limit(TANQUE_PRINCIPAL));
-        ESP_LOGW(TAG, "LEVEL SENSOR ERROR FLAG: %i", app_level_sensor_error_sensor_detected(TANQUE_PRINCIPAL));
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
+    aux_control_ph_init(Cliente_MQTT);
+    mef_ph_init(Cliente_MQTT);
 }

@@ -31,6 +31,8 @@ extern "C" {
 #define MANUAL_MODE_VALVULA_AUM_TDS_STATE_MQTT_TOPIC    "/TdsSoluc/Modo_Manual/Valvula_aum_tds"
 #define MANUAL_MODE_VALVULA_DISM_TDS_STATE_MQTT_TOPIC   "/TdsSoluc/Modo_Manual/Valvula_dism_tds"
 
+#define DEBUG_TDS_VALUE_TOPIC   "/TDSSoluc/Debug/TDS"
+
 /**
  *  Definición del rango de TDS de la solución considerado como válido, en ppm.
  */

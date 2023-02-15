@@ -225,8 +225,8 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          */
-        // if(mef_bombeo_timer_flow_control_flag)
-        if(0)
+        if(mef_bombeo_timer_flow_control_flag)
+        // if(0)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -296,8 +296,8 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que no se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          */
-        // if(mef_bombeo_timer_flow_control_flag)
-        if(0)
+        if(mef_bombeo_timer_flow_control_flag)
+        // if(0)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);

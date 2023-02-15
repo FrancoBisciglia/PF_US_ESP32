@@ -44,20 +44,21 @@ static TimerHandle_t xTimerValvulaTDS = NULL;
 
 //==================================| INTERNAL FUNCTIONS DECLARATION |==================================//
 
-void vTimerCallback( TimerHandle_t pxTimer );
-void CallbackManualMode(void *pvParameters);
-void CallbackManualModeNewActuatorState(void *pvParameters);
-void CallbackGetTdsData(void *pvParameters);
-void CallbackNewTdsSP(void *pvParameters);
+static void vTimerCallback( TimerHandle_t pxTimer );
+static void CallbackManualMode(void *pvParameters);
+static void CallbackManualModeNewActuatorState(void *pvParameters);
+static void CallbackGetTdsData(void *pvParameters);
+static void CallbackNewTdsSP(void *pvParameters);
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
- * @brief   Función de callback del timer de FreeRTOS.
+ * @brief   Función de callback del timer de control de apertura y cierre de las válvulas de aumento
+ *          y disminución de TDS.
  * 
  * @param pxTimer   Handle del timer para el cual se cumplió el timeout.
  */
-void vTimerCallback( TimerHandle_t pxTimer )
+static void vTimerCallback( TimerHandle_t pxTimer )
 {
     /**
      *  Esta variable sirve para que, en el caso de que un llamado a "xTaskNotifyFromISR()" desbloquee
@@ -91,7 +92,7 @@ void vTimerCallback( TimerHandle_t pxTimer )
  * 
  * @param pvParameters 
  */
-void CallbackManualMode(void *pvParameters)
+static void CallbackManualMode(void *pvParameters)
 {
     /**
      *  Se obtiene el mensaje del tópico de modo MANUAL o AUTO.
@@ -130,7 +131,7 @@ void CallbackManualMode(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void CallbackManualModeNewActuatorState(void *pvParameters)
+static void CallbackManualModeNewActuatorState(void *pvParameters)
 {
     /**
      * Se le envía un Task Notify a la tarea de la MEF de control de TDS.
@@ -146,19 +147,26 @@ void CallbackManualModeNewActuatorState(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void CallbackGetTdsData(void *pvParameters)
+static void CallbackGetTdsData(void *pvParameters)
 {
     /**
      *  Variable donde se guarda el retorno de la función de obtención del valor
      *  del sensor, para verificar si se ejecutó correctamente o no.
+     * 
+     *  NOTA: CON EL PROPOSITO DE DEBUG, SE PONE EL RETORNO EN ESP_OK
      */
-    esp_err_t return_status = ESP_FAIL;
+    // esp_err_t return_status = ESP_FAIL;
+    esp_err_t return_status = ESP_OK;
 
     /**
      *  Se obtiene el nuevo dato de TDS de la solución nutritiva.
+     * 
+     *  NOTA: CON EL PROPOSITO DE DEBUG, SE OBTIENE EL DATO DE UN TOPICO
+     *  CREADO PARA PASARLE EL VALOR DE TDS MANUALMENTE.
      */
     TDS_sensor_ppm_t soluc_tds;
-    return_status = TDS_getValue(&soluc_tds);
+    mqtt_get_float_data_from_topic(DEBUG_TDS_VALUE_TOPIC, &soluc_tds);
+    // return_status = TDS_getValue(&soluc_tds);
 
     /**
      *  Se verifica que la función de obtención del valor de TDS no haya retornado con error, y que el valor de TDS
@@ -212,7 +220,7 @@ void CallbackGetTdsData(void *pvParameters)
  * 
  * @param pvParameters 
  */
-void CallbackNewTdsSP(void *pvParameters)
+static void CallbackNewTdsSP(void *pvParameters)
 {
     /**
      *  Se obtiene el nuevo valor de SP de TDS.
@@ -279,8 +287,12 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
     /**
      *  Se asigna la función callback que será llamada al completarse una medición del
      *  sensor de TDS.
+     * 
+     *  NOTA: ACA SE SACA LA CONFIG DEL CALLBACK SOLO PARA EL PROPOSITO DE DEBUG,
+     *  ASI ES MAS FACIL FORZAR EL VALOR DE TDS MANUALMENTE, EN VEZ DE QUE DEPENDA
+     *  DEL SENSOR.
      */
-    TDS_sensor_callback_function_on_new_measurment(CallbackGetTdsData);
+    // TDS_sensor_callback_function_on_new_measurment(CallbackGetTdsData);
 
 
     //=======================| INIT TIMERS |=======================//
@@ -316,6 +328,9 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
      *  Se inicializa el array con los tópicos MQTT a suscribirse, junto
      *  con las funciones callback correspondientes que serán ejecutadas
      *  al llegar un nuevo dato en el tópico.
+     * 
+     *  NOTA: ACA SE AGREGA UN TOPICO ADICIONAL PARA INGRESAR EL VALOR
+     *  DE TDS MANUALMENTE, SOLO CON EL PROPOSITO DE DEBUG.
      */
     mqtt_topic_t list_of_topics[] = {
         [0].topic_name = "/SP/TdsSoluc",
@@ -325,13 +340,15 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
         [2].topic_name = "/TdsSoluc/Modo_Manual/Valvula_aum_tds",
         [2].topic_function_cb = CallbackManualModeNewActuatorState,
         [3].topic_name = "/TdsSoluc/Modo_Manual/Valvula_dism_tds",
-        [3].topic_function_cb = CallbackManualModeNewActuatorState
+        [3].topic_function_cb = CallbackManualModeNewActuatorState,
+        [4].topic_name = DEBUG_TDS_VALUE_TOPIC,
+        [4].topic_function_cb = CallbackGetTdsData
     };
 
     /**
      *  Se realiza la suscripción a los tópicos MQTT y la asignación de callbacks correspondientes.
      */
-    if(mqtt_suscribe_to_topics(list_of_topics, 4, Cliente_MQTT, 0) != ESP_OK)
+    if(mqtt_suscribe_to_topics(list_of_topics, 5, Cliente_MQTT, 0) != ESP_OK)
     {
         ESP_LOGE(aux_control_tds_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
         return ESP_FAIL;
