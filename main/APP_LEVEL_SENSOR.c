@@ -89,46 +89,57 @@ static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t t
  */
 static void vTaskLevelSensors(void *pvParameters)
 {
-    if(tank_control(sensor_nivel_tanque_principal, tanque_principal, SENSOR_NIVEL_TANQUE_PRINCIPAL_MQTT_TOPIC, 
-                    ALARMA_ERROR_SENSOR_NIVEL_TANQUE_PRINC, ALARMA_NIVEL_TANQUE_PRINCIPAL_BAJO, 
-                    &tanque_principal_below_limit_flag, &tanque_principal_sensor_error_flag) != ESP_OK)
+    while(1)
     {
-        ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE PRINCIPAL.");
+        if(tank_control(sensor_nivel_tanque_principal, tanque_principal, SENSOR_NIVEL_TANQUE_PRINCIPAL_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_PRINC, ALARMA_NIVEL_TANQUE_PRINCIPAL_BAJO, 
+                        &tanque_principal_below_limit_flag, &tanque_principal_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE PRINCIPAL.");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100));
+        
+
+        if(tank_control(sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
+                        &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ACIDO.");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+
+
+        if(tank_control(sensor_nivel_tanque_alcalino, tanque_alcalino, SENSOR_NIVEL_TANQUE_ALCALINO_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ALCALINO, ALARMA_NIVEL_TANQUE_ALCALINO_BAJO, 
+                        &tanque_alcalino_below_limit_flag, &tanque_alcalino_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ALCALINO.");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+
+        if(tank_control(sensor_nivel_tanque_agua, tanque_agua, SENSOR_NIVEL_TANQUE_AGUA_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_AGUA, ALARMA_NIVEL_TANQUE_AGUA_BAJO, 
+                        &tanque_agua_below_limit_flag, &tanque_agua_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE AGUA.");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
+
+
+        if(tank_control(sensor_nivel_tanque_sustrato, tanque_sustrato, SENSOR_NIVEL_TANQUE_SUSTRATO_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_NUTRIENTES, ALARMA_NIVEL_TANQUE_SUSTRATO_BAJO, 
+                        &tanque_sustrato_below_limit_flag, &tanque_sustrato_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE SUSTRATO.");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
     
-
-    // if(tank_control(sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
-    //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
-    //                 &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag) != ESP_OK)
-    // {
-    //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ACIDO.");
-    // }
-
-
-    // if(tank_control(sensor_nivel_tanque_alcalino, tanque_alcalino, SENSOR_NIVEL_TANQUE_ALCALINO_MQTT_TOPIC, 
-    //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ALCALINO, ALARMA_NIVEL_TANQUE_ALCALINO_BAJO, 
-    //                 &tanque_alcalino_below_limit_flag, &tanque_alcalino_sensor_error_flag) != ESP_OK)
-    // {
-    //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ALCALINO.");
-    // }
-
-
-    // if(tank_control(sensor_nivel_tanque_agua, tanque_agua, SENSOR_NIVEL_TANQUE_AGUA_MQTT_TOPIC, 
-    //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_AGUA, ALARMA_NIVEL_TANQUE_AGUA_BAJO, 
-    //                 &tanque_agua_below_limit_flag, &tanque_agua_sensor_error_flag) != ESP_OK)
-    // {
-    //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE AGUA.");
-    // }
-
-
-    // if(tank_control(sensor_nivel_tanque_sustrato, tanque_sustrato, SENSOR_NIVEL_TANQUE_SUSTRATO_MQTT_TOPIC, 
-    //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_NUTRIENTES, ALARMA_NIVEL_TANQUE_SUSTRATO_BAJO, 
-    //                 &tanque_sustrato_below_limit_flag, &tanque_sustrato_sensor_error_flag) != ESP_OK)
-    // {
-    //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE SUSTRATO.");
-    // }
-
-    vTaskDelay(pdMS_TO_TICKS(1000));
 }
 
 
@@ -169,6 +180,8 @@ static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t t
      *  y 1 (tanque lleno).
      */
     return_status = ultrasonic_measure_level(&level_sensor, &tank, &tank_level);
+
+    ESP_LOGI(app_level_sensor_tag, "NEW MEASUREMENT ARRIVED: %.3f", tank_level);
 
     /**
      *  Se verifica que la función de obtención del valor de nivel de líquido del tanque no haya retornado con error, y 
@@ -267,14 +280,19 @@ esp_err_t app_level_sensor_init(esp_mqtt_client_handle_t mqtt_client)
      *  Se inicializan los sensores de nivel de los 5 tanques de la unidad secundaria.
      */
     sensor_nivel_tanque_principal.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_PRINCIPAL;
+    tanque_principal.height = 20;
 
     sensor_nivel_tanque_acido.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_ACIDO;
+    tanque_acido.height = 20;
 
     sensor_nivel_tanque_alcalino.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_ALCALINO;
+    tanque_alcalino.height = 20;
 
     sensor_nivel_tanque_agua.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_AGUA;
+    tanque_agua.height = 20;
 
     sensor_nivel_tanque_sustrato.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_SUSTRATO;
+    tanque_sustrato.height = 20;
 
     ultrasonic_sensor_init(&sensor_nivel_tanque_principal);
     ultrasonic_sensor_init(&sensor_nivel_tanque_acido);

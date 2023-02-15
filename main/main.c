@@ -49,6 +49,6 @@ void app_main(void)
     //=======================| INIT ALGORITMO CONTROL LUCES |=======================//
 
     app_level_sensor_init(Cliente_MQTT);
-    aux_control_bombeo_init(Cliente_MQTT);
-    mef_bombeo_init(Cliente_MQTT);
+    //aux_control_bombeo_init(Cliente_MQTT);
+    //mef_bombeo_init(Cliente_MQTT);
 }
