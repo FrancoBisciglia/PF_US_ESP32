@@ -378,6 +378,7 @@ void vTaskSolutionTdsControl(void *pvParameters)
                  *  en el mismo en el que estaban en modo MANUAL.
                  */
                 mef_tds_reset_transition_flag_control_tds = 1;
+                
                 break;
             }
 

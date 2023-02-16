@@ -165,7 +165,7 @@ static void CallbackGetTdsData(void *pvParameters)
      *  CREADO PARA PASARLE EL VALOR DE TDS MANUALMENTE.
      */
     TDS_sensor_ppm_t soluc_tds;
-    mqtt_get_float_data_from_topic(DEBUG_TDS_VALUE_TOPIC, &soluc_tds);
+    mqtt_get_float_data_from_topic(TEST_TDS_VALUE_TOPIC, &soluc_tds);
     // return_status = TDS_getValue(&soluc_tds);
 
     /**
@@ -333,15 +333,15 @@ esp_err_t aux_control_tds_init(esp_mqtt_client_handle_t mqtt_client)
      *  DE TDS MANUALMENTE, SOLO CON EL PROPOSITO DE DEBUG.
      */
     mqtt_topic_t list_of_topics[] = {
-        [0].topic_name = "/SP/TdsSoluc",
+        [0].topic_name = NEW_TDS_SP_MQTT_TOPIC,
         [0].topic_function_cb = CallbackNewTdsSP,
-        [1].topic_name = "/TdsSoluc/Modo",
+        [1].topic_name = MANUAL_MODE_MQTT_TOPIC,
         [1].topic_function_cb = CallbackManualMode,
-        [2].topic_name = "/TdsSoluc/Modo_Manual/Valvula_aum_tds",
+        [2].topic_name = MANUAL_MODE_VALVULA_AUM_TDS_STATE_MQTT_TOPIC,
         [2].topic_function_cb = CallbackManualModeNewActuatorState,
-        [3].topic_name = "/TdsSoluc/Modo_Manual/Valvula_dism_tds",
+        [3].topic_name = MANUAL_MODE_VALVULA_DISM_TDS_STATE_MQTT_TOPIC,
         [3].topic_function_cb = CallbackManualModeNewActuatorState,
-        [4].topic_name = DEBUG_TDS_VALUE_TOPIC,
+        [4].topic_name = TEST_TDS_VALUE_TOPIC,
         [4].topic_function_cb = CallbackGetTdsData
     };
 

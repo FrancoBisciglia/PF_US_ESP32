@@ -379,6 +379,7 @@ void vTaskSolutionPhControl(void *pvParameters)
                  *  en el mismo en el que estaban en modo MANUAL.
                  */
                 mef_ph_reset_transition_flag_control_ph = 1;
+                
                 break;
             }
 
