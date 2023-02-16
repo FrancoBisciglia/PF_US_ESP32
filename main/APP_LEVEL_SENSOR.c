@@ -99,12 +99,12 @@ static void vTaskLevelSensors(void *pvParameters)
         // }
         
 
-        if(tank_control(sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
-                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
-                        &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag) != ESP_OK)
-        {
-            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ACIDO.");
-        }
+        // if(tank_control(sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
+        //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
+        //                 &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag) != ESP_OK)
+        // {
+        //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ACIDO.");
+        // }
 
 
         // if(tank_control(sensor_nivel_tanque_alcalino, tanque_alcalino, SENSOR_NIVEL_TANQUE_ALCALINO_MQTT_TOPIC, 
@@ -122,12 +122,12 @@ static void vTaskLevelSensors(void *pvParameters)
         // }
 
 
-        // if(tank_control(sensor_nivel_tanque_sustrato, tanque_sustrato, SENSOR_NIVEL_TANQUE_SUSTRATO_MQTT_TOPIC, 
-        //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_NUTRIENTES, ALARMA_NIVEL_TANQUE_SUSTRATO_BAJO, 
-        //                 &tanque_sustrato_below_limit_flag, &tanque_sustrato_sensor_error_flag) != ESP_OK)
-        // {
-        //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE SUSTRATO.");
-        // }
+        if(tank_control(sensor_nivel_tanque_sustrato, tanque_sustrato, SENSOR_NIVEL_TANQUE_SUSTRATO_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_NUTRIENTES, ALARMA_NIVEL_TANQUE_SUSTRATO_BAJO, 
+                        &tanque_sustrato_below_limit_flag, &tanque_sustrato_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE SUSTRATO.");
+        }
 
         vTaskDelay(pdMS_TO_TICKS(1000));
     }

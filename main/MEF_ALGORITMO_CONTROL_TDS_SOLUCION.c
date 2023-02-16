@@ -109,7 +109,7 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
         xTimerStop(aux_control_tds_get_timer_handle(), 0);
         mef_tds_timer_finished_flag = 0;
 
-        set_relay_state(valve_relay_num, OFF);
+        set_relay_state(valve_relay_num, OFF_TDS);
         ESP_LOGW(mef_tds_tag, "VALVULA CERRADA");
     }
 
@@ -129,7 +129,7 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
             xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_apertura_valvula_TDS), 0);
             xTimerReset(aux_control_tds_get_timer_handle(), 0);
 
-            set_relay_state(valve_relay_num, ON);
+            set_relay_state(valve_relay_num, ON_TDS);
             ESP_LOGW(mef_tds_tag, "VALVULA ABIERTA");
 
             est_MEF_control_apertura_valvula_tds = VALVULA_ABIERTA;
@@ -150,7 +150,7 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
             xTimerChangePeriod(aux_control_tds_get_timer_handle(), pdMS_TO_TICKS(mef_tds_tiempo_cierre_valvula_TDS), 0);
             xTimerReset(aux_control_tds_get_timer_handle(), 0);
 
-            set_relay_state(valve_relay_num, OFF);
+            set_relay_state(valve_relay_num, OFF_TDS);
             ESP_LOGW(mef_tds_tag, "VALVULA CERRADA");
 
             est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
@@ -454,6 +454,13 @@ esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client)
      *  NOTA: Se deja el estado de la bomba en 1 con el proposito de debug.
      */
     set_relay_state(BOMBA, 1);
+
+    /**
+     *  Se inicializan las valvulas de control de TDS en estado apagado.
+     */
+    set_relay_state(VALVULA_AUMENTO_TDS, OFF_TDS);
+    set_relay_state(VALVULA_DISMINUCION_TDS, OFF_TDS);
+    ESP_LOGW(mef_tds_tag, "VALVULAS CERRADAS");
     
     return ESP_OK;
 }

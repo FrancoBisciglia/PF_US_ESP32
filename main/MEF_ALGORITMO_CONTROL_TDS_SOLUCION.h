@@ -63,6 +63,15 @@ typedef enum {
     MODO_MANUAL,
 } estado_MEF_principal_control_tds_soluc_t;
 
+
+/**
+ *  Se definen los estados lógicos de los relés con polaridad cambiada dado
+ *  que se tuvieron que conectar las válvulas en el terminal NC en vez del
+ *  NA.
+ */
+#define OFF_TDS 1
+#define ON_TDS 0
+
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 
 /*=====================[EXTERNAL FUNCTIONS DECLARATION]=========================*/
