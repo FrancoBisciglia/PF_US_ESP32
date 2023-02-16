@@ -31,7 +31,7 @@ extern "C" {
 #define MANUAL_MODE_VALVULA_AUM_PH_STATE_MQTT_TOPIC    "/PhSoluc/Modo_Manual/Valvula_aum_ph"
 #define MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC   "/PhSoluc/Modo_Manual/Valvula_dism_ph"
 
-#define DEBUG_PH_VALUE_TOPIC   "/PhSoluc/Debug/pH"
+#define TEST_PH_VALUE_TOPIC   "/Ensayo/pH"
 
 /**
  *  Definición del rango de pH de la solución considerado como válido.

@@ -448,12 +448,6 @@ esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
             return ESP_FAIL;
         }
     }
-    
-
-    /**
-     *  NOTA: Se deja el estado de la bomba en 1 con el proposito de debug.
-     */
-    set_relay_state(BOMBA, 1);
 
     return ESP_OK;
 }

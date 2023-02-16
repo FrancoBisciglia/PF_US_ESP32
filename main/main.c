@@ -13,6 +13,7 @@
 #include "WiFi_STA.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_pH_SOLUCION.h"
 #include "MEF_ALGORITMO_CONTROL_pH_SOLUCION.h"
+#include "APP_LEVEL_SENSOR.h"
 
 
 
@@ -47,6 +48,24 @@ void app_main(void)
 
     //=======================| INIT ALGORITMO CONTROL TEMP SOLUC |=======================//
 
+    set_relay_state(BOMBA, 1);
+    // app_level_sensor_init(Cliente_MQTT);
     aux_control_ph_init(Cliente_MQTT);
     mef_ph_init(Cliente_MQTT);
+
+    while(1)
+    {
+    //     /**
+    //      *  NOTA: Se modifica el estado de la bomba para debug.
+    //      */
+    //     set_relay_state(BOMBA, 1);
+    //     vTaskDelay(pdMS_TO_TICKS(5000));
+    //     set_relay_state(BOMBA, 0);
+    //     vTaskDelay(pdMS_TO_TICKS(5000));
+
+        // ESP_LOGW(TAG, "TANK BELOW LIMIT: %i", app_level_sensor_level_below_limit(TANQUE_ACIDO));
+        // ESP_LOGW(TAG, "LEVEL SENSOR ERROR FLAG: %i", app_level_sensor_error_sensor_detected(TANQUE_ACIDO));
+        vTaskDelay(pdMS_TO_TICKS(1000));
+
+    }
 }

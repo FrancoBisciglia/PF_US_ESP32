@@ -165,8 +165,9 @@ static void CallbackGetPhData(void *pvParameters)
      *  CREADO PARA PASARLE EL VALOR DE pH MANUALMENTE.
      */
     pH_sensor_ph_t soluc_pH;
-    mqtt_get_float_data_from_topic(DEBUG_PH_VALUE_TOPIC, &soluc_pH);
-    // return_status = pH_getValue(&soluc_pH);
+    // mqtt_get_float_data_from_topic(TEST_PH_VALUE_TOPIC, &soluc_pH);
+    return_status = pH_getValue(&soluc_pH);
+    ESP_LOGI(aux_control_ph_tag, "VALOR pH: %.3f", soluc_pH);
 
     /**
      *  Se verifica que la función de obtención del valor de pH no haya retornado con error, y que el valor de pH
@@ -292,7 +293,7 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
      *  ASI ES MAS FACIL FORZAR EL VALOR DE pH MANUALMENTE, EN VEZ DE QUE DEPENDA
      *  DEL SENSOR.
      */
-    // pH_sensor_callback_function_on_new_measurment(CallbackGetPhData);
+    pH_sensor_callback_function_on_new_measurment(CallbackGetPhData);
 
 
     //=======================| INIT TIMERS |=======================//
@@ -332,6 +333,18 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
      *  NOTA: ACA SE AGREGA UN TOPICO ADICIONAL PARA INGRESAR EL VALOR
      *  DE pH MANUALMENTE, SOLO CON EL PROPOSITO DE DEBUG.
      */
+    // mqtt_topic_t list_of_topics[] = {
+    //     [0].topic_name = NEW_PH_SP_MQTT_TOPIC,
+    //     [0].topic_function_cb = CallbackNewPhSP,
+    //     [1].topic_name = MANUAL_MODE_MQTT_TOPIC,
+    //     [1].topic_function_cb = CallbackManualMode,
+    //     [2].topic_name = MANUAL_MODE_VALVULA_AUM_PH_STATE_MQTT_TOPIC,
+    //     [2].topic_function_cb = CallbackManualModeNewActuatorState,
+    //     [3].topic_name = MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC,
+    //     [3].topic_function_cb = CallbackManualModeNewActuatorState,
+    //     [4].topic_name = TEST_PH_VALUE_TOPIC,
+    //     [4].topic_function_cb = CallbackGetPhData
+    // };
     mqtt_topic_t list_of_topics[] = {
         [0].topic_name = NEW_PH_SP_MQTT_TOPIC,
         [0].topic_function_cb = CallbackNewPhSP,
@@ -341,14 +354,12 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
         [2].topic_function_cb = CallbackManualModeNewActuatorState,
         [3].topic_name = MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC,
         [3].topic_function_cb = CallbackManualModeNewActuatorState,
-        [4].topic_name = DEBUG_PH_VALUE_TOPIC,
-        [4].topic_function_cb = CallbackGetPhData
     };
 
     /**
      *  Se realiza la suscripción a los tópicos MQTT y la asignación de callbacks correspondientes.
      */
-    if(mqtt_suscribe_to_topics(list_of_topics, 5, Cliente_MQTT, 0) != ESP_OK)
+    if(mqtt_suscribe_to_topics(list_of_topics, 4, Cliente_MQTT, 0) != ESP_OK)
     {
         ESP_LOGE(aux_control_ph_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
         return ESP_FAIL;

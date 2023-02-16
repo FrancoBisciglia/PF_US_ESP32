@@ -91,20 +91,20 @@ static void vTaskLevelSensors(void *pvParameters)
 {
     while(1)
     {
-        if(tank_control(sensor_nivel_tanque_principal, tanque_principal, SENSOR_NIVEL_TANQUE_PRINCIPAL_MQTT_TOPIC, 
-                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_PRINC, ALARMA_NIVEL_TANQUE_PRINCIPAL_BAJO, 
-                        &tanque_principal_below_limit_flag, &tanque_principal_sensor_error_flag) != ESP_OK)
-        {
-            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE PRINCIPAL.");
-        }
+        // if(tank_control(sensor_nivel_tanque_principal, tanque_principal, SENSOR_NIVEL_TANQUE_PRINCIPAL_MQTT_TOPIC, 
+        //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_PRINC, ALARMA_NIVEL_TANQUE_PRINCIPAL_BAJO, 
+        //                 &tanque_principal_below_limit_flag, &tanque_principal_sensor_error_flag) != ESP_OK)
+        // {
+        //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE PRINCIPAL.");
+        // }
         
 
-        // if(tank_control(sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
-        //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
-        //                 &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag) != ESP_OK)
-        // {
-        //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ACIDO.");
-        // }
+        if(tank_control(sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
+                        &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ACIDO.");
+        }
 
 
         // if(tank_control(sensor_nivel_tanque_alcalino, tanque_alcalino, SENSOR_NIVEL_TANQUE_ALCALINO_MQTT_TOPIC, 
