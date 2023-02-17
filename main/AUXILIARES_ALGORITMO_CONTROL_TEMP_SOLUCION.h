@@ -23,13 +23,15 @@ extern "C" {
 /**
  *  Definición de los tópicos MQTT a suscribirse.
  */
-#define NEW_TEMP_SP_MQTT_TOPIC   "/SP/TempSoluc"
+#define NEW_TEMP_SP_MQTT_TOPIC   "NodeRed/Sensores de la solucion/Temperatura/SP"
 #define TEMP_SOLUC_MQTT_TOPIC    "Sensores de solucion/Temperatura"
 #define MANUAL_MODE_MQTT_TOPIC  "/TempSoluc/Modo"
 #define MANUAL_MODE_REFRIGERADOR_STATE_MQTT_TOPIC    "/TempSoluc/Modo_Manual/Refrigerador"
 #define MANUAL_MODE_CALEFACTOR_STATE_MQTT_TOPIC   "/TempSoluc/Modo_Manual/Calefactor"
 #define REFRIGERADOR_STATE_MQTT_TOPIC   "Actuadores/Refrigerador"
 #define CALEFACTOR_STATE_MQTT_TOPIC   "Actuadores/Calefactor"
+
+#define TEST_TEMP_SOLUC_VALUE_TOPIC   "/Ensayo/Temp"
 
 /**
  *  Definición del rango de temperatura de la solución considerado como válido, en °C.

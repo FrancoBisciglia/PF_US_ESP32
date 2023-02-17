@@ -149,9 +149,11 @@ esp_err_t MCP23008_init(void)
                         TAG, "Failed to write in the I/O configuration register.");
 
     /*
-        Se realiza una escritura en el MCP23008, en el registro GPIO, para inicializar todos los pines en 0.
+        Se realiza una escritura en el MCP23008, en el registro GPIO, para inicializar todos los pines en 0,
+        menos las valvulas de control de TDS, que por su logica negada, se inicializan en 1 para que esten 
+        apagadas.
     */
-    ESP_RETURN_ON_ERROR(MCP23008_register_write_byte(MCP23008_GPIO_PORT_REG_ADDR, 0x00), 
+    ESP_RETURN_ON_ERROR(MCP23008_register_write_byte(MCP23008_GPIO_PORT_REG_ADDR, 0x03), 
                         TAG, "Failed to write in the GPIO register.");
 
     return ESP_OK;

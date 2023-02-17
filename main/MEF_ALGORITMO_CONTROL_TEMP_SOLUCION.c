@@ -86,6 +86,9 @@ void MEFControlTempSoluc(void)
         set_relay_state(CALEFACTOR_SOLUC, OFF);
         set_relay_state(REFRIGERADOR_SOLUC, OFF);
 
+        ESP_LOGW(mef_temp_soluc_tag, "REFRIGERADOR APAGADO");
+        ESP_LOGW(mef_temp_soluc_tag, "CALEFACTOR APAGADO");
+
         /**
          *  Se publica el nuevo estado del refrigerador y calefactor en el tópico MQTT correspondiente.
          */
@@ -124,6 +127,8 @@ void MEFControlTempSoluc(void)
                 esp_mqtt_client_publish(MefTempSolucClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
 
+            ESP_LOGW(mef_temp_soluc_tag, "CALEFACTOR ENCENDIDO");
+
             est_MEF_control_temp_soluc = TEMP_SOLUCION_BAJA;
         }
 
@@ -144,6 +149,8 @@ void MEFControlTempSoluc(void)
                 snprintf(buffer, sizeof(buffer), "%s", "ON");
                 esp_mqtt_client_publish(MefTempSolucClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
+
+            ESP_LOGW(mef_temp_soluc_tag, "REFRIGERADOR ENCENDIDO");
 
             est_MEF_control_temp_soluc = TEMP_SOLUCION_ELEVADA;
         }
@@ -170,6 +177,8 @@ void MEFControlTempSoluc(void)
                 esp_mqtt_client_publish(MefTempSolucClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
 
+            ESP_LOGW(mef_temp_soluc_tag, "CALEFACTOR APAGADO");
+
             est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
         }
 
@@ -194,6 +203,8 @@ void MEFControlTempSoluc(void)
                 snprintf(buffer, sizeof(buffer), "%s", "OFF");
                 esp_mqtt_client_publish(MefTempSolucClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
             }
+
+            ESP_LOGW(mef_temp_soluc_tag, "REFRIGERADOR APAGADO");
 
             est_MEF_control_temp_soluc = TEMP_SOLUCION_CORRECTA;
         }
@@ -262,6 +273,13 @@ void vTaskSolutionTempControl(void *pvParameters)
             if (!mef_temp_soluc_manual_mode_flag)
             {
                 est_MEF_principal = ALGORITMO_CONTROL_TEMP_SOLUC;
+
+                /**
+                 *  Se setea la bandera de reset de la MEF de control de temperatura de solución de modo
+                 *  que se resetee el estado de los actuadores correspondientes.
+                 */
+                mef_temp_soluc_reset_transition_flag_control_temp = 1;
+
                 break;
             }
 
@@ -371,6 +389,19 @@ esp_err_t mef_temp_soluc_init(esp_mqtt_client_handle_t mqtt_client)
             return ESP_FAIL;
         }
     }
+
+
+    //=======================| INIT ESTADO ACTUADORES |=======================//
+    
+    /**
+     *  Se inicializa el estado del calefactor y refrigerador en apagado.
+     */
+    set_relay_state(CALEFACTOR_SOLUC, OFF);
+    set_relay_state(REFRIGERADOR_SOLUC, OFF);
+
+    ESP_LOGW(mef_temp_soluc_tag, "REFRIGERADOR APAGADO");
+    ESP_LOGW(mef_temp_soluc_tag, "CALEFACTOR APAGADO");
+
 
     return ESP_OK;
 }

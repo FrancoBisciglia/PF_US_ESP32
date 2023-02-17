@@ -47,9 +47,8 @@ void app_main(void)
 
     //=======================| INIT ALGORITMO CONTROL pH |=======================//
 
-    // app_level_sensor_init(Cliente_MQTT);
-    aux_control_tds_init(Cliente_MQTT);
-    mef_tds_init(Cliente_MQTT);
+    aux_control_temp_soluc_init(Cliente_MQTT);
+    mef_temp_soluc_init(Cliente_MQTT);
 
     // while(1)
     // {

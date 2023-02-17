@@ -30,8 +30,8 @@ extern "C" {
  *  NOTA: CUANDO SE SEPA BIEN QUÉ RELÉ SE ASOCIA A QUÉ ACTUADOR, MODIFICAR LOS NÚMEROS.
  */
 typedef enum actuadores_control_temp_soluc{
-    CALEFACTOR_SOLUC = RELE_5,
-    REFRIGERADOR_SOLUC = RELE_6,
+    CALEFACTOR_SOLUC = RELE_6,
+    REFRIGERADOR_SOLUC = RELE_7,
 };
 
 
