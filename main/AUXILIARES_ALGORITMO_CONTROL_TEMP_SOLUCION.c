@@ -119,8 +119,8 @@ void CallbackGetTempSolucData(void *pvParameters)
      * 
      *  NOTA: CON EL PROPOSITO DE DEBUG, SE PONE EL RETORNO EN ESP_OK
      */
-    // esp_err_t return_status = ESP_FAIL;
-    esp_err_t return_status = ESP_OK;
+    esp_err_t return_status = ESP_FAIL;
+    // esp_err_t return_status = ESP_OK;
 
     /**
      *  Se obtiene el nuevo dato de temperatura de la solución nutritiva.
@@ -129,8 +129,8 @@ void CallbackGetTempSolucData(void *pvParameters)
      *  CREADO PARA PASARLE EL VALOR DE TDS MANUALMENTE.
      */
     DS18B20_sensor_temp_t temp_soluc;
-    // return_status = DS18B20_getTemp(&temp_soluc);
-    mqtt_get_float_data_from_topic(TEST_TEMP_SOLUC_VALUE_TOPIC, &temp_soluc);
+    return_status = DS18B20_getTemp(&temp_soluc);
+    // mqtt_get_float_data_from_topic(TEST_TEMP_SOLUC_VALUE_TOPIC, &temp_soluc);
 
     /**
      *  Se verifica que la función de obtención del valor de temperatura de solución no haya retornado con error, y que el valor de 
@@ -241,12 +241,14 @@ esp_err_t aux_control_temp_soluc_init(esp_mqtt_client_handle_t mqtt_client)
     /**
      *  Se inicializa el sensor DS18B20. En caso de detectar error,
      *  se retorna con error.
+     * 
+     *  NOTA: ACA SE SACA EL INIT DEL SENSOR PARA DEBUG.
      */
-    // if(DS18B20_sensor_init(GPIO_PIN_CO2_SENSOR) != ESP_OK)
-    // {
-    //     ESP_LOGE(aux_control_temp_soluc_tag, "FAILED TO INITIALIZE DS18B20 SENSOR.");
-    //     return ESP_FAIL;
-    // }
+    if(DS18B20_sensor_init(GPIO_PIN_CO2_SENSOR) != ESP_OK)
+    {
+        ESP_LOGE(aux_control_temp_soluc_tag, "FAILED TO INITIALIZE DS18B20 SENSOR.");
+        return ESP_FAIL;
+    }
 
     /**
      *  Se asigna la función callback que será llamada al completarse una medición del
@@ -256,7 +258,7 @@ esp_err_t aux_control_temp_soluc_init(esp_mqtt_client_handle_t mqtt_client)
      *  ASI ES MAS FACIL FORZAR EL VALOR DE TEMP MANUALMENTE, EN VEZ DE QUE DEPENDA
      *  DEL SENSOR.
      */
-    // DS18B20_callback_function_on_new_measurment(CallbackGetTempSolucData);
+    DS18B20_callback_function_on_new_measurment(CallbackGetTempSolucData);
 
     //=======================| TÓPICOS MQTT |=======================//
 
@@ -268,16 +270,6 @@ esp_err_t aux_control_temp_soluc_init(esp_mqtt_client_handle_t mqtt_client)
      *  NOTA: ACA SE AGREGA UN TOPICO ADICIONAL PARA INGRESAR EL VALOR
      *  DE TDS MANUALMENTE, SOLO CON EL PROPOSITO DE DEBUG.
      */
-    // mqtt_topic_t list_of_topics[] = {
-    //     [0].topic_name = NEW_TEMP_SP_MQTT_TOPIC,
-    //     [0].topic_function_cb = CallbackNewTempSolucSP,
-    //     [1].topic_name = MANUAL_MODE_MQTT_TOPIC,
-    //     [1].topic_function_cb = CallbackManualMode,
-    //     [2].topic_name = MANUAL_MODE_REFRIGERADOR_STATE_MQTT_TOPIC,
-    //     [2].topic_function_cb = CallbackManualModeNewActuatorState,
-    //     [3].topic_name = MANUAL_MODE_CALEFACTOR_STATE_MQTT_TOPIC,
-    //     [3].topic_function_cb = CallbackManualModeNewActuatorState
-    // };
     mqtt_topic_t list_of_topics[] = {
         [0].topic_name = NEW_TEMP_SP_MQTT_TOPIC,
         [0].topic_function_cb = CallbackNewTempSolucSP,
@@ -286,15 +278,26 @@ esp_err_t aux_control_temp_soluc_init(esp_mqtt_client_handle_t mqtt_client)
         [2].topic_name = MANUAL_MODE_REFRIGERADOR_STATE_MQTT_TOPIC,
         [2].topic_function_cb = CallbackManualModeNewActuatorState,
         [3].topic_name = MANUAL_MODE_CALEFACTOR_STATE_MQTT_TOPIC,
-        [3].topic_function_cb = CallbackManualModeNewActuatorState,
-        [4].topic_name = TEST_TEMP_SOLUC_VALUE_TOPIC,
-        [4].topic_function_cb = CallbackGetTempSolucData
+        [3].topic_function_cb = CallbackManualModeNewActuatorState
     };
+    // mqtt_topic_t list_of_topics[] = {
+    //     [0].topic_name = NEW_TEMP_SP_MQTT_TOPIC,
+    //     [0].topic_function_cb = CallbackNewTempSolucSP,
+    //     [1].topic_name = MANUAL_MODE_MQTT_TOPIC,
+    //     [1].topic_function_cb = CallbackManualMode,
+    //     [2].topic_name = MANUAL_MODE_REFRIGERADOR_STATE_MQTT_TOPIC,
+    //     [2].topic_function_cb = CallbackManualModeNewActuatorState,
+    //     [3].topic_name = MANUAL_MODE_CALEFACTOR_STATE_MQTT_TOPIC,
+    //     [3].topic_function_cb = CallbackManualModeNewActuatorState,
+    //     [4].topic_name = TEST_TEMP_SOLUC_VALUE_TOPIC,
+    //     [4].topic_function_cb = CallbackGetTempSolucData
+    // };
 
     /**
      *  Se realiza la suscripción a los tópicos MQTT y la asignación de callbacks correspondientes.
      */
-    if(mqtt_suscribe_to_topics(list_of_topics, 5, Cliente_MQTT, 0) != ESP_OK)
+    // if(mqtt_suscribe_to_topics(list_of_topics, 5, Cliente_MQTT, 0) != ESP_OK)
+    if(mqtt_suscribe_to_topics(list_of_topics, 4, Cliente_MQTT, 0) != ESP_OK)
     {
         ESP_LOGE(aux_control_temp_soluc_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
         return ESP_FAIL;

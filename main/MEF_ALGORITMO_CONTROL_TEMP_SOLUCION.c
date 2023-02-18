@@ -39,7 +39,7 @@ static TaskHandle_t xMefTempSolucAlgoritmoControlTaskHandle = NULL;
 static esp_mqtt_client_handle_t MefTempSolucClienteMQTT = NULL;
 
 /* Variable donde se guarda el valor de la temperatura de la solución sensada en °C. */
-static DS18B20_sensor_temp_t mef_temp_soluc_temp = 0;
+static DS18B20_sensor_temp_t mef_temp_soluc_temp = 25;
 /* Límite inferior del rango considerado como correcto en el algoritmo de control de la temperatura de la solución en °C. */
 static DS18B20_sensor_temp_t mef_temp_soluc_limite_inferior_temp_soluc = 18;
 /* Límite superior del rango considerado como correcto en el algoritmo de control de la temperatura de la solución en °C. */
@@ -398,6 +398,17 @@ esp_err_t mef_temp_soluc_init(esp_mqtt_client_handle_t mqtt_client)
      */
     set_relay_state(CALEFACTOR_SOLUC, OFF);
     set_relay_state(REFRIGERADOR_SOLUC, OFF);
+
+    /**
+     *  Se publica el nuevo estado del refrigerador y calefactor en el tópico MQTT correspondiente.
+     */
+    if(mqtt_check_connection())
+    {
+        char buffer[10];
+        snprintf(buffer, sizeof(buffer), "%s", "OFF");
+        esp_mqtt_client_publish(MefTempSolucClienteMQTT, REFRIGERADOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+        esp_mqtt_client_publish(MefTempSolucClienteMQTT, CALEFACTOR_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+    }
 
     ESP_LOGW(mef_temp_soluc_tag, "REFRIGERADOR APAGADO");
     ESP_LOGW(mef_temp_soluc_tag, "CALEFACTOR APAGADO");
