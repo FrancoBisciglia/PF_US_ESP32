@@ -200,9 +200,9 @@ esp_err_t DHT11_getTemp(DHT11_sensor_temp_t *DHT11_temp_value_buffer)
 
 /**
  * @brief   Función para guardar en la variable pasada como argumento el valor de humedad relativa
- *          obtenido del sensor DHT11.
+ *          obtenido del sensor DHT11, en % (0-100%).
  * 
- * @param DHT11_hum_value_buffer     Variable donde se guardará el valor de humedad relativa obtenido.
+ * @param DHT11_hum_value_buffer     Variable donde se guardará el valor de humedad relativa obtenido (0-100%).
  * @return esp_err_t 
  */
 esp_err_t DHT11_getHum(DHT11_sensor_hum_t *DHT11_hum_value_buffer)

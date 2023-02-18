@@ -93,7 +93,7 @@ static void CallbackGetTempHumData(void *pvParameters)
 
     if(return_status_hum == ESP_FAIL || amb_hum < LIMITE_INFERIOR_RANGO_VALIDO_HUM_AMB || amb_hum > LIMITE_SUPERIOR_RANGO_VALIDO_HUM_AMB)
     {
-        amb_hum = ALARMA_ERROR_SENSOR_DTH11_HUM;
+        amb_hum = CODIGO_ERROR_SENSOR_DHT11_HUM_AMB;
         
         if(mqtt_check_connection())
         {

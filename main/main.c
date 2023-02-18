@@ -8,11 +8,10 @@
 
 #include "mqtt_client.h"
 
-#include "MCP23008.h"
 #include "MQTT_PUBL_SUSCR.h"
 #include "WiFi_STA.h"
-#include "AUXILIARES_ALGORITMO_CONTROL_TEMP_SOLUCION.h"
-#include "MEF_ALGORITMO_CONTROL_TEMP_SOLUCION.h"
+#include "MCP23008.h"
+#include "APP_DHT11.h"
 
 
 
@@ -22,6 +21,10 @@ const char *TAG = "MAIN";
 
 void app_main(void)
 {
+    //=======================| INIT MCP23008 |=======================//
+
+    ESP_ERROR_CHECK_WITHOUT_ABORT(MCP23008_init());
+
     //=======================| CONEXION WIFI |=======================//
 
     wifi_network_t network = {
@@ -41,12 +44,7 @@ void app_main(void)
 
     while(!mqtt_check_connection()){vTaskDelay(pdMS_TO_TICKS(100));}
 
-    //=======================| INIT MCP23008 |=======================//
+    //=======================| INIT ALGORITMO DHT11 |=======================//
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(MCP23008_init());
-
-    //=======================| INIT ALGORITMO CONTROL pH |=======================//
-
-    aux_control_temp_soluc_init(Cliente_MQTT);
-    mef_temp_soluc_init(Cliente_MQTT);
+    APP_DHT11_init(Cliente_MQTT);
 }
