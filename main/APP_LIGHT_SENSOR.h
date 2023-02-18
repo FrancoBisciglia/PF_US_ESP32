@@ -21,7 +21,10 @@ extern "C" {
 #define LUZ_AMB_MQTT_TOPIC "Sensores ambientales/Luminosidad"
 #define LUZ_AMB_STATE_MQTT_TOPIC "Actuadores/Luces"
 
-/* Definición del pin GPIO al cual está conectado el sensor DHT11. */
+/* Definición del tiempo cada el cual se controla la iluminación, en ms. */
+#define TIEMPO_CONTROL_LUCES 5000
+
+/* Definición del pin GPIO al cual está conectado el sensor de luz. */
 #define GPIO_PIN_LIGHT_SENSOR 2
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/

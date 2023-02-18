@@ -11,7 +11,7 @@
 #include "MQTT_PUBL_SUSCR.h"
 #include "WiFi_STA.h"
 #include "MCP23008.h"
-#include "APP_DHT11.h"
+#include "APP_LIGHT_SENSOR.h"
 
 
 
@@ -44,7 +44,7 @@ void app_main(void)
 
     while(!mqtt_check_connection()){vTaskDelay(pdMS_TO_TICKS(100));}
 
-    //=======================| INIT ALGORITMO DHT11 |=======================//
+    //=======================| INIT ALGORITMO SENSOR LUZ |=======================//
 
-    APP_DHT11_init(Cliente_MQTT);
+    app_light_sensor_init(Cliente_MQTT);
 }

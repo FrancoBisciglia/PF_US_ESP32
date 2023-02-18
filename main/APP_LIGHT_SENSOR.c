@@ -165,7 +165,7 @@ esp_err_t app_light_sensor_init(esp_mqtt_client_handle_t mqtt_client)
      *  al cumplirse el timeout.
      */
     xTimerControlLuces = xTimerCreate("Timer Estado Luces",       // Nombre interno que se le da al timer (no es relevante).
-                              pdMS_TO_TICKS(60000),            // Período del timer en ticks (60 seg).
+                              pdMS_TO_TICKS(TIEMPO_CONTROL_LUCES),            // Período del timer en ticks (5 seg).
                               pdTRUE,                          // pdFALSE -> El timer NO se recarga solo al cumplirse el timeout. pdTRUE -> El timer se recarga solo al cumplirse el timeout.
                               (void *)50,                        // ID de identificación del timer.
                               vLightsTimerCallback                    // Nombre de la función de callback del timer.
@@ -179,6 +179,11 @@ esp_err_t app_light_sensor_init(esp_mqtt_client_handle_t mqtt_client)
         ESP_LOGE(app_light_sensor_tag, "FAILED TO CREATE TIMER.");
         return ESP_FAIL;
     }
+
+    /**
+     *  Se inicia el timer de control de luces.
+     */
+    xTimerStart(xTimerControlLuces, 0);
 
 
     //=======================| TÓPICOS MQTT |=======================//
