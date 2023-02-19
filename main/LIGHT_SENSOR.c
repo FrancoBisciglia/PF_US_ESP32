@@ -62,8 +62,8 @@ esp_err_t light_sensor_init(light_sensor_data_pin_t light_sens_data_pin)
     pGPIOConfig.pin_bit_mask = (1ULL << light_sens_data_pin);
     /* Se define si el pin es I u O (input en este caso) */
     pGPIOConfig.mode = GPIO_MODE_DEF_INPUT;
-    /* Habilitamos o deshabilitamos la resistencia interna de pull-up (deshabilitada en este caso) */
-    pGPIOConfig.pull_up_en = GPIO_PULLUP_DISABLE;
+    /* Habilitamos o deshabilitamos la resistencia interna de pull-up (habilitada en este caso) */
+    pGPIOConfig.pull_up_en = GPIO_PULLUP_ENABLE;
     /* Habilitamos o deshabilitamos la resistencia interna de pull-down (deshabilitada en este caso) */
     pGPIOConfig.pull_down_en = GPIO_PULLDOWN_DISABLE;
     /* Definimos si habilitamos la interrupción, y si es asi, de qué tipo (deshabilitada en este caso) */
@@ -88,5 +88,5 @@ esp_err_t light_sensor_init(light_sensor_data_pin_t light_sens_data_pin)
  */
 bool light_trigger(void)
 {
-    return gpio_get_level(LIGHT_SENSOR_DATA_PIN);
+    return !gpio_get_level(LIGHT_SENSOR_DATA_PIN);
 }

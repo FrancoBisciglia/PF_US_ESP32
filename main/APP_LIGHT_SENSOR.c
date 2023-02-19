@@ -65,6 +65,8 @@ static void CallbackNewLightState(void *pvParameters);
  */
 static void vLightsTimerCallback( TimerHandle_t pxTimer )
 {
+    ESP_LOGW(app_light_sensor_tag, "LIGHTS: %i", light_trigger());
+
     /**
      *  Se controla si el estado informado de las luces es el mismo que el sensado por el sensor de luz.
      */
