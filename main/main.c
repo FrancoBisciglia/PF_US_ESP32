@@ -12,6 +12,8 @@
 #include "WiFi_STA.h"
 #include "MCP23008.h"
 #include "APP_LIGHT_SENSOR.h"
+#include "APP_CO2.h"
+#include "APP_DHT11.h"
 
 
 
@@ -47,4 +49,12 @@ void app_main(void)
     //=======================| INIT ALGORITMO SENSOR LUZ |=======================//
 
     app_light_sensor_init(Cliente_MQTT);
+
+    //=======================| INIT ALGORITMO CO2 |=======================//
+
+    APP_CO2_init(Cliente_MQTT);
+
+    //=======================| INIT ALGORITMO DHT11 |=======================//
+
+    APP_DHT11_init(Cliente_MQTT);
 }
