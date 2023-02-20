@@ -85,10 +85,6 @@ static void vTaskGetTemp(void *pvParameters)
         
         /**
          *  Se ejecuta la función callback configurada.
-         * 
-         *  NOTA: VER SI SE PUEDE MEJORAR PARA QUE SOLO VUELVA A MANDAR EL NOTIFY
-         *  SI LA TAREA A LA QUE HAY QUE NOTIFICAR LEYÓ EL ÚLTIMO DATO. ESTO PODRIA
-         *  HACERSE CON UNA SIMPLE BANDERA QUE SE ACTIVA AL LLAMAR A LA FUNCIÓN DE LEER EL DATO.
          */
         if(DS18B20Callback != NULL)
         {

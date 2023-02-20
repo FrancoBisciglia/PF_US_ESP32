@@ -29,6 +29,8 @@
 #include "ALARMAS_USUARIO.h"
 #include "APP_LEVEL_SENSOR.h"
 
+#include "DEBUG_DEFINITIONS.h"
+
 //==================================| MACROS AND TYPDEF |==================================//
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
@@ -91,43 +93,51 @@ static void vTaskLevelSensors(void *pvParameters)
 {
     while(1)
     {
-        // if(tank_control(sensor_nivel_tanque_principal, tanque_principal, SENSOR_NIVEL_TANQUE_PRINCIPAL_MQTT_TOPIC, 
-        //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_PRINC, ALARMA_NIVEL_TANQUE_PRINCIPAL_BAJO, 
-        //                 &tanque_principal_below_limit_flag, &tanque_principal_sensor_error_flag) != ESP_OK)
-        // {
-        //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE PRINCIPAL.");
-        // }
-        
-
-        // if(tank_control(sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
-        //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
-        //                 &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag) != ESP_OK)
-        // {
-        //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ACIDO.");
-        // }
+        #ifdef DEBUG_SENSOR_NIVEL_TANQUE_PRINCIPAL
+        if(tank_control(sensor_nivel_tanque_principal, tanque_principal, SENSOR_NIVEL_TANQUE_PRINCIPAL_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_PRINC, ALARMA_NIVEL_TANQUE_PRINCIPAL_BAJO, 
+                        &tanque_principal_below_limit_flag, &tanque_principal_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE PRINCIPAL.");
+        }
+        #endif
 
 
-        // if(tank_control(sensor_nivel_tanque_alcalino, tanque_alcalino, SENSOR_NIVEL_TANQUE_ALCALINO_MQTT_TOPIC, 
-        //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ALCALINO, ALARMA_NIVEL_TANQUE_ALCALINO_BAJO, 
-        //                 &tanque_alcalino_below_limit_flag, &tanque_alcalino_sensor_error_flag) != ESP_OK)
-        // {
-        //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ALCALINO.");
-        // }
+        #ifdef DEBUG_SENSOR_NIVEL_TANQUE_ACIDO
+        if(tank_control(sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
+                        &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ACIDO.");
+        }
+        #endif
 
-        // if(tank_control(sensor_nivel_tanque_agua, tanque_agua, SENSOR_NIVEL_TANQUE_AGUA_MQTT_TOPIC, 
-        //                 ALARMA_ERROR_SENSOR_NIVEL_TANQUE_AGUA, ALARMA_NIVEL_TANQUE_AGUA_BAJO, 
-        //                 &tanque_agua_below_limit_flag, &tanque_agua_sensor_error_flag) != ESP_OK)
-        // {
-        //     ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE AGUA.");
-        // }
+        #ifdef DEBUG_SENSOR_NIVEL_TANQUE_ALCALINO
+        if(tank_control(sensor_nivel_tanque_alcalino, tanque_alcalino, SENSOR_NIVEL_TANQUE_ALCALINO_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ALCALINO, ALARMA_NIVEL_TANQUE_ALCALINO_BAJO, 
+                        &tanque_alcalino_below_limit_flag, &tanque_alcalino_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ALCALINO.");
+        }
+        #endif
 
+        #ifdef DEBUG_SENSOR_NIVEL_TANQUE_AGUA
+        if(tank_control(sensor_nivel_tanque_agua, tanque_agua, SENSOR_NIVEL_TANQUE_AGUA_MQTT_TOPIC, 
+                        ALARMA_ERROR_SENSOR_NIVEL_TANQUE_AGUA, ALARMA_NIVEL_TANQUE_AGUA_BAJO, 
+                        &tanque_agua_below_limit_flag, &tanque_agua_sensor_error_flag) != ESP_OK)
+        {
+            ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE AGUA.");
+        }
+        #endif
 
+        #ifdef DEBUG_SENSOR_NIVEL_TANQUE_SUSTRATO
         if(tank_control(sensor_nivel_tanque_sustrato, tanque_sustrato, SENSOR_NIVEL_TANQUE_SUSTRATO_MQTT_TOPIC, 
                         ALARMA_ERROR_SENSOR_NIVEL_TANQUE_NUTRIENTES, ALARMA_NIVEL_TANQUE_SUSTRATO_BAJO, 
                         &tanque_sustrato_below_limit_flag, &tanque_sustrato_sensor_error_flag) != ESP_OK)
         {
             ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE SUSTRATO.");
         }
+        #endif
 
         vTaskDelay(pdMS_TO_TICKS(1000));
     }

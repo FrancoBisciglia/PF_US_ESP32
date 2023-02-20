@@ -30,7 +30,6 @@ extern "C" {
 #define MEF_BOMBEO_TIEMPO_CONTROL_SENSOR_FLUJO 5000
 
 /* Definición del pin GPIO del sensor de flujo */
-/* NOTA: LUEGO VERIFICAR SI LOS PINES ESTAN ASIGNADOS CORRECTAMENTE. */
 #define GPIO_PIN_FLOW_SENSOR 32
 
 /**

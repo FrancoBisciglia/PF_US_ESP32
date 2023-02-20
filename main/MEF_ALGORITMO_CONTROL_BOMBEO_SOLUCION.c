@@ -29,6 +29,8 @@
 #include "AUXILIARES_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
 #include "MEF_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
 
+#include "DEBUG_DEFINITIONS.h"
+
 //==================================| MACROS AND TYPDEF |==================================//
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
@@ -189,13 +191,16 @@ void MEFControlBombeoSoluc(void)
          *  del sensor de nivel se cambia al estado donde se enciende la bomba, y se carga en el timer el tiempo de 
          *  encendido de la bomba.
          */
+        #ifdef DEBUG_SENSOR_NIVEL_TANQUE_PRINCIPAL
         if( mef_bombeo_timer_finished_flag 
             && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL)
             && !app_level_sensor_error_sensor_detected(TANQUE_PRINCIPAL))
-        // if(mef_bombeo_timer_finished_flag)
+        #else
+        if(mef_bombeo_timer_finished_flag)
+        #endif
         {
             mef_bombeo_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(MIN_TO_MS * mef_bombeo_tiempo_bomba_on), 0);
+            xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(TIME_TO_MS * mef_bombeo_tiempo_bomba_on), 0);
 
             /**
              *  Se actualiza el nuevo estado de la bomba para las transiciones con historia.
@@ -225,8 +230,8 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          */
+        #ifdef DEBUG_SENSOR_FLUJO
         if(mef_bombeo_timer_flow_control_flag)
-        // if(0)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -243,6 +248,7 @@ void MEFControlBombeoSoluc(void)
                 ESP_LOGE(mef_bombeo_tag, "ALARMA, CIRCULA SOLUCIÓN POR LOS CANALES CUANDO NO DEBERÍA.");
             }
         }
+        #endif
 
         break;
 
@@ -259,13 +265,16 @@ void MEFControlBombeoSoluc(void)
          *  a la espera de la reposición. Lo mismo si se detecta error de sensado en el sensor de nivel del
          *  tanque principal.
          */
+        #ifdef DEBUG_SENSOR_NIVEL_TANQUE_PRINCIPAL
         if( mef_bombeo_timer_finished_flag
             || app_level_sensor_level_below_limit(TANQUE_PRINCIPAL)
             || app_level_sensor_error_sensor_detected(TANQUE_PRINCIPAL))
-        // if(mef_bombeo_timer_finished_flag)
+        #else
+        if(mef_bombeo_timer_finished_flag)
+        #endif
         {
             mef_bombeo_timer_finished_flag = 0;
-            xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(MIN_TO_MS * mef_bombeo_tiempo_bomba_off), 0);
+            xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(TIME_TO_MS * mef_bombeo_tiempo_bomba_off), 0);
 
             /**
              *  Se actualiza el nuevo estado de la bomba para las transiciones con historia.
@@ -296,8 +305,8 @@ void MEFControlBombeoSoluc(void)
          *  En caso de que no se detecte solución, se procede a publicar en el tópico común de alarmas el 
          *  código de alarma correspondiente a falla en la bomba de solución.
          */
+        #ifdef DEBUG_SENSOR_FLUJO
         if(mef_bombeo_timer_flow_control_flag)
-        // if(0)
         {
             mef_bombeo_timer_flow_control_flag = 0;
             xTimerChangePeriod(xTimerSensorFlujo, pdMS_TO_TICKS(mef_bombeo_tiempo_control_sensor_flujo), 0);
@@ -314,6 +323,7 @@ void MEFControlBombeoSoluc(void)
                 ESP_LOGE(mef_bombeo_tag, "ALARMA, NO CIRCULA SOLUCIÓN POR LOS CANALES.");
             }
         }
+        #endif
 
         break;
     }
@@ -532,7 +542,7 @@ esp_err_t mef_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
     /**
      *  Se inicia el timer de control de la bomba.
      */
-    xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(MIN_TO_MS * mef_bombeo_tiempo_bomba_off), 0);
+    xTimerChangePeriod(aux_control_bombeo_get_timer_handle(), pdMS_TO_TICKS(TIME_TO_MS * mef_bombeo_tiempo_bomba_off), 0);
     
     return ESP_OK;
 }

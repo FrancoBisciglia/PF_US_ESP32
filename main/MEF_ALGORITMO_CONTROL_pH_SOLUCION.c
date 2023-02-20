@@ -450,6 +450,19 @@ esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
         }
     }
 
+    //=======================| INIT ACTUADORES |=======================//
+
+    #ifdef DEBUG_FORZAR_BOMBA
+    set_relay_state(BOMBA, 1);
+    #endif
+
+    /**
+     *  Se inicializan las valvulas de control de pH en estado apagado.
+     */
+    set_relay_state(VALVULA_AUMENTO_PH, OFF);
+    set_relay_state(VALVULA_DISMINUCION_PH, OFF);
+    ESP_LOGW(mef_tds_tag, "VALVULAS CERRADAS");
+
     return ESP_OK;
 }
 

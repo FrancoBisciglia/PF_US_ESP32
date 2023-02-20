@@ -449,11 +449,11 @@ esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client)
         }
     }
 
+    //=======================| INIT ACTUADORES |=======================//
 
-    /**
-     *  NOTA: Se deja el estado de la bomba en 1 con el proposito de debug.
-     */
+    #ifdef DEBUG_FORZAR_BOMBA
     set_relay_state(BOMBA, 1);
+    #endif
 
     /**
      *  Se inicializan las valvulas de control de TDS en estado apagado.

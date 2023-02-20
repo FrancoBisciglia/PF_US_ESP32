@@ -19,6 +19,8 @@ extern "C" {
 #include "freertos/timers.h"
 #include "mqtt_client.h"
 
+#include "DEBUG_DEFINITIONS.h"
+
 /*============================[DEFINES AND MACROS]=====================================*/
 
 /**
@@ -39,8 +41,12 @@ extern "C" {
  *  => 1 min = 60*1000 = 60000 ms
  * 
  */
-//#define MIN_TO_MS 3600000
-#define MIN_TO_MS 1000
+#ifdef DEBUG_CONSTANTE_CONVERSION_TIEMPO_BOMBEO
+#define TIME_TO_MS 1000
+
+#else
+#define TIME_TO_MS 60000
+#endif
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/
 
