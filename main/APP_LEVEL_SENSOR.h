@@ -19,7 +19,7 @@ extern "C" {
  *  Definición de los tópicos MQTT a suscribirse o publicar.
  */
 #define SENSOR_NIVEL_TANQUE_PRINCIPAL_MQTT_TOPIC "Sensores de nivel/Tanque principal"
-#define SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC "Sensores de nivel/Tanque ácido"
+#define SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC "Sensores de nivel/Tanque acido"
 #define SENSOR_NIVEL_TANQUE_ALCALINO_MQTT_TOPIC "Sensores de nivel/Tanque alcalino"
 #define SENSOR_NIVEL_TANQUE_AGUA_MQTT_TOPIC "Sensores de nivel/Tanque agua"
 #define SENSOR_NIVEL_TANQUE_SUSTRATO_MQTT_TOPIC "Sensores de nivel/Tanque sustrato"
