@@ -16,6 +16,22 @@ extern "C" {
 /*============================[DEFINES AND MACROS]=====================================*/
 
 /**
+ *  Constantes de debug para seleccionar qué algoritmos de control se van a utilizar.
+ * 
+ *  FILES: 
+ *  -main.c
+ *        
+ */
+#define DEBUG_ALGORITMO_SENSOR_LUZ 1
+#define DEBUG_ALGORITMO_CO2 1
+#define DEBUG_ALGORITMO_DHT11 1
+#define DEBUG_ALGORITMO_SENSORES_NIVEL 1
+#define DEBUG_ALGORITMO_CONTROL_BOMBEO_SOLUCION 1
+#define DEBUG_ALGORITMO_CONTROL_PH 1
+#define DEBUG_ALGORITMO_CONTROL_TDS 1
+#define DEBUG_ALGORITMO_CONTROL_TEMPERATURA_SOLUCION 1
+
+/**
  *  Constantes de debug para seleccionar qué sensores se van a utilizar.
  * 
  *  FILES: 
