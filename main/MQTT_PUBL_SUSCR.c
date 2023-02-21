@@ -255,7 +255,8 @@ esp_err_t mqtt_initialize_and_connect(char* MQTT_BROKER_URI, esp_mqtt_client_han
 /**
  * @brief Función para verificar si ya se estableció la conexión con el broker MQTT.
  * 
- * @return bool 
+ * @return -0 -> No hay conexion con el broker MQTT.
+ *         -1 -> Hay conexion con el broker MQTT. 
  */
 bool mqtt_check_connection()
 {

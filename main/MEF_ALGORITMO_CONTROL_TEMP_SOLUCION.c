@@ -269,10 +269,15 @@ void vTaskSolutionTempControl(void *pvParameters)
              *  En caso de que se baje la bandera de modo MANUAL, se debe transicionar nuevamente al estado
              *  de modo AUTOMATICO, en donde se controla la temperatura de la solución a partir de los
              *  valores del sensor de temperatura sumergible y el calefactor y refrigerador.
+             * 
+             *  Además, en caso de que se produzca una desconexión del broker MQTT, se vuelve también
+             *  al modo AUTOMATICO, y se limpia la bandera de modo MANUAL.
              */
-            if (!mef_temp_soluc_manual_mode_flag)
+            if (!mef_temp_soluc_manual_mode_flag || !mqtt_check_connection())
             {
                 est_MEF_principal = ALGORITMO_CONTROL_TEMP_SOLUC;
+
+                mef_temp_soluc_manual_mode_flag = 0;
 
                 /**
                  *  Se setea la bandera de reset de la MEF de control de temperatura de solución de modo

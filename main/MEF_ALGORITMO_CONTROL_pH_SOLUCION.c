@@ -368,10 +368,15 @@ void vTaskSolutionPhControl(void *pvParameters)
              *  En caso de que se baje la bandera de modo MANUAL, se debe transicionar nuevamente al estado
              *  de modo AUTOMATICO, en donde se controla el nivel de pH de la solución a partir de los
              *  valores del sensor de pH y las válvulas de control de pH.
+             * 
+             *  Además, en caso de que se produzca una desconexión del broker MQTT, se vuelve también
+             *  al modo AUTOMATICO, y se limpia la bandera de modo MANUAL.
              */
-            if(!mef_ph_manual_mode_flag)
+            if(!mef_ph_manual_mode_flag || !mqtt_check_connection())
             {
                 est_MEF_principal = ALGORITMO_CONTROL_PH_SOLUC;
+
+                mef_ph_manual_mode_flag = 0;
 
                 /**
                  *  Se setea la bandera de reset de la MEF del algoritmo de control
