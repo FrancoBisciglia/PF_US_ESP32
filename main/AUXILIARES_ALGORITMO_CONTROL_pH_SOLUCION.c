@@ -164,10 +164,11 @@ static void CallbackGetPhData(void *pvParameters)
     /**
      *  Se obtiene el nuevo dato de pH de la solución nutritiva.
      */
+    pH_sensor_ph_t soluc_pH;
+
     #ifdef DEBUG_FORZAR_VALORES_SENSORES_ALGORITMO_CONTROL_PH
     mqtt_get_float_data_from_topic(TEST_PH_VALUE_TOPIC, &soluc_pH);
     #else
-    pH_sensor_ph_t soluc_pH;
     return_status = pH_getValue(&soluc_pH);
     #endif
     ESP_LOGI(aux_control_ph_tag, "VALOR pH: %.3f", soluc_pH);
@@ -342,7 +343,7 @@ esp_err_t aux_control_ph_init(esp_mqtt_client_handle_t mqtt_client)
         [3].topic_name = MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC,
         [3].topic_function_cb = CallbackManualModeNewActuatorState,
         [4].topic_name = TEST_PH_VALUE_TOPIC,
-        [4].topic_function_cb = CallbackGetPhData
+        [4].topic_function_cb = CallbackGetPhData,
     };
 
     /**

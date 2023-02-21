@@ -31,7 +31,7 @@ extern "C" {
 typedef enum actuadores_control_tds_soluc{
     VALVULA_AUMENTO_TDS = RELE_1,
     VALVULA_DISMINUCION_TDS = RELE_2,
-    BOMBA = RELE_7,
+    TDS_BOMBA = RELE_7,
 };
 
 
@@ -40,8 +40,8 @@ typedef enum actuadores_control_tds_soluc{
  *  de las válvulas de control de TDS.
  */
 typedef enum {
-    VALVULA_CERRADA = 0,
-    VALVULA_ABIERTA,
+    TDS_VALVULA_CERRADA = 0,
+    TDS_VALVULA_ABIERTA,
 } estado_MEF_control_apertura_valvulas_tds_t;
 
 
@@ -60,7 +60,7 @@ typedef enum {
  */
 typedef enum {
     ALGORITMO_CONTROL_TDS_SOLUC = 0,
-    MODO_MANUAL,
+    TDS_MODO_MANUAL,
 } estado_MEF_principal_control_tds_soluc_t;
 
 

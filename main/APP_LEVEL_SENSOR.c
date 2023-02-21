@@ -79,7 +79,13 @@ static bool tanque_sustrato_sensor_error_flag = 0;
 static void vTaskLevelSensors(void *pvParameters);
 static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t tank, char *mqtt_publ_topic, 
                                 alarms_t mqtt_sensor_error_alarm, alarms_t mqtt_below_limit_alarm,
-                                bool *below_limit_tank_flag, bool *sensor_error_flag);
+                                bool *below_limit_tank_flag, bool *sensor_error_flag,
+                                char *test_sensor_value_topic);
+static void CallbackGetLevelTanquePrincipal(void *pvParameters);
+static void CallbackGetLevelTanqueAcido(void *pvParameters);
+static void CallbackGetLevelTanqueAlcalino(void *pvParameters);
+static void CallbackGetLevelTanqueAgua(void *pvParameters);
+static void CallbackGetLevelTanqueSustrato(void *pvParameters);                                
 
 //==================================| INTERNAL FUNCTIONS DEFINITION |==================================//
 
@@ -96,7 +102,7 @@ static void vTaskLevelSensors(void *pvParameters)
         #ifdef DEBUG_SENSOR_NIVEL_TANQUE_PRINCIPAL
         if(tank_control(sensor_nivel_tanque_principal, tanque_principal, SENSOR_NIVEL_TANQUE_PRINCIPAL_MQTT_TOPIC, 
                         ALARMA_ERROR_SENSOR_NIVEL_TANQUE_PRINC, ALARMA_NIVEL_TANQUE_PRINCIPAL_BAJO, 
-                        &tanque_principal_below_limit_flag, &tanque_principal_sensor_error_flag) != ESP_OK)
+                        &tanque_principal_below_limit_flag, &tanque_principal_sensor_error_flag, NULL) != ESP_OK)
         {
             ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE PRINCIPAL.");
         }
@@ -106,7 +112,7 @@ static void vTaskLevelSensors(void *pvParameters)
         #ifdef DEBUG_SENSOR_NIVEL_TANQUE_ACIDO
         if(tank_control(sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
                         ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
-                        &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag) != ESP_OK)
+                        &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag, NULL) != ESP_OK)
         {
             ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ACIDO.");
         }
@@ -115,7 +121,7 @@ static void vTaskLevelSensors(void *pvParameters)
         #ifdef DEBUG_SENSOR_NIVEL_TANQUE_ALCALINO
         if(tank_control(sensor_nivel_tanque_alcalino, tanque_alcalino, SENSOR_NIVEL_TANQUE_ALCALINO_MQTT_TOPIC, 
                         ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ALCALINO, ALARMA_NIVEL_TANQUE_ALCALINO_BAJO, 
-                        &tanque_alcalino_below_limit_flag, &tanque_alcalino_sensor_error_flag) != ESP_OK)
+                        &tanque_alcalino_below_limit_flag, &tanque_alcalino_sensor_error_flag, NULL) != ESP_OK)
         {
             ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE ALCALINO.");
         }
@@ -124,7 +130,7 @@ static void vTaskLevelSensors(void *pvParameters)
         #ifdef DEBUG_SENSOR_NIVEL_TANQUE_AGUA
         if(tank_control(sensor_nivel_tanque_agua, tanque_agua, SENSOR_NIVEL_TANQUE_AGUA_MQTT_TOPIC, 
                         ALARMA_ERROR_SENSOR_NIVEL_TANQUE_AGUA, ALARMA_NIVEL_TANQUE_AGUA_BAJO, 
-                        &tanque_agua_below_limit_flag, &tanque_agua_sensor_error_flag) != ESP_OK)
+                        &tanque_agua_below_limit_flag, &tanque_agua_sensor_error_flag, NULL) != ESP_OK)
         {
             ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE AGUA.");
         }
@@ -133,7 +139,7 @@ static void vTaskLevelSensors(void *pvParameters)
         #ifdef DEBUG_SENSOR_NIVEL_TANQUE_SUSTRATO
         if(tank_control(sensor_nivel_tanque_sustrato, tanque_sustrato, SENSOR_NIVEL_TANQUE_SUSTRATO_MQTT_TOPIC, 
                         ALARMA_ERROR_SENSOR_NIVEL_TANQUE_NUTRIENTES, ALARMA_NIVEL_TANQUE_SUSTRATO_BAJO, 
-                        &tanque_sustrato_below_limit_flag, &tanque_sustrato_sensor_error_flag) != ESP_OK)
+                        &tanque_sustrato_below_limit_flag, &tanque_sustrato_sensor_error_flag, NULL) != ESP_OK)
         {
             ESP_LOGE(app_level_sensor_tag, "ERROR EN TANQUE SUSTRATO.");
         }
@@ -163,25 +169,35 @@ static void vTaskLevelSensors(void *pvParameters)
  * @param mqtt_below_limit_alarm    Alarma correspondiente a nivel del tanque menor que el límite establecido (ver ALARMAS_USUARIO.h).
  * @param below_limit_tank_flag     Bandera que determina si el nivel del tanque está por debajo del límite establecido o no.
  * @param sensor_error_flag         Bandera para determinar si hubo error de sensado del sensor de nivel del tanque o no.
+ * @param test_sensor_value_topic   Tópico del cual se simula obtener el dato del sensor de nivel cuando está configurada la opción de forzar valor del sensor.
  * 
  * @return esp_err_t 
  */
 static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t tank, char *mqtt_publ_topic, 
                                 alarms_t mqtt_sensor_error_alarm, alarms_t mqtt_below_limit_alarm,
-                                bool *below_limit_tank_flag, bool *sensor_error_flag)
+                                bool *below_limit_tank_flag, bool *sensor_error_flag,
+                                char *test_sensor_value_topic)
 {
     *sensor_error_flag = 0;
     *below_limit_tank_flag = 0;
 
-    float tank_level = 0;
-
+    #ifndef DEBUG_FORZAR_VALORES_SENSORES_APP_LEVEL_SENSOR
     esp_err_t return_status = ESP_FAIL;
+    #else
+    esp_err_t return_status = ESP_OK;
+    #endif
 
     /**
      *  Se obtiene el nivel del tanque correspondiente, como un valor entre 0 (tanque vacio)
      *  y 1 (tanque lleno).
      */
+    float tank_level = 1;
+
+    #ifndef DEBUG_FORZAR_VALORES_SENSORES_APP_LEVEL_SENSOR
     return_status = ultrasonic_measure_level(&level_sensor, &tank, &tank_level);
+    #else
+    mqtt_get_float_data_from_topic(test_sensor_value_topic, &tank_level);
+    #endif
 
     ESP_LOGI(app_level_sensor_tag, "NEW MEASUREMENT ARRIVED: %.3f", tank_level);
 
@@ -248,6 +264,86 @@ static esp_err_t tank_control(  ultrasonic_sens_t level_sensor, storage_tank_t t
 
 
 
+/**
+ *  @brief  Función de callback que se ejecuta cuando llega un mensaje al tópico MQTT
+ *          correspondiente con un nuevo valor nivel en el caso en el cual se desea
+ *          forzar el valor de sensado vía tópico MQTT.
+ * 
+ * @param pvParameters 
+ */
+static void CallbackGetLevelTanquePrincipal(void *pvParameters)
+{
+    tank_control(   sensor_nivel_tanque_principal, tanque_principal, SENSOR_NIVEL_TANQUE_PRINCIPAL_MQTT_TOPIC, 
+                    ALARMA_ERROR_SENSOR_NIVEL_TANQUE_PRINC, ALARMA_NIVEL_TANQUE_PRINCIPAL_BAJO, 
+                    &tanque_principal_below_limit_flag, &tanque_principal_sensor_error_flag, TEST_LEVEL_TANQUE_PRINCIPAL_TOPIC);
+}
+
+
+
+/**
+ *  @brief  Función de callback que se ejecuta cuando llega un mensaje al tópico MQTT
+ *          correspondiente con un nuevo valor nivel en el caso en el cual se desea
+ *          forzar el valor de sensado vía tópico MQTT.
+ * 
+ * @param pvParameters 
+ */
+static void CallbackGetLevelTanqueAcido(void *pvParameters)
+{
+    tank_control(   sensor_nivel_tanque_acido, tanque_acido, SENSOR_NIVEL_TANQUE_ACIDO_MQTT_TOPIC, 
+                    ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ACIDO, ALARMA_NIVEL_TANQUE_ACIDO_BAJO, 
+                    &tanque_acido_below_limit_flag, &tanque_acido_sensor_error_flag, TEST_LEVEL_TANQUE_ACIDO_TOPIC);
+}
+
+
+
+/**
+ *  @brief  Función de callback que se ejecuta cuando llega un mensaje al tópico MQTT
+ *          correspondiente con un nuevo valor nivel en el caso en el cual se desea
+ *          forzar el valor de sensado vía tópico MQTT.
+ * 
+ * @param pvParameters 
+ */
+static void CallbackGetLevelTanqueAlcalino(void *pvParameters)
+{
+    tank_control(   sensor_nivel_tanque_alcalino, tanque_alcalino, SENSOR_NIVEL_TANQUE_ALCALINO_MQTT_TOPIC, 
+                    ALARMA_ERROR_SENSOR_NIVEL_TANQUE_ALCALINO, ALARMA_NIVEL_TANQUE_ALCALINO_BAJO, 
+                    &tanque_alcalino_below_limit_flag, &tanque_alcalino_sensor_error_flag, TEST_LEVEL_TANQUE_ALCALINO_TOPIC);
+}
+
+
+
+/**
+ *  @brief  Función de callback que se ejecuta cuando llega un mensaje al tópico MQTT
+ *          correspondiente con un nuevo valor nivel en el caso en el cual se desea
+ *          forzar el valor de sensado vía tópico MQTT.
+ * 
+ * @param pvParameters 
+ */
+static void CallbackGetLevelTanqueAgua(void *pvParameters)
+{
+    tank_control(   sensor_nivel_tanque_agua, tanque_agua, SENSOR_NIVEL_TANQUE_AGUA_MQTT_TOPIC, 
+                    ALARMA_ERROR_SENSOR_NIVEL_TANQUE_AGUA, ALARMA_NIVEL_TANQUE_AGUA_BAJO, 
+                    &tanque_agua_below_limit_flag, &tanque_agua_sensor_error_flag, TEST_LEVEL_TANQUE_AGUA_TOPIC);
+}
+
+
+
+/**
+ *  @brief  Función de callback que se ejecuta cuando llega un mensaje al tópico MQTT
+ *          correspondiente con un nuevo valor nivel en el caso en el cual se desea
+ *          forzar el valor de sensado vía tópico MQTT.
+ * 
+ * @param pvParameters 
+ */
+static void CallbackGetLevelTanqueSustrato(void *pvParameters)
+{
+    tank_control(   sensor_nivel_tanque_sustrato, tanque_sustrato, SENSOR_NIVEL_TANQUE_SUSTRATO_MQTT_TOPIC, 
+                    ALARMA_ERROR_SENSOR_NIVEL_TANQUE_NUTRIENTES, ALARMA_NIVEL_TANQUE_SUSTRATO_BAJO, 
+                    &tanque_sustrato_below_limit_flag, &tanque_sustrato_sensor_error_flag, TEST_LEVEL_TANQUE_SUSTRATO_TOPIC);
+}
+
+
+
 //==================================| EXTERNAL FUNCTIONS DEFINITION |==================================//
 
 /**
@@ -305,6 +401,7 @@ esp_err_t app_level_sensor_init(esp_mqtt_client_handle_t mqtt_client)
 
     //=======================| CREACION TAREAS |=======================//
     
+    #ifndef DEBUG_FORZAR_VALORES_SENSORES_APP_LEVEL_SENSOR
     /**
      *  Se crea la tarea mediante la cual se controla el nivel de líquido 
      *  de los 5 tanques de la unidad secundaria.
@@ -328,7 +425,43 @@ esp_err_t app_level_sensor_init(esp_mqtt_client_handle_t mqtt_client)
             return ESP_FAIL;
         }
     }
-    
+    #endif
+
+
+    //=======================| TÓPICOS MQTT |=======================//
+
+    /**
+     *  Se inicializa el array con los tópicos MQTT a suscribirse, junto
+     *  con las funciones callback correspondientes que serán ejecutadas
+     *  al llegar un nuevo dato en el tópico.
+     * 
+     *  Esto solo en el caso en el que se configure el forzado de valores
+     *  de sensado para los sensores de nivel.
+     */
+    #ifdef DEBUG_FORZAR_VALORES_SENSORES_APP_LEVEL_SENSOR
+    mqtt_topic_t list_of_topics[] = {
+        [0].topic_name = TEST_LEVEL_TANQUE_PRINCIPAL_TOPIC,
+        [0].topic_function_cb = CallbackGetLevelTanquePrincipal,
+        [1].topic_name = TEST_LEVEL_TANQUE_ACIDO_TOPIC,
+        [1].topic_function_cb = CallbackGetLevelTanqueAcido,
+        [2].topic_name = TEST_LEVEL_TANQUE_ALCALINO_TOPIC,
+        [2].topic_function_cb = CallbackGetLevelTanqueAlcalino,
+        [3].topic_name = TEST_LEVEL_TANQUE_AGUA_TOPIC,
+        [3].topic_function_cb = CallbackGetLevelTanqueAgua,
+        [4].topic_name = TEST_LEVEL_TANQUE_SUSTRATO_TOPIC,
+        [4].topic_function_cb = CallbackGetLevelTanqueSustrato,
+    };
+
+    /**
+     *  Se realiza la suscripción a los tópicos MQTT y la asignación de callbacks correspondientes.
+     */
+    if(mqtt_suscribe_to_topics(list_of_topics, 5, Cliente_MQTT, 0) != ESP_OK)
+    {
+        ESP_LOGE(app_level_sensor_tag, "FAILED TO SUSCRIBE TO MQTT TOPICS.");
+        return ESP_FAIL;
+    }
+    #endif
+
     return ESP_OK;
 }
 

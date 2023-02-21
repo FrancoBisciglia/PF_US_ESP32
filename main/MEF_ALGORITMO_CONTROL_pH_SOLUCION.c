@@ -95,7 +95,7 @@ void MEFControlAperturaValvulaPh(int8_t valve_relay_num)
     /**
      * Variable que representa el estado de la MEF de control de las válvulas.
      */
-    static estado_MEF_control_apertura_valvulas_pH_t est_MEF_control_apertura_valvula_ph = VALVULA_CERRADA;
+    static estado_MEF_control_apertura_valvulas_pH_t est_MEF_control_apertura_valvula_ph = PH_VALVULA_CERRADA;
 
     /**
      *  Se controla si se debe hacer una transición con reset, caso en el cual se vuelve al estado
@@ -103,7 +103,7 @@ void MEFControlAperturaValvulaPh(int8_t valve_relay_num)
      */
     if(mef_ph_reset_transition_flag_valvula_ph)
     {
-        est_MEF_control_apertura_valvula_ph = VALVULA_CERRADA;
+        est_MEF_control_apertura_valvula_ph = PH_VALVULA_CERRADA;
 
         mef_ph_reset_transition_flag_valvula_ph = 0;
 
@@ -118,7 +118,7 @@ void MEFControlAperturaValvulaPh(int8_t valve_relay_num)
     switch(est_MEF_control_apertura_valvula_ph)
     {
         
-    case VALVULA_CERRADA:
+    case PH_VALVULA_CERRADA:
 
         /**
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
@@ -133,13 +133,13 @@ void MEFControlAperturaValvulaPh(int8_t valve_relay_num)
             set_relay_state(valve_relay_num, ON);
             ESP_LOGW(mef_pH_tag, "VALVULA ABIERTA");
 
-            est_MEF_control_apertura_valvula_ph = VALVULA_ABIERTA;
+            est_MEF_control_apertura_valvula_ph = PH_VALVULA_ABIERTA;
         }
 
         break;
 
 
-    case VALVULA_ABIERTA:
+    case PH_VALVULA_ABIERTA:
 
         /**
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
@@ -154,7 +154,7 @@ void MEFControlAperturaValvulaPh(int8_t valve_relay_num)
             set_relay_state(valve_relay_num, OFF);
             ESP_LOGW(mef_pH_tag, "VALVULA CERRADA");
 
-            est_MEF_control_apertura_valvula_ph = VALVULA_CERRADA;
+            est_MEF_control_apertura_valvula_ph = PH_VALVULA_CERRADA;
         }
 
         break;
@@ -215,7 +215,7 @@ void MEFControlPhSoluc(void)
          *  Además, el nivel del tanque alcalino no debe estar por debajo de un cierto límite establecido.
          */
         if( mef_ph_soluc_ph < (mef_ph_limite_inferior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) 
-            && get_relay_state(BOMBA) 
+            && get_relay_state(PH_BOMBA) 
             && !mef_ph_sensor_error_flag
             && !app_level_sensor_level_below_limit(TANQUE_ALCALINO))
         {
@@ -242,7 +242,7 @@ void MEFControlPhSoluc(void)
          *  Además, el nivel del tanque acido no debe estar por debajo de un cierto límite establecido.
          */
         if( mef_ph_soluc_ph > (mef_ph_limite_superior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) 
-            && get_relay_state(BOMBA) 
+            && get_relay_state(PH_BOMBA) 
             && !mef_ph_sensor_error_flag
             && !app_level_sensor_level_below_limit(TANQUE_ACIDO))
         {
@@ -264,7 +264,7 @@ void MEFControlPhSoluc(void)
          *  Cuando el nivel de pH sobrepase el límite superior de la ventana de histeresis centrada en el límite inferior
          *  del rango de pH correcto, se transiciona al estado con las válvulas cerrada. 
          * 
-         *  Además, si en algún momento se apaga la bomba, también se transiciona a dicho estado, ya que el sensor de pH 
+         *  Además, si en algún momento se apaga la PH_BOMBA, también se transiciona a dicho estado, ya que el sensor de pH 
          *  está ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de pH cuando circula 
          *  solución por el mismo. 
          * 
@@ -274,7 +274,7 @@ void MEFControlPhSoluc(void)
          *  al estado con las valvulas apagadas.
          */
         if( mef_ph_soluc_ph > (mef_ph_limite_inferior_ph_soluc + (mef_ph_ancho_ventana_hist / 2)) 
-            || !get_relay_state(BOMBA) 
+            || !get_relay_state(PH_BOMBA) 
             || mef_ph_sensor_error_flag
             || app_level_sensor_level_below_limit(TANQUE_ALCALINO))
         {
@@ -293,7 +293,7 @@ void MEFControlPhSoluc(void)
          *  Cuando el nivel de pH caiga por debajo del límite inferior de la ventana de histeresis centrada en el límite 
          *  superior del rango de pH correcto, se transiciona al estado con las válvulas cerrada. 
          * 
-         *  Además, si en algún momento se apaga la bomba, también se transiciona a dicho estado, ya que el sensor de pH 
+         *  Además, si en algún momento se apaga la PH_BOMBA, también se transiciona a dicho estado, ya que el sensor de pH 
          *  está ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de pH cuando circula 
          *  solución por el mismo. 
          * 
@@ -303,7 +303,7 @@ void MEFControlPhSoluc(void)
          *  al estado con las valvulas apagadas.
          */
         if( mef_ph_soluc_ph < (mef_ph_limite_superior_ph_soluc - (mef_ph_ancho_ventana_hist / 2)) 
-            || !get_relay_state(BOMBA) 
+            || !get_relay_state(PH_BOMBA) 
             || mef_ph_sensor_error_flag
             || app_level_sensor_level_below_limit(TANQUE_ACIDO))
         {
@@ -353,7 +353,7 @@ void vTaskSolutionPhControl(void *pvParameters)
              */
             if(mef_ph_manual_mode_flag)
             {
-                est_MEF_principal = MODO_MANUAL;
+                est_MEF_principal = PH_MODO_MANUAL;
                 mef_ph_reset_transition_flag_control_ph = 1;
             }
 
@@ -362,7 +362,7 @@ void vTaskSolutionPhControl(void *pvParameters)
             break;
 
 
-        case MODO_MANUAL:
+        case PH_MODO_MANUAL:
 
             /**
              *  En caso de que se baje la bandera de modo MANUAL, se debe transicionar nuevamente al estado
@@ -458,7 +458,7 @@ esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
     //=======================| INIT ACTUADORES |=======================//
 
     #ifdef DEBUG_FORZAR_BOMBA
-    set_relay_state(BOMBA, 1);
+    set_relay_state(PH_BOMBA, 1);
     #endif
 
     /**
@@ -466,7 +466,7 @@ esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
      */
     set_relay_state(VALVULA_AUMENTO_PH, OFF);
     set_relay_state(VALVULA_DISMINUCION_PH, OFF);
-    ESP_LOGW(mef_tds_tag, "VALVULAS CERRADAS");
+    ESP_LOGW(mef_pH_tag, "VALVULAS CERRADAS");
 
     return ESP_OK;
 }

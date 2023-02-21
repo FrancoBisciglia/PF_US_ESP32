@@ -255,7 +255,7 @@ void vTaskSolutionTempControl(void *pvParameters)
              */
             if (mef_temp_soluc_manual_mode_flag)
             {
-                est_MEF_principal = MODO_MANUAL;
+                est_MEF_principal = TEMP_SOLUC_MODO_MANUAL;
                 mef_temp_soluc_reset_transition_flag_control_temp = 1;
             }
 
@@ -263,7 +263,7 @@ void vTaskSolutionTempControl(void *pvParameters)
 
             break;
 
-        case MODO_MANUAL:
+        case TEMP_SOLUC_MODO_MANUAL:
 
             /**
              *  En caso de que se baje la bandera de modo MANUAL, se debe transicionar nuevamente al estado

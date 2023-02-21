@@ -51,7 +51,7 @@ typedef enum {
  */
 typedef enum {
     ALGORITMO_CONTROL_TEMP_SOLUC = 0,
-    MODO_MANUAL,
+    TEMP_SOLUC_MODO_MANUAL,
 } estado_MEF_principal_control_temp_soluc_t;
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/

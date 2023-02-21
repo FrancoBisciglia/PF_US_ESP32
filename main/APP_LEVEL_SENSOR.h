@@ -24,6 +24,12 @@ extern "C" {
 #define SENSOR_NIVEL_TANQUE_AGUA_MQTT_TOPIC "Sensores de nivel/Tanque agua"
 #define SENSOR_NIVEL_TANQUE_SUSTRATO_MQTT_TOPIC "Sensores de nivel/Tanque sustrato"
 
+#define TEST_LEVEL_TANQUE_PRINCIPAL_TOPIC "/Ensayo/SensorNivel/TanquePrincipal"
+#define TEST_LEVEL_TANQUE_ACIDO_TOPIC "/Ensayo/SensorNivel/TanqueAcido"
+#define TEST_LEVEL_TANQUE_ALCALINO_TOPIC "/Ensayo/SensorNivel/TanqueAlcalino"
+#define TEST_LEVEL_TANQUE_AGUA_TOPIC "/Ensayo/SensorNivel/TanqueAgua"
+#define TEST_LEVEL_TANQUE_SUSTRATO_TOPIC "/Ensayo/SensorNivel/TanqueSustrato"
+
 /* Definición de los pines GPIO a los cuales están conectados los diferentes sensores de nivel. */
 #define GPIO_PIN_LEVEL_SENSOR_TANQUE_PRINCIPAL 5
 #define GPIO_PIN_LEVEL_SENSOR_TANQUE_ACIDO 19

@@ -164,8 +164,9 @@ static void CallbackGetTdsData(void *pvParameters)
     /**
      *  Se obtiene el nuevo dato de TDS de la solución nutritiva.
      */
-    #ifndef DEBUG_FORZAR_VALORES_SENSORES_ALGORITMO_CONTROL_TDS
     TDS_sensor_ppm_t soluc_tds;
+    
+    #ifndef DEBUG_FORZAR_VALORES_SENSORES_ALGORITMO_CONTROL_TDS
     return_status = TDS_getValue(&soluc_tds);
     #else
     mqtt_get_float_data_from_topic(TEST_TDS_VALUE_TOPIC, &soluc_tds);

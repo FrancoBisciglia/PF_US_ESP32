@@ -94,7 +94,7 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
     /**
      * Variable que representa el estado de la MEF de control de las válvulas.
      */
-    static estado_MEF_control_apertura_valvulas_tds_t est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
+    static estado_MEF_control_apertura_valvulas_tds_t est_MEF_control_apertura_valvula_tds = TDS_VALVULA_CERRADA;
 
     /**
      *  Se controla si se debe hacer una transición con reset, caso en el cual se vuelve al estado
@@ -102,7 +102,7 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
      */
     if(mef_tds_reset_transition_flag_valvula_tds)
     {
-        est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
+        est_MEF_control_apertura_valvula_tds = TDS_VALVULA_CERRADA;
 
         mef_tds_reset_transition_flag_valvula_tds = 0;
 
@@ -117,7 +117,7 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
     switch(est_MEF_control_apertura_valvula_tds)
     {
         
-    case VALVULA_CERRADA:
+    case TDS_VALVULA_CERRADA:
 
         /**
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
@@ -132,13 +132,13 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
             set_relay_state(valve_relay_num, ON_TDS);
             ESP_LOGW(mef_tds_tag, "VALVULA ABIERTA");
 
-            est_MEF_control_apertura_valvula_tds = VALVULA_ABIERTA;
+            est_MEF_control_apertura_valvula_tds = TDS_VALVULA_ABIERTA;
         }
 
         break;
 
 
-    case VALVULA_ABIERTA:
+    case TDS_VALVULA_ABIERTA:
 
         /**
          *  Cuando se levante la bandera que indica que se cumplió el timeout del timer, se cambia al estado donde
@@ -153,7 +153,7 @@ void MEFControlAperturaValvulaTDS(int8_t valve_relay_num)
             set_relay_state(valve_relay_num, OFF_TDS);
             ESP_LOGW(mef_tds_tag, "VALVULA CERRADA");
 
-            est_MEF_control_apertura_valvula_tds = VALVULA_CERRADA;
+            est_MEF_control_apertura_valvula_tds = TDS_VALVULA_CERRADA;
         }
 
         break;
@@ -214,7 +214,7 @@ void MEFControlTdsSoluc(void)
          *  Además, el nivel del tanque de aumento de TDS no debe estar por debajo de un cierto límite establecido.
          */
         if( mef_tds_soluc_tds < (mef_tds_limite_inferior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) 
-            && get_relay_state(BOMBA) 
+            && get_relay_state(TDS_BOMBA) 
             && !mef_tds_sensor_error_flag
             && !app_level_sensor_level_below_limit(TANQUE_SUSTRATO))
         {
@@ -241,7 +241,7 @@ void MEFControlTdsSoluc(void)
          *  Además, el nivel del tanque de disminución de TDS no debe estar por debajo de un cierto límite establecido.
          */
         if( mef_tds_soluc_tds > (mef_tds_limite_superior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) 
-            && get_relay_state(BOMBA) 
+            && get_relay_state(TDS_BOMBA) 
             && !mef_tds_sensor_error_flag
             && !app_level_sensor_level_below_limit(TANQUE_AGUA))
         {
@@ -263,7 +263,7 @@ void MEFControlTdsSoluc(void)
          *  Cuando el nivel de TDS sobrepase el límite superior de la ventana de histeresis centrada en el límite inferior
          *  del rango de TDS correcto, se transiciona al estado con las válvulas cerrada. 
          * 
-         *  Además, si en algún momento se apaga la bomba, también se transiciona a dicho estado, ya que el sensor de TDS 
+         *  Además, si en algún momento se apaga la TDS_BOMBA, también se transiciona a dicho estado, ya que el sensor de TDS 
          *  está ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula 
          *  solución por el mismo.
          * 
@@ -273,7 +273,7 @@ void MEFControlTdsSoluc(void)
          *  al estado con las valvulas apagadas.
          */
         if( mef_tds_soluc_tds > (mef_tds_limite_inferior_tds_soluc + (mef_tds_ancho_ventana_hist / 2)) 
-            || !get_relay_state(BOMBA)
+            || !get_relay_state(TDS_BOMBA)
             || mef_tds_sensor_error_flag
             || app_level_sensor_level_below_limit(TANQUE_SUSTRATO))
         {
@@ -292,7 +292,7 @@ void MEFControlTdsSoluc(void)
          *  Cuando el nivel de TDS caiga por debajo del límite inferior de la ventana de histeresis centrada en el límite 
          *  superior del rango de TDS correcto, se transiciona al estado con las válvulas cerrada. 
          * 
-         *  Además, si en algún momento se apaga la bomba, también se transiciona a dicho estado, ya que el sensor de TDS 
+         *  Además, si en algún momento se apaga la TDS_BOMBA, también se transiciona a dicho estado, ya que el sensor de TDS 
          *  está ubicado en el tramo final del canal de cultivos, por lo que solo sensa el valor de TDS cuando circula 
          *  solución por el mismo.
          *  
@@ -302,7 +302,7 @@ void MEFControlTdsSoluc(void)
          *  al estado con las valvulas apagadas.
          */
         if( mef_tds_soluc_tds < (mef_tds_limite_superior_tds_soluc - (mef_tds_ancho_ventana_hist / 2)) 
-            || !get_relay_state(BOMBA) 
+            || !get_relay_state(TDS_BOMBA) 
             || mef_tds_sensor_error_flag
             || app_level_sensor_level_below_limit(TANQUE_AGUA))
         {
@@ -352,7 +352,7 @@ void vTaskSolutionTdsControl(void *pvParameters)
              */
             if(mef_tds_manual_mode_flag)
             {
-                est_MEF_principal = MODO_MANUAL;
+                est_MEF_principal = TDS_MODO_MANUAL;
                 mef_tds_reset_transition_flag_control_tds = 1;
             }
 
@@ -361,7 +361,7 @@ void vTaskSolutionTdsControl(void *pvParameters)
             break;
 
 
-        case MODO_MANUAL:
+        case TDS_MODO_MANUAL:
 
             /**
              *  En caso de que se baje la bandera de modo MANUAL, se debe transicionar nuevamente al estado
@@ -457,7 +457,7 @@ esp_err_t mef_tds_init(esp_mqtt_client_handle_t mqtt_client)
     //=======================| INIT ACTUADORES |=======================//
 
     #ifdef DEBUG_FORZAR_BOMBA
-    set_relay_state(BOMBA, 1);
+    set_relay_state(TDS_BOMBA, 1);
     #endif
 
     /**

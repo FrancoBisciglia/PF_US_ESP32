@@ -31,7 +31,7 @@ extern "C" {
 typedef enum actuadores_control_ph_soluc{
     VALVULA_AUMENTO_PH = RELE_3,
     VALVULA_DISMINUCION_PH = RELE_4,
-    BOMBA = RELE_7,
+    PH_BOMBA = RELE_7,
 };
 
 
@@ -40,8 +40,8 @@ typedef enum actuadores_control_ph_soluc{
  *  de las válvulas de control de pH.
  */
 typedef enum {
-    VALVULA_CERRADA = 0,
-    VALVULA_ABIERTA,
+    PH_VALVULA_CERRADA = 0,
+    PH_VALVULA_ABIERTA,
 } estado_MEF_control_apertura_valvulas_pH_t;
 
 
@@ -60,7 +60,7 @@ typedef enum {
  */
 typedef enum {
     ALGORITMO_CONTROL_PH_SOLUC = 0,
-    MODO_MANUAL,
+    PH_MODO_MANUAL,
 } estado_MEF_principal_control_ph_soluc_t;
 
 /*======================[EXTERNAL DATA DECLARATION]==============================*/

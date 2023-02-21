@@ -126,8 +126,9 @@ void CallbackGetTempSolucData(void *pvParameters)
     /**
      *  Se obtiene el nuevo dato de temperatura de la solución nutritiva.
      */
-    #ifndef DEBUG_FORZAR_VALORES_SENSORES_ALGORITMO_CONTROL_TEMP_SOLUC
     DS18B20_sensor_temp_t temp_soluc;
+    
+    #ifndef DEBUG_FORZAR_VALORES_SENSORES_ALGORITMO_CONTROL_TEMP_SOLUC
     return_status = DS18B20_getTemp(&temp_soluc);
     #else
     mqtt_get_float_data_from_topic(TEST_TEMP_SOLUC_VALUE_TOPIC, &temp_soluc);
