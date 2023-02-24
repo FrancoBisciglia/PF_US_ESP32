@@ -26,6 +26,8 @@
 #include "MEF_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
 
+#include "DEBUG_DEFINITIONS.h"
+
 //==================================| MACROS AND TYPDEF |==================================//
 
 //==================================| INTERNAL DATA DEFINITION |==================================//

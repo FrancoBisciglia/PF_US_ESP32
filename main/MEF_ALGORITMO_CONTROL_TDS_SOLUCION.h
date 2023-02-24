@@ -31,7 +31,7 @@ extern "C" {
 typedef enum actuadores_control_tds_soluc{
     VALVULA_AUMENTO_TDS = RELE_1,
     VALVULA_DISMINUCION_TDS = RELE_2,
-    TDS_BOMBA = RELE_7,
+    TDS_BOMBA = RELE_5,
 };
 
 

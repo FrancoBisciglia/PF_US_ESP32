@@ -25,8 +25,12 @@ extern "C" {
 /**
  *  Definición de los tópicos MQTT a suscribirse o publicar.
  */
-#define NEW_PH_SP_MQTT_TOPIC   "/SP/PhSoluc"
+#define NEW_PH_SP_MQTT_TOPIC   "NodeRed/Sensores de la solucion/pH/SP"
 #define PH_SOLUC_MQTT_TOPIC    "Sensores de solucion/pH"
+
+/**
+ *  NOTA: MODIFICAR EL NOMBRE DE LA CONSTANTE DE MODO MANUAL EN LOS ALGORITMOS PORQUE SON IGUALES
+ */
 #define MANUAL_MODE_MQTT_TOPIC  "/PhSoluc/Modo"
 #define MANUAL_MODE_VALVULA_AUM_PH_STATE_MQTT_TOPIC    "/PhSoluc/Modo_Manual/Valvula_aum_ph"
 #define MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC   "/PhSoluc/Modo_Manual/Valvula_dism_ph"

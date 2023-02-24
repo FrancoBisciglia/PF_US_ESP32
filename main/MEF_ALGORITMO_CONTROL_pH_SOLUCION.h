@@ -31,7 +31,7 @@ extern "C" {
 typedef enum actuadores_control_ph_soluc{
     VALVULA_AUMENTO_PH = RELE_3,
     VALVULA_DISMINUCION_PH = RELE_4,
-    PH_BOMBA = RELE_7,
+    PH_BOMBA = RELE_5,
 };
 
 

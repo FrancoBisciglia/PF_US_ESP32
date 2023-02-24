@@ -27,6 +27,8 @@
 #include "MEF_ALGORITMO_CONTROL_TEMP_SOLUCION.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_TEMP_SOLUCION.h"
 
+#include "DEBUG_DEFINITIONS.h"
+
 //==================================| MACROS AND TYPDEF |==================================//
 
 //==================================| INTERNAL DATA DEFINITION |==================================//
@@ -267,7 +269,7 @@ esp_err_t aux_control_temp_soluc_init(esp_mqtt_client_handle_t mqtt_client)
      *  con las funciones callback correspondientes que serán ejecutadas
      *  al llegar un nuevo dato en el tópico.
      */
-    #ifndef DEBUG_FORZAR_VALORES_SENSORES_ALGORITMO_CONTROL_TEMP_SOLUC
+    #ifdef DEBUG_FORZAR_VALORES_SENSORES_ALGORITMO_CONTROL_TEMP_SOLUC
     mqtt_topic_t list_of_topics[] = {
         [0].topic_name = NEW_TEMP_SP_MQTT_TOPIC,
         [0].topic_function_cb = CallbackNewTempSolucSP,

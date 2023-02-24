@@ -31,11 +31,11 @@ extern "C" {
 #define TEST_LEVEL_TANQUE_SUSTRATO_TOPIC "/Ensayo/SensorNivel/TanqueSustrato"
 
 /* Definición de los pines GPIO a los cuales están conectados los diferentes sensores de nivel. */
-#define GPIO_PIN_LEVEL_SENSOR_TANQUE_PRINCIPAL 5
-#define GPIO_PIN_LEVEL_SENSOR_TANQUE_ACIDO 19
-#define GPIO_PIN_LEVEL_SENSOR_TANQUE_ALCALINO 25
-#define GPIO_PIN_LEVEL_SENSOR_TANQUE_AGUA 26
-#define GPIO_PIN_LEVEL_SENSOR_TANQUE_SUSTRATO 27
+#define GPIO_PIN_LEVEL_SENSOR_TANQUE_PRINCIPAL 25
+#define GPIO_PIN_LEVEL_SENSOR_TANQUE_ACIDO 5
+#define GPIO_PIN_LEVEL_SENSOR_TANQUE_ALCALINO 19
+#define GPIO_PIN_LEVEL_SENSOR_TANQUE_AGUA 27
+#define GPIO_PIN_LEVEL_SENSOR_TANQUE_SUSTRATO 26
 
 /**
  *  Definición del rango de nivel de líquido del tanque considerado como válido.
