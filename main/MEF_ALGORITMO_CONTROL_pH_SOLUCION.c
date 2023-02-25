@@ -51,7 +51,7 @@ static pH_sensor_ph_t mef_ph_limite_superior_ph_soluc = 7;
 /* Ancho de la ventana de histeresis posicionada alrededor de los límites del rango considerado como correcto. */
 static pH_sensor_ph_t mef_ph_ancho_ventana_hist = 0.25;
 /* Delta de pH considerado. */
-static pH_sensor_ph_t mef_ph_delta_ph_soluc = 1;
+static pH_sensor_ph_t mef_ph_delta_ph_soluc = 0.5;
 
 
 /* Tiempos de apertura y cierre de las válvulas de aumento y disminución de pH, en ms. */

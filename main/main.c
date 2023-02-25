@@ -54,18 +54,18 @@ void app_main(void)
         .pass = "yoot7267",
     };
 
-    connect_wifi(&network);
+    // connect_wifi(&network);
 
-    while(!wifi_check_connection()){vTaskDelay(pdMS_TO_TICKS(100));}
+    // while(!wifi_check_connection()){vTaskDelay(pdMS_TO_TICKS(100));}
 
     //=======================| CONEXION MQTT |=======================//
 
     esp_mqtt_client_handle_t Cliente_MQTT = NULL;
 
     // mqtt_initialize_and_connect("mqtt://192.168.100.4:1883", &Cliente_MQTT);
-    mqtt_initialize_and_connect("mqtt://192.168.201.173:1883", &Cliente_MQTT);
+    // mqtt_initialize_and_connect("mqtt://192.168.201.173:1883", &Cliente_MQTT);
 
-    while(!mqtt_check_connection()){vTaskDelay(pdMS_TO_TICKS(100));}
+    // while(!mqtt_check_connection()){vTaskDelay(pdMS_TO_TICKS(100));}
 
     //=======================| INIT ALGORITMO SENSOR LUZ |=======================//
     
