@@ -24,7 +24,7 @@ extern "C" {
  *  Definición de los tópicos MQTT a suscribirse.
  */
 #define NEW_TEMP_SP_MQTT_TOPIC   "NodeRed/Sensores de la solucion/Temperatura/SP"
-#define TEMP_SOLUC_MQTT_TOPIC    "Sensores de solucion/Temperatura"
+#define TEMP_SOLUC_MQTT_TOPIC    "Sensores de la solucion/Temperatura"
 #define MANUAL_MODE_MQTT_TOPIC  "/TempSoluc/Modo"
 #define MANUAL_MODE_REFRIGERADOR_STATE_MQTT_TOPIC    "/TempSoluc/Modo_Manual/Refrigerador"
 #define MANUAL_MODE_CALEFACTOR_STATE_MQTT_TOPIC   "/TempSoluc/Modo_Manual/Calefactor"

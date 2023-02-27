@@ -26,7 +26,7 @@ extern "C" {
  *  Definición de los tópicos MQTT a suscribirse.
  */
 #define NEW_TDS_SP_MQTT_TOPIC   "NodeRed/Sensores de la solucion/TDS/SP"
-#define TDS_SOLUC_MQTT_TOPIC    "Sensores de solucion/TDS"
+#define TDS_SOLUC_MQTT_TOPIC    "Sensores de la solucion/TDS"
 #define MANUAL_MODE_MQTT_TOPIC  "/TdsSoluc/Modo"
 #define MANUAL_MODE_VALVULA_AUM_TDS_STATE_MQTT_TOPIC    "/TdsSoluc/Modo_Manual/Valvula_aum_tds"
 #define MANUAL_MODE_VALVULA_DISM_TDS_STATE_MQTT_TOPIC   "/TdsSoluc/Modo_Manual/Valvula_dism_tds"

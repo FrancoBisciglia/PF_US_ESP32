@@ -26,7 +26,7 @@ extern "C" {
  *  Definición de los tópicos MQTT a suscribirse o publicar.
  */
 #define NEW_PH_SP_MQTT_TOPIC   "NodeRed/Sensores de la solucion/pH/SP"
-#define PH_SOLUC_MQTT_TOPIC    "Sensores de solucion/pH"
+#define PH_SOLUC_MQTT_TOPIC    "Sensores de la solucion/pH"
 
 /**
  *  NOTA: MODIFICAR EL NOMBRE DE LA CONSTANTE DE MODO MANUAL EN LOS ALGORITMOS PORQUE SON IGUALES

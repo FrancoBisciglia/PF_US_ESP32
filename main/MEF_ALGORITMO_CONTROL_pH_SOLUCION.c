@@ -26,6 +26,7 @@
 #include "APP_LEVEL_SENSOR.h"
 #include "AUXILIARES_ALGORITMO_CONTROL_pH_SOLUCION.h"
 #include "MEF_ALGORITMO_CONTROL_pH_SOLUCION.h"
+#include "AUXILIARES_ALGORITMO_CONTROL_BOMBEO_SOLUCION.h"
 
 #include "DEBUG_DEFINITIONS.h"
 
@@ -45,9 +46,9 @@ static esp_mqtt_client_handle_t MefPhClienteMQTT = NULL;
 /* Variable donde se guarda el valor de pH de la solución sensado. */
 static pH_sensor_ph_t mef_ph_soluc_ph = 6;
 /* Límite inferior del rango considerado como correcto en el algoritmo de control de pH. */
-static pH_sensor_ph_t mef_ph_limite_inferior_ph_soluc = 5;
+static pH_sensor_ph_t mef_ph_limite_inferior_ph_soluc = 5.25;
 /* Límite superior del rango considerado como correcto en el algoritmo de control de pH. */
-static pH_sensor_ph_t mef_ph_limite_superior_ph_soluc = 7;
+static pH_sensor_ph_t mef_ph_limite_superior_ph_soluc = 6.75;
 /* Ancho de la ventana de histeresis posicionada alrededor de los límites del rango considerado como correcto. */
 static pH_sensor_ph_t mef_ph_ancho_ventana_hist = 0.25;
 /* Delta de pH considerado. */
@@ -461,6 +462,13 @@ esp_err_t mef_ph_init(esp_mqtt_client_handle_t mqtt_client)
 
     #ifdef DEBUG_FORZAR_BOMBA
     set_relay_state(PH_BOMBA, 1);
+
+    if(mqtt_check_connection())
+    {
+        char buffer[10];
+        snprintf(buffer, sizeof(buffer), "%s", "ON");
+        esp_mqtt_client_publish(MefPhClienteMQTT, PUMP_STATE_MQTT_TOPIC, buffer, 0, 0, 0);
+    }
     #endif
 
     /**
