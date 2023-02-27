@@ -28,7 +28,7 @@ extern "C" {
  */
 #define NEW_PUMP_ON_TIME_MQTT_TOPIC   "/Tiempos/Bomba/Tiempo_encendido"
 #define NEW_PUMP_OFF_TIME_MQTT_TOPIC   "/Tiempos/Bomba/Tiempo_apagado"
-#define MANUAL_MODE_MQTT_TOPIC  "/BombeoSoluc/Modo"
+#define PUMP_MANUAL_MODE_MQTT_TOPIC  "/BombeoSoluc/Modo"
 #define MANUAL_MODE_PUMP_STATE_MQTT_TOPIC    "/BombeoSoluc/Modo_Manual/Bomba"
 #define PUMP_STATE_MQTT_TOPIC   "Actuadores/Bomba"
 

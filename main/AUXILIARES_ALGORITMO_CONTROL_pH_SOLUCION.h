@@ -31,7 +31,7 @@ extern "C" {
 /**
  *  NOTA: MODIFICAR EL NOMBRE DE LA CONSTANTE DE MODO MANUAL EN LOS ALGORITMOS PORQUE SON IGUALES
  */
-#define MANUAL_MODE_MQTT_TOPIC  "/PhSoluc/Modo"
+#define PH_MANUAL_MODE_MQTT_TOPIC  "/PhSoluc/Modo"
 #define MANUAL_MODE_VALVULA_AUM_PH_STATE_MQTT_TOPIC    "/PhSoluc/Modo_Manual/Valvula_aum_ph"
 #define MANUAL_MODE_VALVULA_DISM_PH_STATE_MQTT_TOPIC   "/PhSoluc/Modo_Manual/Valvula_dism_ph"
 

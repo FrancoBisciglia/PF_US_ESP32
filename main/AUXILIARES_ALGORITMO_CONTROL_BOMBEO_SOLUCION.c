@@ -98,7 +98,7 @@ static void CallbackManualMode(void *pvParameters)
      *  Se obtiene el mensaje del tópico de modo MANUAL o AUTO.
      */
     char buffer[10];
-    mqtt_get_char_data_from_topic(MANUAL_MODE_MQTT_TOPIC, buffer);
+    mqtt_get_char_data_from_topic(PUMP_MANUAL_MODE_MQTT_TOPIC, buffer);
 
     /**
      *  Dependiendo si el mensaje fue "MANUAL" o "AUTO", se setea o resetea
@@ -244,7 +244,7 @@ esp_err_t aux_control_bombeo_init(esp_mqtt_client_handle_t mqtt_client)
         [0].topic_function_cb = CallbackNewPumpOnTime,
         [1].topic_name = NEW_PUMP_OFF_TIME_MQTT_TOPIC,
         [1].topic_function_cb = CallbackNewPumpOffTime,
-        [2].topic_name = MANUAL_MODE_MQTT_TOPIC,
+        [2].topic_name = PUMP_MANUAL_MODE_MQTT_TOPIC,
         [2].topic_function_cb = CallbackManualMode,
         [3].topic_name = MANUAL_MODE_PUMP_STATE_MQTT_TOPIC,
         [3].topic_function_cb = CallbackManualModeNewActuatorState,
