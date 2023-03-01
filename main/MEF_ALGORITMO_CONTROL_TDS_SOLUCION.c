@@ -43,15 +43,15 @@ static TaskHandle_t xMefTdsAlgoritmoControlTaskHandle = NULL;
 static esp_mqtt_client_handle_t MefTdsClienteMQTT = NULL;
 
 /* Variable donde se guarda el valor de TDS de la solución sensado en ppm. */
-static TDS_sensor_ppm_t mef_tds_soluc_tds = 500;
+static TDS_sensor_ppm_t mef_tds_soluc_tds = 900;
 /* Límite inferior del rango considerado como correcto en el algoritmo de control de TDS en ppm. */
-static TDS_sensor_ppm_t mef_tds_limite_inferior_tds_soluc = 200;
+static TDS_sensor_ppm_t mef_tds_limite_inferior_tds_soluc = 775;
 /* Límite superior del rango considerado como correcto en el algoritmo de control de TDS en ppm. */
-static TDS_sensor_ppm_t mef_tds_limite_superior_tds_soluc = 1000;
+static TDS_sensor_ppm_t mef_tds_limite_superior_tds_soluc = 1025;
 /* Ancho de la ventana de histeresis posicionada alrededor de los límites del rango considerado como correcto, en ppm. */
-static TDS_sensor_ppm_t mef_tds_ancho_ventana_hist = 100;
+static TDS_sensor_ppm_t mef_tds_ancho_ventana_hist = 50;
 /* Delta de TDS considerado, en ppm. */
-static TDS_sensor_ppm_t mef_tds_delta_tds_soluc = 400;
+static TDS_sensor_ppm_t mef_tds_delta_tds_soluc = 100;
 
 /* Tiempos de apertura y cierre de las válvulas de aumento y disminución de TDS, en ms. */
 static float mef_tds_tiempo_apertura_valvula_TDS = 1000;

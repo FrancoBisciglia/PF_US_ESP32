@@ -378,19 +378,19 @@ esp_err_t app_level_sensor_init(esp_mqtt_client_handle_t mqtt_client)
      *  Se inicializan los sensores de nivel de los 5 tanques de la unidad secundaria.
      */
     sensor_nivel_tanque_principal.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_PRINCIPAL;
-    tanque_principal.height = 20;
+    tanque_principal.height = 25;
 
     sensor_nivel_tanque_acido.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_ACIDO;
-    tanque_acido.height = 20;
+    tanque_acido.height = 25;
 
     sensor_nivel_tanque_alcalino.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_ALCALINO;
-    tanque_alcalino.height = 20;
+    tanque_alcalino.height = 25;
 
     sensor_nivel_tanque_agua.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_AGUA;
-    tanque_agua.height = 20;
+    tanque_agua.height = 25;
 
     sensor_nivel_tanque_sustrato.trigg_echo_pin = GPIO_PIN_LEVEL_SENSOR_TANQUE_SUSTRATO;
-    tanque_sustrato.height = 20;
+    tanque_sustrato.height = 25;
 
     ultrasonic_sensor_init(&sensor_nivel_tanque_principal);
     ultrasonic_sensor_init(&sensor_nivel_tanque_acido);
