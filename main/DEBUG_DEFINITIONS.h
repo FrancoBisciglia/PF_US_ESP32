@@ -26,7 +26,7 @@ extern "C" {
 // #define DEBUG_ALGORITMO_CO2 1
 // #define DEBUG_ALGORITMO_DHT11 1
 #define DEBUG_ALGORITMO_SENSORES_NIVEL 1
-// #define DEBUG_ALGORITMO_CONTROL_BOMBEO_SOLUCION 1
+#define DEBUG_ALGORITMO_CONTROL_BOMBEO_SOLUCION 1
 // #define DEBUG_ALGORITMO_CONTROL_PH 1
 #define DEBUG_ALGORITMO_CONTROL_TDS 1
 // #define DEBUG_ALGORITMO_CONTROL_TEMPERATURA_SOLUCION 1
@@ -73,7 +73,7 @@ extern "C" {
  *  -MEF_ALGORITMO_CONTROL_TDS_SOLUCION.c       
  * 
  */
-#define DEBUG_FORZAR_BOMBA 1
+// #define DEBUG_FORZAR_BOMBA 1
 
 /**
  *  Constantes de debug para seleccionar la constante de conversión de tiempo para el

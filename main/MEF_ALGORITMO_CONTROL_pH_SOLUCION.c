@@ -46,9 +46,9 @@ static esp_mqtt_client_handle_t MefPhClienteMQTT = NULL;
 /* Variable donde se guarda el valor de pH de la solución sensado. */
 static pH_sensor_ph_t mef_ph_soluc_ph = 6;
 /* Límite inferior del rango considerado como correcto en el algoritmo de control de pH. */
-static pH_sensor_ph_t mef_ph_limite_inferior_ph_soluc = 5.25;
+static pH_sensor_ph_t mef_ph_limite_inferior_ph_soluc = 5.5;
 /* Límite superior del rango considerado como correcto en el algoritmo de control de pH. */
-static pH_sensor_ph_t mef_ph_limite_superior_ph_soluc = 6.75;
+static pH_sensor_ph_t mef_ph_limite_superior_ph_soluc = 6.5;
 /* Ancho de la ventana de histeresis posicionada alrededor de los límites del rango considerado como correcto. */
 static pH_sensor_ph_t mef_ph_ancho_ventana_hist = 0.25;
 /* Delta de pH considerado. */

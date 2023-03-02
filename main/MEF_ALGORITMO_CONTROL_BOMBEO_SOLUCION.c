@@ -191,7 +191,7 @@ void MEFControlBombeoSoluc(void)
          *  del sensor de nivel se cambia al estado donde se enciende la bomba, y se carga en el timer el tiempo de 
          *  encendido de la bomba.
          */
-        #ifdef DEBUG_SENSOR_NIVEL_TANQUE_PRINCIPAL
+        #if defined(DEBUG_SENSOR_NIVEL_TANQUE_PRINCIPAL) || defined(DEBUG_FORZAR_VALORES_SENSORES_APP_LEVEL_SENSOR) 
         if( mef_bombeo_timer_finished_flag 
             && !app_level_sensor_level_below_limit(TANQUE_PRINCIPAL)
             && !app_level_sensor_error_sensor_detected(TANQUE_PRINCIPAL))
@@ -265,7 +265,7 @@ void MEFControlBombeoSoluc(void)
          *  a la espera de la reposición. Lo mismo si se detecta error de sensado en el sensor de nivel del
          *  tanque principal.
          */
-        #ifdef DEBUG_SENSOR_NIVEL_TANQUE_PRINCIPAL
+        #if defined(DEBUG_SENSOR_NIVEL_TANQUE_PRINCIPAL) || defined(DEBUG_FORZAR_VALORES_SENSORES_APP_LEVEL_SENSOR)
         if( mef_bombeo_timer_finished_flag
             || app_level_sensor_level_below_limit(TANQUE_PRINCIPAL)
             || app_level_sensor_error_sensor_detected(TANQUE_PRINCIPAL))

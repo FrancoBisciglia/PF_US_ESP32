@@ -45,9 +45,9 @@ static esp_mqtt_client_handle_t MefTdsClienteMQTT = NULL;
 /* Variable donde se guarda el valor de TDS de la solución sensado en ppm. */
 static TDS_sensor_ppm_t mef_tds_soluc_tds = 900;
 /* Límite inferior del rango considerado como correcto en el algoritmo de control de TDS en ppm. */
-static TDS_sensor_ppm_t mef_tds_limite_inferior_tds_soluc = 775;
+static TDS_sensor_ppm_t mef_tds_limite_inferior_tds_soluc = 800;
 /* Límite superior del rango considerado como correcto en el algoritmo de control de TDS en ppm. */
-static TDS_sensor_ppm_t mef_tds_limite_superior_tds_soluc = 1025;
+static TDS_sensor_ppm_t mef_tds_limite_superior_tds_soluc = 1000;
 /* Ancho de la ventana de histeresis posicionada alrededor de los límites del rango considerado como correcto, en ppm. */
 static TDS_sensor_ppm_t mef_tds_ancho_ventana_hist = 50;
 /* Delta de TDS considerado, en ppm. */

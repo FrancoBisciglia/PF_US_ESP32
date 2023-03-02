@@ -43,9 +43,9 @@ static esp_mqtt_client_handle_t MefTempSolucClienteMQTT = NULL;
 /* Variable donde se guarda el valor de la temperatura de la solución sensada en °C. */
 static DS18B20_sensor_temp_t mef_temp_soluc_temp = 25;
 /* Límite inferior del rango considerado como correcto en el algoritmo de control de la temperatura de la solución en °C. */
-static DS18B20_sensor_temp_t mef_temp_soluc_limite_inferior_temp_soluc = 18;
+static DS18B20_sensor_temp_t mef_temp_soluc_limite_inferior_temp_soluc = 23;
 /* Límite superior del rango considerado como correcto en el algoritmo de control de la temperatura de la solución en °C. */
-static DS18B20_sensor_temp_t mef_temp_soluc_limite_superior_temp_soluc = 28;
+static DS18B20_sensor_temp_t mef_temp_soluc_limite_superior_temp_soluc = 27;
 /* Ancho de la ventana de histeresis posicionada alrededor de los límites del rango considerado como correcto, en °C. */
 static DS18B20_sensor_temp_t mef_temp_soluc_ancho_ventana_hist = 1;
 /* Delta de temperatura considerado, en °C. */
