@@ -19,7 +19,7 @@ extern "C" {
 
 /*==================[DEFINES AND MACROS]=====================================*/
 
-#define DHT11_MEASURE_ERROR -200 
+#define DHT11_MEASURE_ERROR -2 
 
 typedef gpio_num_t DHT11_sensor_data_pin_t;
 typedef float DHT11_sensor_temp_t;

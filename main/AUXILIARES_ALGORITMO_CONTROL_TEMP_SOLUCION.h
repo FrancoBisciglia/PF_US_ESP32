@@ -40,7 +40,7 @@ extern "C" {
 #define LIMITE_SUPERIOR_RANGO_VALIDO_TEMPERATURA_SOLUC 40
 
 /* Código de error que se carga en el valor de temperatura de la solución al detectar un error de sensado. */
-#define CODIGO_ERROR_SENSOR_TEMPERATURA_SOLUC -10
+#define CODIGO_ERROR_SENSOR_TEMPERATURA_SOLUC -2
 
 /* Definición del pin GPIO al cual está conectado el sensor DS18B20. */
 #define GPIO_PIN_CO2_SENSOR 18

@@ -22,7 +22,7 @@ extern "C" {
 #define LIMITE_SUPERIOR_RANGO_VALIDO_CO2    5000
 
 /* Código de error que se carga en el valor de CO2 al detectar un error de sensado. */
-#define CODIGO_ERROR_SENSOR_CO2 -300
+#define CODIGO_ERROR_SENSOR_CO2 -5
 
 /**
  *  Definición de los tópicos MQTT a suscribirse o publicar.

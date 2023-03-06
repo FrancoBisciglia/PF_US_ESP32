@@ -23,7 +23,7 @@ extern "C" {
  *  Código de error que se le carga al nivel de CO2 si se detecta algun error
  *  en el proceso de sensado.
  */
-#define CO2_SENSOR_MEASURE_ERROR -300 
+#define CO2_SENSOR_MEASURE_ERROR -5 
 
 typedef gpio_num_t CO2_sensor_pwm_pin_t;
 typedef float CO2_sensor_ppm_t;

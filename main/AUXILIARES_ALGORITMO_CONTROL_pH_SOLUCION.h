@@ -44,7 +44,7 @@ extern "C" {
 #define LIMITE_SUPERIOR_RANGO_VALIDO_PH 10
 
 /* Código de error que se carga en el valor de pH al detectar un error de sensado. */
-#define CODIGO_ERROR_SENSOR_PH -10
+#define CODIGO_ERROR_SENSOR_PH -2
 
 /* Canal del ADC1 en el cual está conectado el sensor de pH. */
 #define ADC1_CH_PH_SENSOR ADC1_CHANNEL_0

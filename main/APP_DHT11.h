@@ -27,9 +27,9 @@ extern "C" {
 #define LIMITE_SUPERIOR_RANGO_VALIDO_HUM_AMB    100
 
 /* Código de error que se carga en el valor de temperatura al detectar un error de sensado. */
-#define CODIGO_ERROR_SENSOR_DHT11_TEMP_AMB -300
+#define CODIGO_ERROR_SENSOR_DHT11_TEMP_AMB -5
 /* Código de error que se carga en el valor de humedad relativa al detectar un error de sensado. */
-#define CODIGO_ERROR_SENSOR_DHT11_HUM_AMB -400
+#define CODIGO_ERROR_SENSOR_DHT11_HUM_AMB -6
 
 /**
  *  Definición de los tópicos MQTT a suscribirse o publicar.
