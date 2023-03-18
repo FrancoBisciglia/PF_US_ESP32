@@ -1,1 +1,1 @@
-En el presente repositorio, se encuentra el código correspondiente al programa que corre el microcontrolador de la Unidad Principal (ESP32), junto con todas las librerías/drivers que el mismo utiliza para el manejo de sensores/actuadores/ICs.
+En el presente repositorio, se encuentra el código correspondiente al programa que corre el microcontrolador de la Unidad Secundaria (ESP32), junto con todas las librerías/drivers que el mismo utiliza para el manejo de sensores/actuadores/ICs.
